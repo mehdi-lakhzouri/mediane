@@ -59,6 +59,15 @@
   --sx-hero-filter: saturate(0.88) brightness(1.02);
   --sx-recovery-image: url("/cabinguard-recovery-bg.webp");
   --sx-recovery-filter: saturate(0.92) brightness(1.02);
+  --sx-mfa-image: url("/cabinguard-mfa-bg.png");
+  --sx-mfa-filter: saturate(0.76) brightness(1.28) contrast(0.88);
+
+  --mfa-surface: rgba(255, 255, 255, 0.92);
+  --mfa-surface-soft: rgba(240, 249, 255, 0.72);
+  --mfa-card-border: rgba(93, 172, 220, 0.5);
+  --mfa-track: rgba(90, 133, 164, 0.18);
+  --mfa-slot-border: #a7c8da;
+  --mfa-code-bg: rgba(255, 255, 255, 0.78);
 
   /* Light/dark-only decorative swaps (see .sx-sun-only / .sx-moon-only below). */
   --sx-sun-display: inline;
@@ -112,6 +121,14 @@
   --sx-hero-image: url("/cabinguard-hero.png");
   --sx-hero-filter: saturate(0.94) brightness(0.82);
   --sx-recovery-filter: saturate(0.82) brightness(0.32) contrast(1.08);
+  --sx-mfa-filter: saturate(0.88) brightness(0.55) contrast(1.05);
+
+  --mfa-surface: rgba(5, 25, 44, 0.94);
+  --mfa-surface-soft: rgba(20, 55, 82, 0.55);
+  --mfa-card-border: rgba(54, 143, 207, 0.58);
+  --mfa-track: rgba(133, 181, 216, 0.18);
+  --mfa-slot-border: #345c78;
+  --mfa-code-bg: rgba(11, 40, 64, 0.78);
 
   --sx-sun-display: none;
   --sx-moon-display: inline;
@@ -493,6 +510,408 @@ label[for] {
   }
 }
 
+/* --- MFA setup ------------------------------------------------------------
+   The generated artwork is decorative. Setup content remains semantic and
+   high-contrast, with all ambient motion disabled when the user requests it.
+---------------------------------------------------------------------------- */
+.mfa-canvas {
+  background: #061a2e;
+}
+
+.mfa-background {
+  position: fixed;
+  inset: -3%;
+  background-image: var(--sx-mfa-image);
+  background-position: center;
+  background-size: cover;
+  filter: var(--sx-mfa-filter);
+  transform: scale(1.045);
+  animation: mfa-background-breathe 18s ease-in-out infinite alternate;
+  transition: filter 0.35s ease;
+}
+
+.mfa-shade {
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(231, 246, 255, 0.78),
+      rgba(233, 247, 255, 0.28) 48%,
+      rgba(224, 242, 253, 0.5)
+    ),
+    linear-gradient(
+      180deg,
+      rgba(241, 250, 255, 0.26),
+      rgba(213, 236, 250, 0.62)
+    );
+  transition: background 0.35s ease;
+}
+
+:root[data-theme="dark"] .mfa-shade {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(1, 12, 25, 0.62),
+      rgba(1, 12, 25, 0.18) 48%,
+      rgba(1, 12, 25, 0.46)
+    ),
+    linear-gradient(180deg, rgba(1, 10, 22, 0.16), rgba(1, 9, 19, 0.68));
+}
+
+.mfa-glow {
+  position: fixed;
+  z-index: 1;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(10px);
+}
+
+.mfa-glow-one {
+  top: 14%;
+  left: 8%;
+  width: 12px;
+  height: 12px;
+  background: #56d9ff;
+  box-shadow: 0 0 55px 22px rgba(86, 217, 255, 0.22);
+  animation: mfa-orbit 7s ease-in-out infinite;
+}
+
+.mfa-glow-two {
+  right: 8%;
+  bottom: 18%;
+  width: 9px;
+  height: 9px;
+  background: #6084ff;
+  box-shadow: 0 0 48px 20px rgba(96, 132, 255, 0.2);
+  animation: mfa-orbit 8.5s 0.8s ease-in-out infinite reverse;
+}
+
+.mfa-side-panel {
+  border: 1px solid rgba(124, 204, 255, 0.18);
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(47, 173, 242, 0.2),
+      transparent 36%
+    ),
+    linear-gradient(155deg, rgba(5, 35, 62, 0.84), rgba(1, 15, 30, 0.92));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 28px 90px rgba(1, 12, 27, 0.38);
+  backdrop-filter: blur(25px) saturate(1.08);
+}
+
+.mfa-card {
+  border: 1px solid var(--mfa-card-border);
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(190, 232, 255, 0.38),
+      transparent 34%
+    ),
+    var(--mfa-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 32px 100px rgba(3, 25, 48, 0.28),
+    0 0 70px rgba(38, 168, 238, 0.1);
+  backdrop-filter: blur(32px) saturate(1.12);
+  transition:
+    background 0.35s ease,
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
+}
+
+:root[data-theme="dark"] .mfa-card {
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(50, 151, 221, 0.18),
+      transparent 35%
+    ),
+    var(--mfa-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(190, 225, 255, 0.12),
+    0 32px 100px rgba(0, 5, 14, 0.58),
+    0 0 70px rgba(0, 111, 207, 0.1);
+}
+
+.mfa-eyebrow {
+  color: var(--sx-accent);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.mfa-step-icon {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.52);
+  background: rgba(255, 255, 255, 0.06);
+  transition: 0.35s ease;
+}
+
+.mfa-step-icon.is-active {
+  border-color: rgba(91, 211, 255, 0.52);
+  color: #92e6ff;
+  background: rgba(37, 171, 238, 0.18);
+  box-shadow: 0 0 24px rgba(45, 185, 245, 0.16);
+}
+
+.mfa-step-icon.is-complete {
+  border-color: rgba(72, 220, 173, 0.36);
+  color: #8bf0cd;
+  background: rgba(38, 171, 129, 0.14);
+}
+
+.mfa-step-line {
+  position: absolute;
+  z-index: 1;
+  top: 38px;
+  bottom: 0;
+  left: 18px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  transition: background 0.35s ease;
+}
+
+.mfa-step-line.is-complete {
+  background: linear-gradient(#55d9ae, rgba(85, 217, 174, 0.22));
+}
+
+.mfa-icon {
+  color: var(--sx-badge-icon);
+  border: 1px solid var(--sx-badge-border);
+  background: var(--sx-badge-bg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 12px 34px rgba(25, 120, 180, 0.2);
+}
+
+.mfa-qr-shell {
+  position: relative;
+  border: 1px solid rgba(64, 172, 235, 0.42);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.96),
+    rgba(222, 243, 255, 0.9)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.98),
+    0 20px 50px rgba(17, 99, 153, 0.2),
+    0 0 42px rgba(42, 191, 250, 0.12);
+}
+
+:root[data-theme="dark"] .mfa-qr-shell {
+  border-color: rgba(72, 180, 246, 0.48);
+  background: linear-gradient(
+    145deg,
+    rgba(31, 81, 117, 0.74),
+    rgba(7, 33, 55, 0.86)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 20px 50px rgba(0, 5, 14, 0.42),
+    0 0 42px rgba(29, 151, 233, 0.12);
+}
+
+.mfa-qr-scan {
+  position: absolute;
+  right: 10px;
+  left: 10px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #25bfff 18%,
+    #2687ff 82%,
+    transparent
+  );
+  box-shadow: 0 0 12px rgba(37, 191, 255, 0.62);
+  animation: mfa-qr-scan 3.2s ease-in-out infinite;
+}
+
+.mfa-secret,
+.mfa-tip {
+  border: 1px solid color-mix(in srgb, var(--sx-border) 78%, transparent);
+  background: var(--mfa-surface-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.mfa-primary {
+  display: flex;
+  min-height: 56px;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  border-radius: 1rem;
+  background: linear-gradient(180deg, #47c5ff 0%, #1d92fa 52%, #267bf0 100%);
+  padding: 0.75rem 1.25rem;
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  text-align: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    0 10px 30px rgba(0, 131, 255, 0.28);
+  transition:
+    background 0.25s ease,
+    box-shadow 0.25s ease,
+    opacity 0.2s ease;
+}
+
+.mfa-primary:hover {
+  background: linear-gradient(180deg, #67d1ff 0%, #29a4ff 52%, #388afa 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 14px 36px rgba(0, 143, 255, 0.36);
+}
+
+.mfa-primary:focus-visible {
+  outline: 3px solid rgba(48, 181, 255, 0.45);
+  outline-offset: 3px;
+}
+
+.mfa-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.54;
+}
+
+.mfa-code-group {
+  width: 100%;
+}
+
+.mfa-code-slot {
+  position: relative;
+  display: grid;
+  width: clamp(42px, 9vw, 58px);
+  height: clamp(52px, 11vw, 66px);
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--mfa-slot-border);
+  border-radius: 14px;
+  background: var(--mfa-code-bg);
+  color: var(--sx-ink);
+  font-size: clamp(1.35rem, 4vw, 1.75rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34);
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.mfa-code-slot.is-active {
+  z-index: 2;
+  border-color: #2cb7ff;
+  box-shadow:
+    0 0 0 4px rgba(17, 150, 255, 0.12),
+    inset 0 0 20px rgba(14, 108, 183, 0.05);
+}
+
+.mfa-code-slot.has-error {
+  border-color: var(--sx-error-border);
+  background: var(--sx-error-bg);
+  color: var(--sx-error-text);
+}
+
+.mfa-code-caret {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.5px;
+  height: 1.65rem;
+  transform: translate(-50%, -50%);
+  background: var(--sx-accent);
+  animation: mfa-caret-blink 1s step-end infinite;
+}
+
+.mfa-success-ring {
+  border: 1px solid rgba(47, 207, 155, 0.3);
+  background: rgba(47, 207, 155, 0.08);
+  box-shadow: 0 0 55px rgba(47, 207, 155, 0.2);
+}
+
+.mfa-success-icon {
+  border: 1px solid rgba(49, 198, 149, 0.5);
+  color: #16966c;
+  background: linear-gradient(
+    145deg,
+    rgba(232, 255, 247, 0.98),
+    rgba(190, 243, 224, 0.9)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 18px 48px rgba(23, 151, 108, 0.22);
+}
+
+:root[data-theme="dark"] .mfa-success-icon {
+  color: #8bf0cd;
+  background: linear-gradient(
+    145deg,
+    rgba(31, 113, 88, 0.72),
+    rgba(9, 51, 42, 0.9)
+  );
+}
+
+@keyframes mfa-background-breathe {
+  from {
+    transform: scale(1.045) translate3d(-0.25%, -0.15%, 0);
+  }
+  to {
+    transform: scale(1.075) translate3d(0.35%, 0.2%, 0);
+  }
+}
+
+@keyframes mfa-orbit {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.42;
+  }
+  50% {
+    transform: translate3d(8px, -22px, 0) scale(1.2);
+    opacity: 0.82;
+  }
+}
+
+@keyframes mfa-qr-scan {
+  0%,
+  100% {
+    top: 12px;
+    opacity: 0;
+  }
+  14%,
+  86% {
+    opacity: 0.82;
+  }
+  50% {
+    top: calc(100% - 14px);
+  }
+}
+
+@keyframes mfa-caret-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  46%,
+  100% {
+    opacity: 0;
+  }
+}
+
 /* --- Dashboard canvas -------------------------------------------------------
    The sign-in route paints its own light canvas. Dashboard routes tag their
    root with `.cg-dash`, which repaints the whole
@@ -576,6 +995,15 @@ body:has(.cg-dash) {
   .recovery-orb {
     display: none;
   }
+
+  .mfa-background {
+    background-position: 64% center;
+    transform: scale(1.1);
+  }
+
+  .mfa-glow {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -594,6 +1022,9 @@ body:has(.cg-dash) {
   .recovery-background,
   .recovery-shade,
   .recovery-orb,
+  .mfa-background,
+  .mfa-shade,
+  .mfa-glow,
   .glass-panel,
   .feature-glass,
   .input-shell {
@@ -601,7 +1032,11 @@ body:has(.cg-dash) {
   }
 
   .recovery-background,
-  .recovery-orb {
+  .recovery-orb,
+  .mfa-background,
+  .mfa-glow,
+  .mfa-qr-scan,
+  .mfa-code-caret {
     animation: none !important;
   }
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Construction, type LucideIcon } from "lucide-react";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { Card } from "@repo/ui/components/ui/card";
@@ -6,6 +7,8 @@ interface SectionPlaceholderProps {
   title: string;
   description: string;
   icon?: LucideIcon;
+  actionHref?: string;
+  actionLabel?: string;
 }
 
 /** Shown for sections whose APIs are not built yet. */
@@ -13,6 +16,8 @@ export function SectionPlaceholder({
   title,
   description,
   icon: Icon = Construction,
+  actionHref,
+  actionLabel,
 }: SectionPlaceholderProps) {
   return (
     <Card className="min-h-[380px] items-center justify-center p-8 text-center">
@@ -29,6 +34,14 @@ export function SectionPlaceholder({
         <Badge variant="warning" className="mt-5">
           In development
         </Badge>
+        {actionHref && actionLabel ? (
+          <Link
+            href={actionHref}
+            className="mt-5 flex min-h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            {actionLabel}
+          </Link>
+        ) : null}
       </div>
     </Card>
   );
