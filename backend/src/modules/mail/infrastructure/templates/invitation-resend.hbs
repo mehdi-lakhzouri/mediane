@@ -1,0 +1,144 @@
+<html lang='fr'>
+  <head>
+    <meta charset='utf-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1' />
+    <meta name='color-scheme' content='light' />
+    <title>Nouvelle invitation CabinGuard</title>
+    <style>
+      @media only screen and (max-width: 640px) {
+        .email-shell {
+          width: 100% !important;
+        }
+        .email-pad {
+          padding-right: 24px !important;
+          padding-left: 24px !important;
+        }
+        .email-title {
+          font-size: 28px !important;
+          line-height: 34px !important;
+        }
+        .email-button {
+          display: block !important;
+        }
+      }
+    </style>
+  </head>
+  <body
+    style='margin: 0; padding: 0; background: #eef5fa; color: #102a43; font-family: Arial, Helvetica, sans-serif;'
+  >
+    <div
+      style='display: none; max-height: 0; overflow: hidden; opacity: 0;'
+    >Votre nouvelle invitation sécurisée remplace la précédente.</div>
+    <table
+      role='presentation'
+      width='100%'
+      cellspacing='0'
+      cellpadding='0'
+      border='0'
+      style='width: 100%; background: #eef5fa;'
+    ><tr><td align='center' style='padding: 32px 12px;'>
+          <table
+            class='email-shell'
+            role='presentation'
+            width='600'
+            cellspacing='0'
+            cellpadding='0'
+            border='0'
+            style='width: 600px; max-width: 600px; overflow: hidden; border: 1px solid #d8e8f3; border-radius: 24px; background: #ffffff; box-shadow: 0 18px 55px rgba(35, 91, 130, 0.12);'
+          >
+            <tr><td style='padding: 0; line-height: 0;'><img
+                  src='cid:cabinguard-email-banner@cabinguard'
+                  width='600'
+                  alt=''
+                  style='display: block; width: 100%; height: auto; border: 0; border-radius: 23px 23px 0 0;'
+                /></td></tr>
+            <tr><td class='email-pad' style='padding: 28px 42px 12px;'><table
+                  role='presentation'
+                  width='100%'
+                  cellspacing='0'
+                  cellpadding='0'
+                  border='0'
+                ><tr><td><table
+                        role='presentation'
+                        cellspacing='0'
+                        cellpadding='0'
+                        border='0'
+                      ><tr><td
+                            align='center'
+                            width='46'
+                            height='46'
+                            style='width: 46px; height: 46px; border-radius: 14px; background: #eaf5ff; color: #087fcf; font-size: 15px; font-weight: 800;'
+                          >CG</td><td
+                            style='padding-left: 12px; color: #102a43; font-size: 22px; font-weight: 800; letter-spacing: -0.7px;'
+                          >Cabin<span
+                              style='color: #168eee;'
+                            >Guard</span></td></tr></table></td><td
+                      align='right'
+                      style='color: #087fcf; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;'
+                    >Nouvelle invitation</td></tr></table></td></tr>
+            <tr><td class='email-pad' style='padding: 22px 42px 38px;'>
+                <h1
+                  class='email-title'
+                  style='margin: 0; color: #102a43; font-size: 34px; line-height: 40px; letter-spacing: -1.2px;'
+                >Rebonjour, {{firstName}}.</h1>
+                <p
+                  style='margin: 14px 0 0; color: #5c7188; font-size: 16px; line-height: 26px;'
+                >Une nouvelle invitation CabinGuard a été créée pour vous. Tous
+                  les anciens liens et mots de passe temporaires sont désormais
+                  invalides.</p>
+                <div
+                  style='margin-top: 24px; padding: 16px 18px; border-left: 3px solid #31baff; border-radius: 8px; background: #eef8fe; color: #526f87; font-size: 13px; line-height: 20px;'
+                ><strong style='color: #27445d;'>Utilisez uniquement les
+                    informations ci-dessous.</strong><br />Ce nouvel accès
+                  remplace intégralement le précédent.</div>
+                <table
+                  role='presentation'
+                  width='100%'
+                  cellspacing='0'
+                  cellpadding='0'
+                  border='0'
+                  style='margin-top: 22px;'
+                ><tr><td
+                      align='center'
+                      bgcolor='#1d92fa'
+                      style='border-radius: 14px; background: #1d92fa; box-shadow: 0 9px 24px rgba(29, 146, 250, 0.24);'
+                    ><a
+                        class='email-button'
+                        href='{{acceptUrl}}'
+                        style='display: inline-block; padding: 17px 28px; color: #ffffff; font-size: 16px; font-weight: 700; text-decoration: none;'
+                      >Accepter la nouvelle invitation →</a></td></tr></table>
+                <table
+                  role='presentation'
+                  width='100%'
+                  cellspacing='0'
+                  cellpadding='0'
+                  border='0'
+                  style='margin-top: 22px; border: 1px solid #d9e8f3; border-radius: 16px; background: #f7fbfe;'
+                ><tr><td
+                      style='padding: 18px; color: #27445d; font-size: 14px; line-height: 22px;'
+                    ><strong style='color: #102a43;'>Nouveau mot de passe
+                        temporaire</strong><br /><span
+                        style="display: inline-block; margin-top: 10px; padding: 10px 14px; border: 1px solid #c8dcec; border-radius: 10px; background: #ffffff; color: #102a43; font-family: 'Courier New', monospace; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;"
+                      >{{temporaryPassword}}</span></td></tr></table>
+                <p
+                  style='margin: 22px 0 0; color: #5c7188; font-size: 13px; line-height: 21px;'
+                >Cette invitation expire le
+                  <strong style='color: #27445d;'>{{expiresAt}}</strong>. Après
+                  activation, connectez-vous avec le mot de passe ci-dessus,
+                  puis choisissez le vôtre.</p>
+                <p
+                  style='margin: 24px 0 0; color: #8299aa; font-size: 11px; line-height: 17px; word-break: break-all;'
+                >Le bouton ne fonctionne pas ? Copiez ce lien :<br /><a
+                    href='{{acceptUrl}}'
+                    style='color: #087fcf; text-decoration: underline;'
+                  >{{acceptUrl}}</a></p>
+              </td></tr>
+            <tr><td
+                align='center'
+                style='padding: 20px 28px 24px; border-top: 1px solid #e3edf4; color: #8299aa; font-size: 11px; line-height: 18px;'
+              >© CabinGuard · Si vous n’attendiez pas cet email, ignorez-le
+                simplement.</td></tr>
+          </table>
+        </td></tr></table>
+  </body>
+</html>
