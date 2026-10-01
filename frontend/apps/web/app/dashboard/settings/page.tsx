@@ -7,6 +7,8 @@ export default function SettingsPage() {
       icon={Settings}
       title="Settings"
       description="Account and workspace preferences will live here. Password and security settings will connect to the existing auth endpoints."
+      actionHref="/mfa/setup"
+      actionLabel="Preview MFA setup"
     />
   );
 }
