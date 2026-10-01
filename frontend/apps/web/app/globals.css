@@ -1,0 +1,607 @@
+@import "@repo/ui/globals.css";
+
+/* -----------------------------------------------------------------------
+   Sign-in canvas tokens (light default, dark override below).
+   Prefixed `--sx-*` and scoped to this file on purpose: @repo/ui already owns
+   --background/--foreground/--muted/--border/--accent for the dashboard, and
+   this block loads after its import, so a shared name here would silently
+   win app-wide. Toggled via `[data-theme="dark"]` on <html> — a dedicated
+   attribute, not the dashboard's `.dark` class, so the two systems can never
+   collide: a visitor toggling here never touches dashboard theming, and vice
+   versa. Used only by the sign-in screen and the invitation-acceptance page
+   (the only two routes that render outside the dashboard shell).
+----------------------------------------------------------------------- */
+:root {
+  --sx-page-bg: #eaf5fb;
+
+  --sx-ink: #102a43; /* headings, typed input text, wordmark */
+  --sx-body: #5c7188; /* paragraphs: subtitle, description */
+  --sx-label: #27445d; /* form labels, checkbox caption */
+  --sx-muted: #6d8497; /* secondary caption text */
+  --sx-eyebrow: #526f87; /* uppercase tagline / small caps */
+  --sx-placeholder: #8299aa;
+
+  --sx-icon-muted: #6689a2; /* input icons */
+  --sx-icon-soft: #4e829f; /* footer shield, feature-card arrow */
+
+  --sx-border: #a8c6d8; /* input border */
+  --sx-divider: rgba(43, 86, 117, 0.22); /* footer rule */
+  --sx-divider-soft: rgba(43, 86, 117, 0.3); /* hero dividers */
+
+  --sx-accent: #087fcf; /* links, hero accent word */
+  --sx-accent-hover: #05629f;
+
+  --sx-input-bg: rgba(255, 255, 255, 0.7);
+  --sx-icon-hover-bg: #dbeefa;
+  --sx-icon-hover-fg: #176da5;
+
+  --sx-check-border: #168bd7;
+  --sx-check-bg: #238fd4;
+  --sx-check-off-border: #9ebdce;
+  --sx-check-off-bg: rgba(255, 255, 255, 0.65);
+
+  --sx-error-border: #e9a1ab;
+  --sx-error-bg: #fff1f3;
+  --sx-error-text: #a7283b;
+  --sx-success-border: #7dceb2;
+  --sx-success-bg: #ecfbf5;
+  --sx-success-text: #176b50;
+
+  --sx-badge-border: #77bce6;
+  --sx-badge-bg: radial-gradient(
+    circle at 50% 35%,
+    rgba(255, 255, 255, 0.96),
+    rgba(202, 235, 251, 0.82)
+  );
+  --sx-badge-icon: #147fca;
+
+  --sx-hero-image: url("/cabinguard-hero-light.png");
+  --sx-hero-filter: saturate(0.88) brightness(1.02);
+  --sx-recovery-image: url("/cabinguard-recovery-bg.webp");
+  --sx-recovery-filter: saturate(0.92) brightness(1.02);
+
+  /* Light/dark-only decorative swaps (see .sx-sun-only / .sx-moon-only below). */
+  --sx-sun-display: inline;
+  --sx-moon-display: none;
+}
+
+:root[data-theme="dark"] {
+  --sx-page-bg: #020d19;
+
+  --sx-ink: #eaf4ff;
+  --sx-body: #a9bed7;
+  --sx-label: #d7e6f2;
+  --sx-muted: #8ca2bd;
+  --sx-eyebrow: #7f9abb;
+  --sx-placeholder: #5c7a92;
+
+  --sx-icon-muted: #7fa3bf;
+  --sx-icon-soft: #a8caea;
+
+  --sx-border: #355872;
+  --sx-divider: rgba(255, 255, 255, 0.14);
+  --sx-divider-soft: rgba(255, 255, 255, 0.16);
+
+  --sx-accent: #34c5ff;
+  --sx-accent-hover: #79dcff;
+
+  --sx-input-bg: rgba(16, 42, 67, 0.6);
+  --sx-icon-hover-bg: rgba(255, 255, 255, 0.08);
+  --sx-icon-hover-fg: #eaf4ff;
+
+  --sx-check-border: #34c5ff;
+  --sx-check-bg: #1d92fa;
+  --sx-check-off-border: #4a6a82;
+  --sx-check-off-bg: rgba(255, 255, 255, 0.04);
+
+  --sx-error-border: rgba(255, 107, 125, 0.4);
+  --sx-error-bg: rgba(58, 15, 28, 0.6);
+  --sx-error-text: #ffc7cf;
+  --sx-success-border: rgba(63, 214, 160, 0.4);
+  --sx-success-bg: rgba(11, 51, 39, 0.6);
+  --sx-success-text: #bff5e2;
+
+  --sx-badge-border: #1c79d3;
+  --sx-badge-bg: radial-gradient(
+    circle at 50% 35%,
+    rgba(79, 164, 235, 0.28),
+    rgba(4, 29, 55, 0.76)
+  );
+  --sx-badge-icon: #b9dcff;
+
+  --sx-hero-image: url("/cabinguard-hero.png");
+  --sx-hero-filter: saturate(0.94) brightness(0.82);
+  --sx-recovery-filter: saturate(0.82) brightness(0.32) contrast(1.08);
+
+  --sx-sun-display: none;
+  --sx-moon-display: inline;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--sx-page-bg);
+}
+
+body {
+  color: var(--sx-ink);
+  font-family: var(--font-manrope), Arial, sans-serif;
+  transition:
+    background-color 0.35s ease,
+    color 0.35s ease;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button,
+a,
+label[for] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Shows only in light mode (e.g. a sun glyph). Pair with .sx-moon-only. */
+.sx-sun-only {
+  display: var(--sx-sun-display);
+}
+
+.sx-moon-only {
+  display: var(--sx-moon-display);
+}
+
+.hero-background {
+  position: fixed;
+  inset: 0;
+  background-image: var(--sx-hero-image);
+  background-position: center;
+  background-size: cover;
+  filter: var(--sx-hero-filter);
+  transform: scale(1.01);
+  transition:
+    filter 0.35s ease,
+    opacity 0.35s ease;
+}
+
+.hero-shade {
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(244, 251, 255, 0.82) 0%,
+      rgba(240, 249, 255, 0.7) 38%,
+      rgba(230, 245, 253, 0.2) 62%,
+      rgba(241, 249, 253, 0.56) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(237, 248, 253, 0.06) 55%,
+      rgba(224, 241, 249, 0.76) 100%
+    );
+  transition: background 0.35s ease;
+}
+
+:root[data-theme="dark"] .hero-shade {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(1, 10, 20, 0.2) 0%,
+      rgba(1, 10, 20, 0.12) 45%,
+      rgba(1, 9, 18, 0.58) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(0, 9, 20, 0.08) 0%,
+      rgba(1, 8, 16, 0.06) 56%,
+      rgba(1, 8, 16, 0.88) 100%
+    );
+}
+
+.glass-panel {
+  background:
+    radial-gradient(
+      circle at 14% 0%,
+      rgba(183, 231, 255, 0.5),
+      transparent 38%
+    ),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(242, 250, 255, 0.82));
+  border: 1px solid rgba(94, 173, 218, 0.52);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 24px 80px rgba(36, 92, 124, 0.18),
+    0 0 60px rgba(65, 174, 226, 0.1);
+  backdrop-filter: blur(24px) saturate(1.1);
+  transition:
+    background 0.35s ease,
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
+}
+
+:root[data-theme="dark"] .glass-panel {
+  background:
+    radial-gradient(
+      circle at 14% 0%,
+      rgba(67, 156, 224, 0.22),
+      transparent 38%
+    ),
+    linear-gradient(145deg, rgba(9, 33, 55, 0.9), rgba(1, 14, 28, 0.94));
+  border: 1px solid rgba(38, 144, 224, 0.68);
+  box-shadow:
+    inset 0 1px 0 rgba(173, 221, 255, 0.16),
+    0 24px 80px rgba(0, 6, 16, 0.5),
+    0 0 60px rgba(0, 107, 213, 0.1);
+}
+
+.feature-glass {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.84),
+    rgba(239, 249, 254, 0.72)
+  );
+  border: 1px solid rgba(100, 168, 207, 0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 12px 34px rgba(29, 83, 116, 0.1);
+  backdrop-filter: blur(14px) saturate(1.05);
+  transition:
+    background 0.35s ease,
+    border-color 0.35s ease;
+}
+
+:root[data-theme="dark"] .feature-glass {
+  background: linear-gradient(
+    145deg,
+    rgba(5, 27, 48, 0.84),
+    rgba(1, 13, 26, 0.84)
+  );
+  border: 1px solid rgba(70, 139, 195, 0.28);
+  box-shadow: inset 0 1px 0 rgba(174, 222, 255, 0.04);
+}
+
+.input-shell {
+  background: var(--sx-input-bg);
+  border-color: var(--sx-border);
+  transition:
+    background-color 0.35s ease,
+    border-color 0.2s ease;
+}
+
+.input-shell:focus-within {
+  border-color: rgba(48, 181, 255, 0.92);
+  box-shadow:
+    0 0 0 3px rgba(17, 150, 255, 0.12),
+    inset 0 0 24px rgba(14, 108, 183, 0.06);
+}
+
+.primary-button {
+  background: linear-gradient(180deg, #47c5ff 0%, #1d92fa 52%, #267bf0 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    0 8px 28px rgba(0, 131, 255, 0.28);
+}
+
+.primary-button:hover {
+  background: linear-gradient(180deg, #67d1ff 0%, #29a4ff 52%, #388afa 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 12px 34px rgba(0, 143, 255, 0.38);
+}
+
+/* --- Password recovery ----------------------------------------------------
+   The generated artwork stays decorative and slow-moving. The form remains a
+   normal semantic surface above it, and reduced-motion users get a still frame.
+---------------------------------------------------------------------------- */
+.recovery-canvas {
+  background: var(--sx-page-bg);
+}
+
+.recovery-background {
+  position: fixed;
+  inset: -3%;
+  background-image: var(--sx-recovery-image);
+  background-position: center;
+  background-size: cover;
+  filter: var(--sx-recovery-filter);
+  transform: scale(1.04);
+  animation: recovery-drift 20s ease-in-out infinite alternate;
+  transition: filter 0.35s ease;
+}
+
+.recovery-shade {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(
+      circle at 50% 42%,
+      rgba(255, 255, 255, 0.26),
+      rgba(239, 248, 255, 0.46) 40%,
+      rgba(214, 235, 250, 0.28) 78%
+    ),
+    linear-gradient(180deg, rgba(250, 253, 255, 0.18), rgba(231, 245, 253, 0.4));
+  transition: background 0.35s ease;
+}
+
+:root[data-theme="dark"] .recovery-shade {
+  background:
+    radial-gradient(
+      circle at 50% 42%,
+      rgba(18, 53, 82, 0.08),
+      rgba(2, 16, 31, 0.52) 50%,
+      rgba(0, 8, 18, 0.78) 100%
+    ),
+    linear-gradient(180deg, rgba(0, 8, 17, 0.18), rgba(0, 8, 17, 0.5));
+}
+
+.recovery-card {
+  border: 1px solid rgba(108, 178, 221, 0.52);
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(205, 238, 255, 0.62),
+      transparent 36%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.94),
+      rgba(245, 251, 255, 0.88)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 30px 90px rgba(35, 91, 130, 0.2),
+    0 0 80px rgba(55, 179, 245, 0.1);
+  backdrop-filter: blur(30px) saturate(1.12);
+  transition:
+    background 0.35s ease,
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
+}
+
+:root[data-theme="dark"] .recovery-card {
+  border-color: rgba(54, 137, 200, 0.58);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(57, 147, 218, 0.2), transparent 38%),
+    linear-gradient(145deg, rgba(8, 34, 57, 0.94), rgba(1, 14, 28, 0.96));
+  box-shadow:
+    inset 0 1px 0 rgba(190, 225, 255, 0.13),
+    0 30px 90px rgba(0, 5, 14, 0.58),
+    0 0 80px rgba(0, 113, 213, 0.1);
+}
+
+.recovery-icon {
+  color: var(--sx-badge-icon);
+  border: 1px solid var(--sx-badge-border);
+  background: var(--sx-badge-bg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 12px 34px rgba(25, 120, 180, 0.2);
+}
+
+.recovery-input-shell {
+  border-color: var(--sx-border);
+  background: var(--sx-input-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34);
+  transition:
+    background-color 0.35s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.recovery-input-shell:focus-within {
+  border-color: rgba(48, 181, 255, 0.96);
+  box-shadow:
+    0 0 0 4px rgba(17, 150, 255, 0.12),
+    inset 0 0 24px rgba(14, 108, 183, 0.05);
+  transform: translateY(-1px);
+}
+
+.recovery-primary {
+  display: flex;
+  min-height: 56px;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  border-radius: 1rem;
+  background: linear-gradient(180deg, #47c5ff 0%, #1d92fa 52%, #267bf0 100%);
+  padding: 0.75rem 1.25rem;
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  text-align: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    0 10px 30px rgba(0, 131, 255, 0.28);
+  transition:
+    background 0.25s ease,
+    box-shadow 0.25s ease,
+    opacity 0.2s ease;
+}
+
+.recovery-primary:hover {
+  background: linear-gradient(180deg, #67d1ff 0%, #29a4ff 52%, #388afa 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 14px 36px rgba(0, 143, 255, 0.36);
+}
+
+.recovery-primary:focus-visible {
+  outline: 3px solid rgba(48, 181, 255, 0.45);
+  outline-offset: 3px;
+}
+
+.recovery-primary:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.recovery-orb {
+  position: fixed;
+  z-index: 1;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(2px);
+  opacity: 0.5;
+}
+
+.recovery-orb-left {
+  top: 24%;
+  left: 7%;
+  width: 12px;
+  height: 12px;
+  background: #53d8ff;
+  box-shadow: 0 0 28px 12px rgba(83, 216, 255, 0.2);
+  animation: recovery-float 7s ease-in-out infinite;
+}
+
+.recovery-orb-right {
+  right: 9%;
+  bottom: 21%;
+  width: 9px;
+  height: 9px;
+  background: #7d8fff;
+  box-shadow: 0 0 26px 10px rgba(125, 143, 255, 0.2);
+  animation: recovery-float 8.5s 1.2s ease-in-out infinite reverse;
+}
+
+@keyframes recovery-drift {
+  from {
+    transform: scale(1.04) translate3d(-0.35%, -0.2%, 0);
+  }
+  to {
+    transform: scale(1.07) translate3d(0.45%, 0.25%, 0);
+  }
+}
+
+@keyframes recovery-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translate3d(0, -22px, 0) scale(1.18);
+    opacity: 0.75;
+  }
+}
+
+/* --- Dashboard canvas -------------------------------------------------------
+   The sign-in route paints its own light canvas. Dashboard routes tag their
+   root with `.cg-dash`, which repaints the whole
+   canvas (overscroll included) in the Eventini light surface. Done in CSS rather
+   than with an effect so there is no flash before hydration.
+---------------------------------------------------------------------------- */
+html:has(.cg-dash) {
+  background: var(--background);
+}
+
+body:has(.cg-dash) {
+  background: var(--background);
+  color: var(--foreground);
+  /* Menus and tooltips are portalled to body level, outside `.cg-dash`. Setting
+     the console face here keeps them on Geist instead of falling back to the
+     sign-in screen's Manrope. */
+  font-family: var(--font-geist), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.cg-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.cg-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.cg-scroll-invert::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cg-scroll-invert::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+@media (max-width: 1279px) {
+  .hero-background {
+    background-position: 44% center;
+  }
+
+  .hero-shade {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(246, 252, 255, 0.72),
+        rgba(236, 248, 253, 0.68) 54%,
+        rgba(224, 241, 249, 0.94)
+      ),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.22), transparent);
+  }
+
+  :root[data-theme="dark"] .hero-shade {
+    background: linear-gradient(
+      180deg,
+      rgba(0, 9, 20, 0.22),
+      rgba(0, 9, 20, 0.72) 54%,
+      rgba(0, 8, 17, 0.96)
+    );
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-background {
+    background-position: 42% top;
+  }
+
+  .recovery-background {
+    background-position: center;
+    transform: scale(1.1);
+  }
+
+  .recovery-orb {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  body,
+  .hero-background,
+  .hero-shade,
+  .recovery-background,
+  .recovery-shade,
+  .recovery-orb,
+  .glass-panel,
+  .feature-glass,
+  .input-shell {
+    transition: none !important;
+  }
+
+  .recovery-background,
+  .recovery-orb {
+    animation: none !important;
+  }
+}
