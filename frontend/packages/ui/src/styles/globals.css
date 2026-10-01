@@ -1,0 +1,175 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@source "../../../../apps/web/**/*.{ts,tsx}";
+@source "../**/*.{ts,tsx}";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ---------------------------------------------------------------------------
+   Eventini design system v1.0
+   Brand hexes come from the palette spec. shadcn's semantic slots keep their
+   own meaning (`accent` is a subtle hover surface, not the brand accent), so
+   the brand's Accent lives in its own token.
+
+   Status text uses a darker shade than the brand fill: the raw brand hexes are
+   the dot/icon colour, but at label size on a tinted surface they would fall
+   under the 4.5:1 contrast floor.
+--------------------------------------------------------------------------- */
+
+:root {
+  --radius: 0.625rem;
+
+  /* Core surfaces */
+  --background: #f7f9fc;
+  --foreground: #101828;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+
+  /* Brand */
+  --primary: #3047d9;
+  --primary-foreground: #ffffff;
+  --primary-hover: #263bb9;
+  --brand-accent: #3563ff;
+
+  /* Muted / hover surfaces */
+  --secondary: #eef3ff;
+  --secondary-foreground: #3047d9;
+  --muted: #f3f6fb;
+  --muted-foreground: #667085;
+  --accent: #eef3ff;
+  --accent-foreground: #3047d9;
+
+  /* Lines & focus */
+  --border: #e5eaf2;
+  --input: #dce3ee;
+  --ring: #3563ff;
+
+  /* Status */
+  --success: #16a34a;
+  --success-strong: #15803d;
+  --success-surface: #e7f6ed;
+  --warning: #f59e0b;
+  --warning-strong: #b45309;
+  --warning-surface: #fdf3e3;
+  --danger: #dc2626;
+  --danger-strong: #b91c1c;
+  --danger-surface: #fdecec;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+
+  /* Sidebar (brand navy) */
+  --sidebar: #26358c;
+  --sidebar-foreground: #ffffff;
+  --sidebar-muted: #b9c8f2;
+  --sidebar-hover: #31449d;
+  --sidebar-border: #4353a0;
+  --sidebar-active: #f4f7ff;
+  --sidebar-active-foreground: #3047d9;
+}
+
+.dark {
+  --background: #0b1020;
+  --foreground: #f8fafc;
+  --card: #12182b;
+  --card-foreground: #f8fafc;
+  --popover: #12182b;
+  --popover-foreground: #f8fafc;
+
+  --primary: #5b8cff;
+  --primary-foreground: #0b1020;
+  --primary-hover: #8fb3ff;
+  --brand-accent: #8fb3ff;
+
+  --secondary: #1a2238;
+  --secondary-foreground: #f8fafc;
+  --muted: #1a2238;
+  --muted-foreground: #a7b0c3;
+  --accent: #1a2238;
+  --accent-foreground: #f8fafc;
+
+  --border: #2b3654;
+  --input: #2b3654;
+  --ring: #5b8cff;
+
+  --success: #22c55e;
+  --success-strong: #4ade80;
+  --success-surface: #10291d;
+  --warning: #fbbf24;
+  --warning-strong: #fcd34d;
+  --warning-surface: #2c2110;
+  --danger: #f87171;
+  --danger-strong: #fca5a5;
+  --danger-surface: #2e1515;
+  --destructive: #f87171;
+  --destructive-foreground: #0b1020;
+
+  --sidebar: #12182b;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-muted: #a7b0c3;
+  --sidebar-hover: #1a2238;
+  --sidebar-border: #2b3654;
+  --sidebar-active: #2e3283;
+  --sidebar-active-foreground: #f8fafc;
+}
+
+@theme inline {
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-brand-accent: var(--brand-accent);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-success: var(--success);
+  --color-success-strong: var(--success-strong);
+  --color-success-surface: var(--success-surface);
+  --color-warning: var(--warning);
+  --color-warning-strong: var(--warning-strong);
+  --color-warning-surface: var(--warning-surface);
+  --color-danger: var(--danger);
+  --color-danger-strong: var(--danger-strong);
+  --color-danger-surface: var(--danger-surface);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
