@@ -58,7 +58,10 @@ import {
   type UserStatsValue,
 } from "../../components/dashboard/users/user-stats";
 import { useToast } from "../../components/dashboard/toast-provider";
-import { ConfirmDialog, type ConfirmRequest } from "./confirm-dialog";
+import {
+  ConfirmDialog,
+  type ConfirmRequest,
+} from "../../components/dashboard/confirm-dialog";
 import {
   hardDeleteUser,
   listUsers,
