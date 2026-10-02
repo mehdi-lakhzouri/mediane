@@ -11,6 +11,8 @@ interface RecoveryShellProps {
   eyebrow: string;
   title: string;
   description: string;
+  /** Reassurance line at the bottom of the page. */
+  footnote?: string;
   children: React.ReactNode;
 }
 
@@ -19,6 +21,7 @@ export function RecoveryShell({
   eyebrow,
   title,
   description,
+  footnote = "Secure recovery. Your reset link is single-use and time-limited.",
   children,
 }: RecoveryShellProps) {
   const reduceMotion = useReducedMotion();
@@ -85,9 +88,7 @@ export function RecoveryShell({
 
       <div className="absolute right-0 bottom-5 left-0 z-10 flex items-center justify-center gap-2 px-4 text-center text-[11px] text-[var(--sx-muted)] sm:text-xs">
         <ShieldCheck className="size-4 text-[var(--sx-icon-soft)]" />
-        <span className="max-w-[310px] leading-4">
-          Secure recovery. Your reset link is single-use and time-limited.
-        </span>
+        <span className="max-w-[310px] leading-4">{footnote}</span>
       </div>
     </main>
   );

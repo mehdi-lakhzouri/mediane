@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
@@ -11,7 +12,9 @@ import {
   Check,
   CheckCircle2,
   Copy,
+  Download,
   KeyRound,
+  LifeBuoy,
   LoaderCircle,
   LockKeyhole,
   ScanLine,
@@ -19,16 +22,21 @@ import {
   Smartphone,
   TimerReset,
 } from "lucide-react";
-import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
-import { getCurrentUser } from "../../lib/api/auth";
+import { ApiError } from "../../lib/api/client";
+import { destinationFor, getCurrentUser } from "../../lib/api/auth";
+import {
+  confirmTotpSetup,
+  startTotpSetup,
+  type TotpSetup,
+} from "../../lib/api/mfa";
 import { BrandLogo } from "./brand-logo";
 import { MfaCodeInput } from "./mfa-code-input";
 import { ThemeToggle } from "./theme-toggle";
 
-type SetupStep = "scan" | "verify" | "success";
+type SetupStep = "scan" | "verify" | "recovery" | "success";
 
-const STEP_ORDER: SetupStep[] = ["scan", "verify", "success"];
+const STEP_ORDER: SetupStep[] = ["scan", "verify", "recovery", "success"];
 const STEPS = [
   {
     key: "scan" as const,
@@ -41,6 +49,12 @@ const STEPS = [
     label: "Verify the code",
     caption: "Confirm everything is in sync",
     icon: KeyRound,
+  },
+  {
+    key: "recovery" as const,
+    label: "Save recovery codes",
+    caption: "Your way back in without the phone",
+    icon: LifeBuoy,
   },
   {
     key: "success" as const,
@@ -328,10 +342,121 @@ function VerifyStep(props: VerifyStepProps) {
           strokeWidth={1.8}
         />
         <p className="text-xs leading-5 text-[var(--sx-body)]">
-          The code is checked locally for this setup preview. A production
-          endpoint should store the secret encrypted and enforce rate limits.
+          CabinGuard checks the code on its servers. Your setup key is stored
+          encrypted and never shown again after this setup.
         </p>
       </div>
+    </motion.div>
+  );
+}
+
+interface RecoveryStepProps {
+  codes: string[];
+  onContinue: () => void;
+}
+
+function RecoveryStep({ codes, onContinue }: RecoveryStepProps) {
+  const reduceMotion = useReducedMotion();
+  const [saved, setSaved] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const text = `CabinGuard recovery codes\nEach code works once. Keep them private.\n\n${codes.join("\n")}\n`;
+
+  async function copyAll() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Clipboard blocked: the codes stay selectable, and download still works.
+    }
+  }
+
+  function download() {
+    const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "cabinguard-recovery-codes.txt";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <motion.div
+      key="recovery"
+      initial={reduceMotion ? false : { opacity: 0, x: 22 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={reduceMotion ? undefined : { opacity: 0, x: -22 }}
+      transition={{
+        duration: reduceMotion ? 0 : 0.38,
+        ease: [0.22, 1, 0.36, 1],
+      }}
+    >
+      <div className="text-center">
+        <div className="mfa-icon mx-auto grid size-[76px] place-items-center rounded-[24px]">
+          <LifeBuoy className="size-8" strokeWidth={1.7} />
+        </div>
+        <p className="mfa-eyebrow mt-6">Shown only once</p>
+        <h1 className="mt-2 text-[30px] font-extrabold tracking-[-0.045em] sm:text-[36px]">
+          Save your recovery codes
+        </h1>
+        <p className="mx-auto mt-3 max-w-[460px] text-sm leading-6 text-[var(--sx-body)] sm:text-[15px]">
+          If you lose your phone, each code lets you sign in once. Store them in
+          a password manager or print them — we can&apos;t show them again.
+        </p>
+      </div>
+
+      <ol
+        className="mfa-secret mt-7 grid grid-cols-2 gap-x-6 gap-y-2.5 rounded-2xl px-5 py-5 font-mono text-[14px] font-bold tracking-[0.1em] text-[var(--sx-label)] sm:text-[15px]"
+        aria-label="Recovery codes"
+      >
+        {codes.map((code, index) => (
+          <li key={code} className="flex items-center gap-2.5 select-all">
+            <span className="w-5 text-right text-[11px] font-semibold text-[var(--sx-muted)]">
+              {index + 1}.
+            </span>
+            {code}
+          </li>
+        ))}
+      </ol>
+
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={copyAll}
+          className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--sx-border)] text-sm font-bold text-[var(--sx-accent)] transition hover:bg-[var(--sx-icon-hover-bg)]"
+        >
+          {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+          {copied ? "Copied" : "Copy all"}
+        </button>
+        <button
+          type="button"
+          onClick={download}
+          className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--sx-border)] text-sm font-bold text-[var(--sx-accent)] transition hover:bg-[var(--sx-icon-hover-bg)]"
+        >
+          <Download className="size-4" />
+          Download .txt
+        </button>
+      </div>
+
+      <label className="mt-6 flex cursor-pointer items-start gap-3 text-sm text-[var(--sx-label)]">
+        <input
+          type="checkbox"
+          checked={saved}
+          onChange={(event) => setSaved(event.target.checked)}
+          className="mt-0.5 size-5 accent-[var(--sx-accent)]"
+        />
+        <span>I have stored these codes somewhere safe.</span>
+      </label>
+
+      <button
+        type="button"
+        onClick={onContinue}
+        disabled={!saved}
+        className="mfa-primary mt-6 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        Continue
+        <ArrowRight className="size-5" />
+      </button>
     </motion.div>
   );
 }
@@ -382,68 +507,74 @@ function SuccessStep() {
         Your codes are in sync
       </h1>
       <p className="mx-auto mt-4 max-w-[440px] text-sm leading-6 text-[var(--sx-body)] sm:text-[15px]">
-        This authenticator can now generate valid CabinGuard codes. Connect the
-        confirmation action to the account security API before production use.
+        From now on, every sign-in to the console asks for a code from this app.
+        Keep your recovery codes somewhere safe.
       </p>
 
       <Link href="/dashboard" className="mfa-primary mt-8">
         Continue to dashboard
         <ArrowRight className="size-5" />
       </Link>
-      <Link
-        href="/"
-        className="mt-4 text-sm font-bold text-[var(--sx-accent)] transition hover:text-[var(--sx-accent-hover)]"
-      >
-        Return to sign in
-      </Link>
     </motion.div>
   );
 }
 
+function setupErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.code === "RATE_LIMITED") {
+      return "Too many attempts. Wait a few minutes, then try again.";
+    }
+    if (error.code === "NETWORK_ERROR") return error.message;
+  }
+  return "Two-step verification could not be prepared. Refresh the page to try again.";
+}
+
+/**
+ * Mandatory authenticator setup for administrators (MFA_SETUP_REQUIRED). The
+ * secret is generated and checked by the API; this screen only displays it.
+ */
 export function MfaSetupFlow() {
+  const router = useRouter();
   const reduceMotion = useReducedMotion();
   const [step, setStep] = useState<SetupStep>("scan");
-  const [email, setEmail] = useState("your-account@cabinguard.local");
-  const [secret, setSecret] = useState("");
+  const [setup, setSetup] = useState<TotpSetup | null>(null);
   const [qrCode, setQrCode] = useState("");
   const [code, setCode] = useState("");
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fatal, setFatal] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(30);
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  // Starting a setup creates a new secret server-side: do it once, even when
+  // React re-runs effects in development.
+  const started = useRef(false);
 
   useEffect(() => {
-    setSecret(new OTPAuth.Secret({ size: 20 }).base32);
-    let active = true;
+    if (started.current) return;
+    started.current = true;
     getCurrentUser()
-      .then((user) => {
-        if (active) setEmail(user.email);
+      .then(async (me) => {
+        if (me.accountState !== "MFA_SETUP_REQUIRED") {
+          router.replace(destinationFor(me.accountState));
+          return;
+        }
+        setSetup(await startTotpSetup());
       })
-      .catch(() => {
-        // Remains previewable without a session and uses a neutral account label.
+      .catch((failure: unknown) => {
+        if (failure instanceof ApiError && failure.status === 401) {
+          router.replace("/");
+          return;
+        }
+        setFatal(setupErrorMessage(failure));
       });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const totp = useMemo(() => {
-    if (!secret) return null;
-    return new OTPAuth.TOTP({
-      issuer: "CabinGuard",
-      label: email,
-      algorithm: "SHA1",
-      digits: 6,
-      period: 30,
-      secret: OTPAuth.Secret.fromBase32(secret),
-    });
-  }, [email, secret]);
+  }, [router]);
 
   useEffect(() => {
-    if (!totp) return;
+    if (!setup) return;
     let active = true;
     setQrCode("");
-    QRCode.toDataURL(totp.toString(), {
+    QRCode.toDataURL(setup.otpauthUri, {
       width: 452,
       margin: 1,
       errorCorrectionLevel: "M",
@@ -453,29 +584,31 @@ export function MfaSetupFlow() {
         if (active) setQrCode(url);
       })
       .catch(() => {
-        if (active) {
-          setError(
-            "The QR code could not be generated. Refresh and try again.",
-          );
-        }
+        if (active) setFatal(setupErrorMessage(null));
       });
     return () => {
       active = false;
     };
-  }, [totp]);
+  }, [setup]);
 
   useEffect(() => {
-    if (!totp || step !== "verify") return;
+    if (!setup || step !== "verify") return;
     const update = () =>
-      setRemainingSeconds(Math.max(1, Math.ceil(totp.remaining() / 1000)));
+      setRemainingSeconds(
+        Math.max(
+          1,
+          setup.period - (Math.floor(Date.now() / 1000) % setup.period),
+        ),
+      );
     update();
     const timer = window.setInterval(update, 1000);
     return () => window.clearInterval(timer);
-  }, [step, totp]);
+  }, [setup, step]);
 
   async function copySecret(): Promise<void> {
+    if (!setup) return;
     try {
-      await navigator.clipboard.writeText(secret);
+      await navigator.clipboard.writeText(setup.secret);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
@@ -483,25 +616,35 @@ export function MfaSetupFlow() {
     }
   }
 
-  function handleVerify(event: FormEvent<HTMLFormElement>): void {
+  async function handleVerify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!totp || code.length !== 6 || verifying) return;
+    if (code.length !== 6 || verifying) return;
     setVerifying(true);
     setError(null);
-    window.setTimeout(
-      () => {
-        const valid = totp.validate({ token: code, window: 1 }) !== null;
-        setVerifying(false);
-        if (!valid) {
-          setError(
-            "That code doesn’t match. Wait for a fresh code and try again.",
-          );
-          return;
-        }
-        setStep("success");
-      },
-      reduceMotion ? 250 : 700,
-    );
+    try {
+      const result = await confirmTotpSetup(code);
+      setRecoveryCodes(result.recoveryCodes);
+      setStep("recovery");
+    } catch (failure) {
+      setCode("");
+      if (
+        failure instanceof ApiError &&
+        failure.code === "MFA_SETUP_NOT_STARTED"
+      ) {
+        // The setup expired: show a fresh QR code to scan again.
+        setStep("scan");
+        setSetup(await startTotpSetup().catch(() => null));
+        setError(null);
+      } else {
+        setError(
+          failure instanceof ApiError && failure.code === "MFA_CODE_INVALID"
+            ? "That code doesn’t match. Wait for a fresh code and try again."
+            : setupErrorMessage(failure),
+        );
+      }
+    } finally {
+      setVerifying(false);
+    }
   }
 
   return (
@@ -572,14 +715,28 @@ export function MfaSetupFlow() {
           className="mfa-card w-full max-w-[640px] rounded-[30px] px-5 py-6 sm:px-10 sm:py-9 lg:min-h-[600px]"
         >
           <CompactProgress step={step} />
-          {!totp || !qrCode ? (
+          {fatal ? (
+            <div
+              role="alert"
+              className="grid min-h-[440px] place-items-center text-center"
+            >
+              <div>
+                <AlertCircle className="mx-auto size-8 text-[var(--sx-error-text)]" />
+                <p className="mx-auto mt-4 max-w-[380px] text-sm font-semibold text-[var(--sx-body)]">
+                  {fatal}
+                </p>
+              </div>
+            </div>
+          ) : step !== "recovery" &&
+            step !== "success" &&
+            (!setup || !qrCode) ? (
             <LoadingSetup />
           ) : (
             <AnimatePresence mode="wait" initial={false}>
-              {step === "scan" && (
+              {step === "scan" && setup && (
                 <ScanStep
                   qrCode={qrCode}
-                  secret={secret}
+                  secret={setup.secret}
                   copied={copied}
                   onCopy={copySecret}
                   onContinue={() => {
@@ -604,6 +761,15 @@ export function MfaSetupFlow() {
                     setStep("scan");
                   }}
                   onSubmit={handleVerify}
+                />
+              )}
+              {step === "recovery" && (
+                <RecoveryStep
+                  codes={recoveryCodes}
+                  onContinue={() => {
+                    setRecoveryCodes([]);
+                    setStep("success");
+                  }}
                 />
               )}
               {step === "success" && <SuccessStep />}

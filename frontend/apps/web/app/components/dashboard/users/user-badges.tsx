@@ -19,6 +19,7 @@ const ACCOUNT_STATE: Record<
     label: "Temporary password",
     variant: "warning",
   },
+  MFA_SETUP_REQUIRED: { label: "2-step setup pending", variant: "warning" },
   PROFILE_SETUP_REQUIRED: { label: "Profile pending", variant: "warning" },
   ACTIVE: { label: "Active", variant: "success" },
   SUSPENDED: { label: "Suspended", variant: "danger" },
