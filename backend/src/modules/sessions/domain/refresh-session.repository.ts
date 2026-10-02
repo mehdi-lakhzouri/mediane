@@ -1,4 +1,8 @@
-import { RefreshSession, SessionRevocationReason } from './refresh-session';
+import {
+  RefreshSession,
+  SessionChannel,
+  SessionRevocationReason,
+} from './refresh-session';
 
 export interface NewRefreshSessionData {
   userId: string;
@@ -6,6 +10,7 @@ export interface NewRefreshSessionData {
   expiresAt: Date;
   absoluteExpiresAt: Date;
   persistent: boolean;
+  channel: SessionChannel;
   ipAddress: string | null;
   userAgent: string | null;
 }

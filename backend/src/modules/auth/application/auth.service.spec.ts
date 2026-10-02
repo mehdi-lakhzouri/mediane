@@ -7,7 +7,10 @@ import type { MailSender } from '../../mail/application/mail-sender';
 import type { PasswordHasher } from '../../security/application/password-hasher';
 import type { SecureTokenService } from '../../security/infrastructure/secure-token.service';
 import type { SessionsService } from '../../sessions/application/sessions.service';
-import { RefreshSession } from '../../sessions/domain/refresh-session';
+import {
+  RefreshSession,
+  SessionChannel,
+} from '../../sessions/domain/refresh-session';
 import { Role } from '../../users/domain/role';
 import { User, UserProps } from '../../users/domain/user';
 import { UserStatus } from '../../users/domain/user-status';
@@ -16,6 +19,7 @@ import {
   InvalidCredentialsError,
   TemporaryPasswordExpiredError,
 } from '../domain/auth.errors';
+import { WrongClientError } from '../domain/channel-policy';
 import { LoginPolicy } from '../domain/login-policy';
 import type { PasswordResetTokenRepository } from '../domain/password-reset-token.repository';
 import type { AccessTokenIssuer } from '../infrastructure/access-token.issuer';
@@ -89,6 +93,7 @@ describe('AuthService.login', () => {
           expiresAt: NOW,
           absoluteExpiresAt: NOW,
           persistent: false,
+          channel: 'MOBILE',
           lastUsedAt: null,
           revokedAt: null,
           revokedReason: null,
@@ -119,11 +124,15 @@ describe('AuthService.login', () => {
     );
   });
 
-  const login = (password = 'secret-password') =>
+  const login = (
+    password = 'secret-password',
+    channel: SessionChannel = SessionChannel.MOBILE,
+  ) =>
     service.login({
       email: 'driver@cabinguard.test',
       password,
       rememberMe: false,
+      channel,
       client,
     });
 
@@ -194,7 +203,7 @@ describe('AuthService.login', () => {
     expect(sessions.open).toHaveBeenCalledWith(
       'u1',
       client,
-      { persistent: false },
+      { persistent: false, channel: 'MOBILE' },
       expect.any(Date),
     );
     expect(users.recordSuccessfulLogin).toHaveBeenCalledWith(
@@ -209,5 +218,36 @@ describe('AuthService.login', () => {
       accountState: 'PASSWORD_CHANGE_REQUIRED',
     });
     expect(tokens.persistent).toBe(false);
+  });
+  it('sends a driver with the right password to the mobile app', async () => {
+    users.findByEmail.mockResolvedValue(makeUser());
+    hasher.verify.mockResolvedValue(true);
+
+    const error: unknown = await login('secret-password', 'WEB').catch(
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(WrongClientError);
+    expect((error as WrongClientError).code).toBe('USE_MOBILE_APP');
+    expect(sessions.open).not.toHaveBeenCalled();
+    expect(users.incrementFailedLoginAttempts).not.toHaveBeenCalled();
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({ metadata: { reason: 'WRONG_CLIENT' } }),
+    );
+  });
+
+  it('sends an administrator to the web console', async () => {
+    users.findByEmail.mockResolvedValue(makeUser({ role: Role.ADMIN }));
+    hasher.verify.mockResolvedValue(true);
+    await expect(login('secret-password', 'MOBILE')).rejects.toMatchObject({
+      code: 'USE_WEB_CONSOLE',
+    });
+  });
+
+  it('never reveals the right client without the right password', async () => {
+    users.findByEmail.mockResolvedValue(makeUser());
+    hasher.verify.mockResolvedValue(false);
+    await expect(login('wrong', 'WEB')).rejects.toBeInstanceOf(
+      InvalidCredentialsError,
+    );
   });
 });

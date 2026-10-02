@@ -24,6 +24,8 @@ export const RateLimitPolicies = {
   INVITATION_ACCEPT: { limit: 10, ttlSeconds: 900, blockSeconds: 900 },
   INVITATION_RESEND: { limit: 5, ttlSeconds: 3600 },
   CSRF_TOKEN: { limit: 30, ttlSeconds: 60 },
+  PROFILE_UPDATE: { limit: 20, ttlSeconds: 900 },
+  AVATAR_UPLOAD: { limit: 10, ttlSeconds: 3600 },
 } as const satisfies Record<string, RateLimitPolicy>;
 
 export const RateLimit = (

@@ -6,6 +6,7 @@ import { AuditAction } from '../../audit/domain/audit-action';
 import { SecureTokenService } from '../../security/infrastructure/secure-token.service';
 import {
   RefreshSession,
+  SessionChannel,
   SessionRevocationReason,
 } from '../domain/refresh-session';
 import { RefreshSessionRepository } from '../domain/refresh-session.repository';
@@ -13,7 +14,10 @@ import { InvalidRefreshTokenError } from '../domain/session.errors';
 
 export interface OpenedSession {
   session: RefreshSession;
-  /** Raw refresh token: goes to the HttpOnly cookie only, never stored or logged. */
+  /**
+   * Raw refresh token: goes to the HttpOnly cookie (web) or the response body
+   * (mobile, kept in the device keystore). Never stored or logged.
+   */
   refreshToken: string;
   refreshTokenExpiresAt: Date;
 }
@@ -56,7 +60,7 @@ export class SessionsService {
   async open(
     userId: string,
     client: ClientContext,
-    options: { persistent: boolean },
+    options: { persistent: boolean; channel: SessionChannel },
     now = new Date(),
   ): Promise<OpenedSession> {
     const refreshToken = this.tokens.generateToken();
@@ -73,15 +77,21 @@ export class SessionsService {
       expiresAt,
       absoluteExpiresAt,
       persistent: options.persistent,
+      channel: options.channel,
       ipAddress: client.ipAddress,
       userAgent: client.userAgent,
     });
     return { session, refreshToken, refreshTokenExpiresAt: expiresAt };
   }
 
-  /** @throws InvalidRefreshTokenError for every failure mode (no oracle). */
+  /**
+   * A token presented on the wrong channel (a mobile token sent as a web cookie,
+   * or the reverse) is refused without touching the session.
+   * @throws InvalidRefreshTokenError for every failure mode (no oracle).
+   */
   async rotate(
     rawRefreshToken: string | undefined,
+    channel: SessionChannel,
     client: ClientContext,
     now = new Date(),
   ): Promise<OpenedSession> {
@@ -93,7 +103,9 @@ export class SessionsService {
       await this.handlePossibleReuse(presentedHash, client, now);
       throw new InvalidRefreshTokenError();
     }
-    if (!session.isActive(now)) throw new InvalidRefreshTokenError();
+    if (!session.isActive(now) || session.channel !== channel) {
+      throw new InvalidRefreshTokenError();
+    }
 
     const refreshToken = this.tokens.generateToken();
     const expiresAt = session.nextExpiry(
@@ -116,6 +128,7 @@ export class SessionsService {
   /** Logout of one device. Returns the revoked session, or null if nothing to revoke. */
   async revokeByRefreshToken(
     rawRefreshToken: string | undefined,
+    channel: SessionChannel,
     reason: SessionRevocationReason,
     now = new Date(),
   ): Promise<RefreshSession | null> {
@@ -123,7 +136,7 @@ export class SessionsService {
     const session = await this.sessions.findByTokenHash(
       this.tokens.hashToken(rawRefreshToken),
     );
-    if (!session) return null;
+    if (!session || session.channel !== channel) return null;
     const revoked = await this.sessions.revoke(session.id, reason, now);
     return revoked ? session : null;
   }

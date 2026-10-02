@@ -1,3 +1,6 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 // Deterministic test configuration (loaded before any module reads the env).
 Object.assign(process.env, {
   NODE_ENV: 'test',
@@ -13,4 +16,7 @@ Object.assign(process.env, {
   MAIL_HOST: 'localhost',
   MAIL_PORT: '1025',
   MAIL_FROM: 'CabinGuard <no-reply@cabinguard.test>',
+  STORAGE_DRIVER: 'local',
+  STORAGE_LOCAL_DIR: join(tmpdir(), `cabinguard-e2e-uploads-${process.pid}`),
+  API_PUBLIC_URL: 'http://api.cabinguard.test',
 });

@@ -10,12 +10,24 @@ export const SessionRevocationReason = {
 export type SessionRevocationReason =
   (typeof SessionRevocationReason)[keyof typeof SessionRevocationReason];
 
+/**
+ * The client a session was opened from. WEB sessions travel in HttpOnly cookies,
+ * MOBILE sessions as Bearer tokens; a session is only accepted on its own channel.
+ */
+export const SessionChannel = {
+  WEB: 'WEB',
+  MOBILE: 'MOBILE',
+} as const;
+export type SessionChannel =
+  (typeof SessionChannel)[keyof typeof SessionChannel];
+
 export interface RefreshSessionProps {
   id: string;
   userId: string;
   expiresAt: Date;
   absoluteExpiresAt: Date;
   persistent: boolean;
+  channel: SessionChannel;
   lastUsedAt: Date | null;
   revokedAt: Date | null;
   revokedReason: SessionRevocationReason | null;
@@ -55,6 +67,10 @@ export class RefreshSession {
 
   get persistent(): boolean {
     return this.props.persistent;
+  }
+
+  get channel(): SessionChannel {
+    return this.props.channel;
   }
 
   get expiresAt(): Date {

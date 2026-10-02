@@ -14,7 +14,9 @@ import { PasswordHasher } from '../src/modules/security/application/password-has
 import { CookieJar } from './utils/cookie-jar';
 
 /**
- * Full authentication flow against a real PostgreSQL (TEST_DATABASE_URL).
+ * Web console authentication flow (cookies + CSRF) against a real PostgreSQL
+ * (TEST_DATABASE_URL). Only administrators sign in here; the driver flow over
+ * Bearer tokens is covered in mobile-onboarding.e2e-spec.ts.
  * Rate limiting is neutralized here (covered in app.e2e-spec.ts); emails are
  * captured instead of sent.
  */
@@ -34,13 +36,14 @@ interface Principal {
   csrfToken?: string;
 }
 
-describe('Authentication flow (e2e)', () => {
+describe('Web console authentication flow (e2e)', () => {
   let app: NestExpressApplication;
   let server: App;
   let prisma: PrismaService;
   const sentResetMails: PasswordResetMail[] = [];
   const email = `e2e-${Date.now()}@cabinguard.test`;
   let userId: string;
+  let driverId: string | undefined;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
@@ -72,15 +75,15 @@ describe('Authentication flow (e2e)', () => {
     server = app.getHttpServer();
     prisma = app.get(PrismaService);
 
-    // An invited driver who accepted the invitation: temporary password, no profile.
+    // An invited administrator who accepted the invitation: temporary password.
     const user = await prisma.user.create({
       data: {
         email,
         passwordHash: await app.get(PasswordHasher).hash(TEMPORARY_PASSWORD),
-        role: 'DRIVER',
+        role: 'ADMIN',
         status: 'ACTIVE',
         firstName: 'E2E',
-        lastName: 'Driver',
+        lastName: 'Admin',
         mustChangePassword: true,
         temporaryPasswordExpiresAt: new Date(Date.now() + 3600_000),
         emailVerifiedAt: new Date(),
@@ -90,11 +93,12 @@ describe('Authentication flow (e2e)', () => {
   });
 
   afterAll(async () => {
-    if (userId) {
+    for (const id of [userId, driverId]) {
+      if (!id) continue;
       await prisma.auditLog.deleteMany({
-        where: { OR: [{ targetId: userId }, { actorUserId: userId }] },
+        where: { OR: [{ targetId: id }, { actorUserId: id }] },
       });
-      await prisma.user.delete({ where: { id: userId } });
+      await prisma.user.delete({ where: { id } });
     }
     await app.close();
   });
@@ -154,7 +158,7 @@ describe('Authentication flow (e2e)', () => {
     const body = res.body as Envelope<Principal>;
     expect(body.data).toEqual({
       userId,
-      role: 'DRIVER',
+      role: 'ADMIN',
       accountState: 'PASSWORD_CHANGE_REQUIRED',
       csrfToken: expect.any(String),
     });
@@ -175,14 +179,54 @@ describe('Authentication flow (e2e)', () => {
     expect(jar.get(COOKIE.csrf)).not.toBe(oldCsrf);
   });
 
+  it('sends drivers to the mobile app, without opening a web session', async () => {
+    const password = 'Driver-Own-Passphrase-9';
+    const driver = await prisma.user.create({
+      data: {
+        email: `e2e-driver-${Date.now()}@cabinguard.test`,
+        passwordHash: await app.get(PasswordHasher).hash(password),
+        role: 'DRIVER',
+        status: 'ACTIVE',
+        firstName: 'E2E',
+        lastName: 'Driver',
+        emailVerifiedAt: new Date(),
+        profileCompletedAt: new Date(),
+      },
+    });
+    driverId = driver.id;
+
+    const jar = await newBrowser();
+    const res = await post('/auth/login', jar, {
+      email: driver.email,
+      password,
+    }).expect(403);
+    expect((res.body as Envelope<null>).error?.code).toBe('USE_MOBILE_APP');
+    const setCookies = res.get('Set-Cookie') ?? [];
+    expect(setCookies.some((c) => c.startsWith(`${COOKIE.access}=`))).toBe(
+      false,
+    );
+    expect(
+      await prisma.refreshSession.count({ where: { userId: driver.id } }),
+    ).toBe(0);
+
+    // Without the right password, the answer stays the generic one.
+    const wrong = await post('/auth/login', jar, {
+      email: driver.email,
+      password: 'not-the-password',
+    }).expect(401);
+    expect((wrong.body as Envelope<null>).error?.code).toBe(
+      'INVALID_CREDENTIALS',
+    );
+  });
+
   it('enforces the mandatory password change server-side', async () => {
     const jar = await login(TEMPORARY_PASSWORD);
     const me = await get('/auth/me', jar).expect(200);
     expect((me.body as Envelope<Principal>).data?.accountState).toBe(
       'PASSWORD_CHANGE_REQUIRED',
     );
-    const profile = await get('/profile', jar).expect(403);
-    expect((profile.body as Envelope<null>).error?.code).toBe(
+    const users = await get('/admin/users', jar).expect(403);
+    expect((users.body as Envelope<null>).error?.code).toBe(
       'PASSWORD_CHANGE_REQUIRED',
     );
   });
@@ -260,14 +304,12 @@ describe('Authentication flow (e2e)', () => {
       newPassword: NEW_PASSWORD,
     }).expect(200);
     current.absorb(res);
-    expect((res.body as Envelope<Principal>).data?.accountState).toBe(
-      'PROFILE_SETUP_REQUIRED',
-    );
+    // Administrators have no profile step: straight to ACTIVE.
+    expect((res.body as Envelope<Principal>).data?.accountState).toBe('ACTIVE');
 
     const me = await get('/auth/me', current).expect(200);
-    expect((me.body as Envelope<Principal>).data?.accountState).toBe(
-      'PROFILE_SETUP_REQUIRED',
-    );
+    expect((me.body as Envelope<Principal>).data?.accountState).toBe('ACTIVE');
+    await get('/admin/users', current).expect(200);
     await get('/auth/me', other).expect(401);
 
     const oldPassword = await newBrowser();

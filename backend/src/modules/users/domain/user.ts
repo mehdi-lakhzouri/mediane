@@ -153,6 +153,10 @@ export class User {
     return this.props.createdAt;
   }
 
+  get profileCompletedAt(): Date | null {
+    return this.props.profileCompletedAt;
+  }
+
   get isDeleted(): boolean {
     return this.props.deletedAt !== null;
   }

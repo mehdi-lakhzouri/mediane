@@ -15,6 +15,7 @@ import { JwtAccessStrategy } from './infrastructure/jwt-access.strategy';
 import { PrismaPasswordResetTokenRepository } from './infrastructure/prisma-password-reset-token.repository';
 import { AuthCookieService } from './presentation/auth-cookie.service';
 import { AuthController } from './presentation/auth.controller';
+import { MobileAuthController } from './presentation/mobile-auth.controller';
 
 /**
  * Global guards (JwtAuthGuard, RolesGuard, AccountStateGuard) are registered in
@@ -46,7 +47,7 @@ import { AuthController } from './presentation/auth.controller';
     AuditModule,
     MailModule,
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, MobileAuthController],
   providers: [
     AuthService,
     AccessTokenValidator,

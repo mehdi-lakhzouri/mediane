@@ -128,7 +128,7 @@ describe('SessionsService', () => {
     const opened = await service.open(
       'u1',
       client,
-      { persistent: true },
+      { persistent: true, channel: 'WEB' },
       at(0),
     );
     expect(repo.rows[0].tokenHash).toMatch(/^[0-9a-f]{64}$/);
@@ -140,12 +140,13 @@ describe('SessionsService', () => {
     const opened = await service.open(
       'u1',
       client,
-      { persistent: false },
+      { persistent: false, channel: 'WEB' },
       at(0),
     );
     // idle = 1h, absolute = 2h
     const first = await service.rotate(
       opened.refreshToken,
+      'WEB',
       client,
       at(3000_000),
     );
@@ -156,6 +157,7 @@ describe('SessionsService', () => {
 
     const second = await service.rotate(
       first.refreshToken,
+      'WEB',
       client,
       at(6000_000),
     );
@@ -166,14 +168,20 @@ describe('SessionsService', () => {
     const opened = await service.open(
       'u1',
       client,
-      { persistent: true },
+      { persistent: true, channel: 'WEB' },
       at(0),
     );
-    const rotated = await service.rotate(opened.refreshToken, client, at(1000));
+    const rotated = await service.rotate(
+      opened.refreshToken,
+      'WEB',
+      client,
+      at(1000),
+    );
 
     await expect(
       service.rotate(
         opened.refreshToken,
+        'WEB',
         client,
         at(1000 + ROTATION_GRACE_MS - 1),
       ),
@@ -181,7 +189,7 @@ describe('SessionsService', () => {
 
     expect(repo.rows[0].revokedAt).toBeNull();
     await expect(
-      service.rotate(rotated.refreshToken, client, at(2000)),
+      service.rotate(rotated.refreshToken, 'WEB', client, at(2000)),
     ).resolves.toBeDefined();
     expect(audit.record).not.toHaveBeenCalled();
   });
@@ -190,13 +198,23 @@ describe('SessionsService', () => {
     const opened = await service.open(
       'u1',
       client,
-      { persistent: true },
+      { persistent: true, channel: 'WEB' },
       at(0),
     );
-    const rotated = await service.rotate(opened.refreshToken, client, at(1000));
+    const rotated = await service.rotate(
+      opened.refreshToken,
+      'WEB',
+      client,
+      at(1000),
+    );
 
     await expect(
-      service.rotate(opened.refreshToken, client, at(1000 + ROTATION_GRACE_MS)),
+      service.rotate(
+        opened.refreshToken,
+        'WEB',
+        client,
+        at(1000 + ROTATION_GRACE_MS),
+      ),
     ).rejects.toBeInstanceOf(InvalidRefreshTokenError);
 
     expect(repo.rows[0].revokedReason).toBe(
@@ -207,7 +225,7 @@ describe('SessionsService', () => {
     );
     // The legitimate holder of the newest token is logged out too.
     await expect(
-      service.rotate(rotated.refreshToken, client, at(20_000)),
+      service.rotate(rotated.refreshToken, 'WEB', client, at(20_000)),
     ).rejects.toBeInstanceOf(InvalidRefreshTokenError);
   });
 
@@ -215,12 +233,12 @@ describe('SessionsService', () => {
     const opened = await service.open(
       'u1',
       client,
-      { persistent: true },
+      { persistent: true, channel: 'WEB' },
       at(0),
     );
     const results = await Promise.allSettled([
-      service.rotate(opened.refreshToken, client, at(1000)),
-      service.rotate(opened.refreshToken, client, at(1000)),
+      service.rotate(opened.refreshToken, 'WEB', client, at(1000)),
+      service.rotate(opened.refreshToken, 'WEB', client, at(1000)),
     ]);
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
   });
@@ -229,25 +247,36 @@ describe('SessionsService', () => {
     const opened = await service.open(
       'u1',
       client,
-      { persistent: true },
+      { persistent: true, channel: 'WEB' },
       at(0),
     );
-    await expect(service.rotate(undefined, client)).rejects.toBeInstanceOf(
-      InvalidRefreshTokenError,
-    );
-    await expect(service.rotate('unknown', client)).rejects.toBeInstanceOf(
-      InvalidRefreshTokenError,
-    );
     await expect(
-      service.rotate(opened.refreshToken, client, at(3600_000)),
+      service.rotate(undefined, 'WEB', client),
+    ).rejects.toBeInstanceOf(InvalidRefreshTokenError);
+    await expect(
+      service.rotate('unknown', 'WEB', client),
+    ).rejects.toBeInstanceOf(InvalidRefreshTokenError);
+    await expect(
+      service.rotate(opened.refreshToken, 'WEB', client, at(3600_000)),
     ).rejects.toBeInstanceOf(InvalidRefreshTokenError);
   });
 
   it('logs out a single device by refresh token', async () => {
-    const a = await service.open('u1', client, { persistent: true }, at(0));
-    const b = await service.open('u1', client, { persistent: true }, at(0));
+    const a = await service.open(
+      'u1',
+      client,
+      { persistent: true, channel: 'WEB' },
+      at(0),
+    );
+    const b = await service.open(
+      'u1',
+      client,
+      { persistent: true, channel: 'WEB' },
+      at(0),
+    );
     const revoked = await service.revokeByRefreshToken(
       a.refreshToken,
+      'WEB',
       SessionRevocationReason.LOGOUT,
       at(10),
     );
@@ -256,7 +285,43 @@ describe('SessionsService', () => {
       await service.findActiveSession(b.session.id, at(10)),
     ).not.toBeNull();
     expect(
-      await service.revokeByRefreshToken(a.refreshToken, 'LOGOUT', at(20)),
+      await service.revokeByRefreshToken(
+        a.refreshToken,
+        'WEB',
+        'LOGOUT',
+        at(20),
+      ),
     ).toBeNull();
+  });
+
+  it('only accepts a refresh token on the channel it was issued for', async () => {
+    const mobile = await service.open(
+      'u1',
+      client,
+      { persistent: true, channel: 'MOBILE' },
+      at(0),
+    );
+
+    await expect(
+      service.rotate(mobile.refreshToken, 'WEB', client, at(1000)),
+    ).rejects.toBeInstanceOf(InvalidRefreshTokenError);
+    expect(
+      await service.revokeByRefreshToken(
+        mobile.refreshToken,
+        'WEB',
+        'LOGOUT',
+        at(1000),
+      ),
+    ).toBeNull();
+
+    // The wrong-channel attempts neither consumed nor revoked the session.
+    const rotated = await service.rotate(
+      mobile.refreshToken,
+      'MOBILE',
+      client,
+      at(2000),
+    );
+    expect(rotated.session.channel).toBe('MOBILE');
+    expect(audit.record).not.toHaveBeenCalled();
   });
 });

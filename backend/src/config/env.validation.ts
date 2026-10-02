@@ -21,6 +21,9 @@ export enum NodeEnv {
   Test = 'test',
 }
 
+export const STORAGE_DRIVERS = ['local', 's3'] as const;
+export type StorageDriver = (typeof STORAGE_DRIVERS)[number];
+
 export const LOG_LEVELS = [
   'fatal',
   'error',
@@ -176,6 +179,48 @@ export class EnvironmentVariables {
   @IsString()
   MAIL_FROM!: string;
 
+  /**
+   * Where uploaded files (driver avatars) live: `local` = a folder on this
+   * server (development only), `s3` = any S3-compatible bucket (production).
+   */
+  @IsIn(STORAGE_DRIVERS)
+  STORAGE_DRIVER: StorageDriver = 'local';
+
+  /** local driver: folder for uploads, relative to the working directory. */
+  @IsString()
+  STORAGE_LOCAL_DIR = 'uploads';
+
+  /** Public base URL of this API, used to build signed local-file links. Defaults to http://localhost:PORT. */
+  @IsOptional()
+  @IsUrl(HTTP_URL)
+  API_PUBLIC_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  S3_BUCKET?: string;
+
+  @IsOptional()
+  @IsString()
+  S3_REGION?: string;
+
+  /** Custom endpoint for S3-compatible services (MinIO, Cloudflare R2...). Empty = AWS. */
+  @IsOptional()
+  @IsUrl(HTTP_URL)
+  S3_ENDPOINT?: string;
+
+  @Transform(toBool)
+  @IsBoolean()
+  S3_FORCE_PATH_STYLE = false;
+
+  /** Leave both empty to use the default AWS credential chain (IAM role, env, profile). */
+  @IsOptional()
+  @IsString()
+  S3_ACCESS_KEY_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  S3_SECRET_ACCESS_KEY?: string;
+
   @Transform(toInt)
   @IsInt()
   @Min(1)
@@ -200,6 +245,14 @@ function crossFieldErrors(env: EnvironmentVariables): string[] {
       'REFRESH_SESSION_IDLE_TTL_SECONDS must be <= REFRESH_SESSION_ABSOLUTE_TTL_SECONDS',
     );
   }
+  if (env.STORAGE_DRIVER === 's3' && (!env.S3_BUCKET || !env.S3_REGION)) {
+    errors.push('S3_BUCKET and S3_REGION are required when STORAGE_DRIVER=s3');
+  }
+  if (Boolean(env.S3_ACCESS_KEY_ID) !== Boolean(env.S3_SECRET_ACCESS_KEY)) {
+    errors.push(
+      'S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY must be set together (or both left empty)',
+    );
+  }
   if (env.NODE_ENV === NodeEnv.Production) {
     if (!env.COOKIE_SECURE)
       errors.push('COOKIE_SECURE must be true in production');
@@ -210,6 +263,9 @@ function crossFieldErrors(env: EnvironmentVariables): string[] {
     }
     if (!env.FRONTEND_URL.startsWith('https://')) {
       errors.push('FRONTEND_URL must be https in production');
+    }
+    if (env.STORAGE_DRIVER !== 's3') {
+      errors.push('STORAGE_DRIVER must be s3 in production');
     }
   }
   return errors;

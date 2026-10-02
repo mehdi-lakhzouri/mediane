@@ -18,12 +18,14 @@ import {
 } from '../../../common/http/swagger/api-envelope.decorators';
 import {
   ApiCsrf,
+  ApiMobileAuth,
   ApiSessionAuth,
 } from '../../../common/http/swagger/api-security.decorators';
 import {
   RateLimit,
   RateLimitPolicies,
 } from '../../security/presentation/rate-limit.policies';
+import { SessionChannel } from '../../sessions/domain/refresh-session';
 import { AccountState } from '../../users/domain/account-state';
 import {
   AuthService,
@@ -68,7 +70,11 @@ function toSessionOpenedResponse(
   return { ...toPrincipalResponse(tokens.principal), csrfToken };
 }
 
-/** Thin HTTP adapter: parses input, delegates to AuthService, manages cookies. */
+/**
+ * Web console adapter: parses input, delegates to AuthService, manages cookies.
+ * Only administrators can sign in here (drivers use MobileAuthController).
+ * /me and logout-all are shared: they accept either transport.
+ */
 @ApiTags('auth')
 @ApiErrorResponses(HttpStatus.BAD_REQUEST, HttpStatus.TOO_MANY_REQUESTS)
 @Controller('auth')
@@ -92,7 +98,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @RateLimit(RateLimitPolicies.LOGIN)
   @ApiCsrf()
-  @ApiOperation({ summary: 'Log in; sets HttpOnly session cookies' })
+  @ApiOperation({
+    summary:
+      'Log in to the web console (administrators); sets HttpOnly cookies',
+  })
   @ApiEnvelopeResponse(SessionOpenedResponse)
   @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
   async login(
@@ -104,6 +113,7 @@ export class AuthController {
       email: dto.email,
       password: dto.password,
       rememberMe: dto.rememberMe ?? true,
+      channel: SessionChannel.WEB,
       client,
     });
     return toSessionOpenedResponse(
@@ -131,6 +141,7 @@ export class AuthController {
     try {
       tokens = await this.auth.refresh(
         this.cookies.readRefreshToken(req),
+        SessionChannel.WEB,
         client,
       );
     } catch (error) {
@@ -157,7 +168,11 @@ export class AuthController {
     @ClientInfo() client: ClientContext,
     @Res({ passthrough: true }) res: Response,
   ): Promise<null> {
-    await this.auth.logout(this.cookies.readRefreshToken(req), client);
+    await this.auth.logout(
+      this.cookies.readRefreshToken(req),
+      SessionChannel.WEB,
+      client,
+    );
     this.cookies.clearSessionCookies(res);
     return null;
   }
@@ -166,8 +181,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @AllowAnyAuthenticatedState()
   @ApiSessionAuth()
+  @ApiMobileAuth()
   @ApiCsrf()
-  @ApiOperation({ summary: 'Revoke every session of the current user' })
+  @ApiOperation({
+    summary: 'Revoke every session of the current user (web and mobile)',
+  })
   @ApiEnvelopeResponse(null)
   @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
   async logoutAll(
@@ -183,8 +201,9 @@ export class AuthController {
   @Get('me')
   @AllowAnyAuthenticatedState()
   @ApiSessionAuth()
+  @ApiMobileAuth()
   @ApiOperation({
-    summary: 'Current principal and account state (drives frontend onboarding)',
+    summary: 'Current principal and account state (drives client onboarding)',
   })
   @ApiEnvelopeResponse(CurrentUserResponse)
   @ApiErrorResponses(HttpStatus.UNAUTHORIZED)
