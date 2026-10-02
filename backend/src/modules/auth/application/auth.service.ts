@@ -6,12 +6,19 @@ import { Email } from '../../../common/domain/email';
 import {
   appConfig,
   authConfig,
+  mfaConfig,
   type AppConfig,
   type AuthConfig,
+  type MfaConfig,
 } from '../../../config';
 import { AuditService } from '../../audit/application/audit.service';
 import { AuditAction } from '../../audit/domain/audit-action';
 import { MailSender } from '../../mail/application/mail-sender';
+import { MfaMethod, MfaVerifier } from '../../mfa/application/mfa-verifier';
+import {
+  MfaChallengeInvalidError,
+  MfaCodeRequiredError,
+} from '../../mfa/domain/mfa.errors';
 import { PasswordHasher } from '../../security/application/password-hasher';
 import { assertPasswordPolicy } from '../../security/domain/password-policy';
 import { SecureTokenService } from '../../security/infrastructure/secure-token.service';
@@ -40,6 +47,7 @@ import {
 import type { AuthenticatedUser } from '../domain/authenticated-user';
 import { channelForRole, WrongClientError } from '../domain/channel-policy';
 import { LoginPolicy, PasswordResetPolicy } from '../domain/login-policy';
+import { MfaChallengeRepository } from '../domain/mfa-challenge.repository';
 import { PasswordResetTokenRepository } from '../domain/password-reset-token.repository';
 import { AccessTokenIssuer } from '../infrastructure/access-token.issuer';
 
@@ -55,8 +63,21 @@ export interface LoginCommand {
 export interface ChangePasswordCommand {
   currentPassword: string;
   newPassword: string;
+  /** Required when the user has MFA enabled (TOTP or recovery code). */
+  mfaCode?: string;
   client: ClientContext;
 }
+
+/** Password verified; the second factor is still needed. */
+export interface MfaChallengeIssued {
+  /** Raw token: returned to the client once, only its hash is stored. */
+  mfaToken: string;
+  expiresAt: Date;
+}
+
+export type LoginResult =
+  | { kind: 'SESSION'; tokens: IssuedTokens }
+  | { kind: 'MFA_REQUIRED'; challenge: MfaChallengeIssued };
 
 /** The authenticated caller's own identity (account menu, profile screens). */
 export interface CurrentUserView {
@@ -88,7 +109,8 @@ type LoginFailureReason =
   | 'INVALID_PASSWORD'
   | 'ACCOUNT_NOT_AUTHENTICABLE'
   | 'WRONG_CLIENT'
-  | 'TEMPORARY_PASSWORD_EXPIRED';
+  | 'TEMPORARY_PASSWORD_EXPIRED'
+  | 'MFA_CHALLENGE_ACCOUNT_STATE';
 
 function revocationReasonFor(
   state: AccountState | null,
@@ -111,6 +133,8 @@ function revocationReasonFor(
  *  - Password change/reset revokes every session and every pending reset token.
  *  - Every session is bound to one channel (web cookies or mobile Bearer tokens),
  *    and each role may only use its own channel (see channel-policy.ts).
+ *  - With MFA enabled, a correct password only yields a short-lived challenge;
+ *    the session is opened once a TOTP or recovery code is verified.
  */
 @Injectable()
 export class AuthService {
@@ -127,11 +151,14 @@ export class AuthService {
     private readonly mail: MailSender,
     private readonly audit: AuditService,
     private readonly unitOfWork: UnitOfWork,
+    private readonly mfaChallenges: MfaChallengeRepository,
+    private readonly mfaVerifier: MfaVerifier,
     @Inject(authConfig.KEY) private readonly auth: AuthConfig,
     @Inject(appConfig.KEY) private readonly app: AppConfig,
+    @Inject(mfaConfig.KEY) private readonly mfa: MfaConfig,
   ) {}
 
-  async login(command: LoginCommand): Promise<IssuedTokens> {
+  async login(command: LoginCommand): Promise<LoginResult> {
     const { client } = command;
     const now = new Date();
     const user = await this.findUserByEmail(command.email);
@@ -181,25 +208,91 @@ export class AuthService {
       ? await this.hasher.hash(command.password)
       : null;
 
-    const opened = await this.unitOfWork.run(async () => {
-      await this.users.recordSuccessfulLogin(user.id, now, upgradedHash);
-      const session = await this.sessions.open(
+    if (user.hasMfa) {
+      // The failure counter is NOT reset yet: wrong codes keep counting
+      // towards the lock until the second factor succeeds.
+      if (upgradedHash) {
+        await this.users.replacePasswordHash(user.id, upgradedHash);
+      }
+      return {
+        kind: 'MFA_REQUIRED',
+        challenge: await this.issueMfaChallenge(user, command, now),
+      };
+    }
+
+    const tokens = await this.openLoginSession(
+      user,
+      { persistent: command.rememberMe, channel: command.channel },
+      { upgradedHash, mfaMethod: null },
+      client,
+      now,
+    );
+    return { kind: 'SESSION', tokens };
+  }
+
+  /**
+   * Second login step. The challenge is single-use, short-lived, bound to its
+   * channel and limited in attempts; wrong codes also count towards the
+   * per-account lock (see MfaVerifier).
+   */
+  async completeMfaChallenge(
+    rawToken: string,
+    code: string,
+    channel: SessionChannel,
+    client: ClientContext,
+  ): Promise<IssuedTokens> {
+    const now = new Date();
+    const challenge = await this.mfaChallenges.findByTokenHash(
+      this.tokens.hashToken(rawToken),
+    );
+    if (
+      !challenge ||
+      challenge.consumedAt ||
+      challenge.expiresAt <= now ||
+      challenge.channel !== channel ||
+      challenge.failedAttempts >= this.mfa.challengeMaxAttempts
+    ) {
+      throw new MfaChallengeInvalidError();
+    }
+    const user = await this.users.findById(challenge.userId);
+    if (
+      !user ||
+      !user.hasMfa ||
+      user.isLocked(now) ||
+      !canAuthenticate(user.accountState) ||
+      channelForRole(user.role) !== channel
+    ) {
+      if (user) {
+        await this.auditLoginFailure(
+          user.id,
+          'MFA_CHALLENGE_ACCOUNT_STATE',
+          client,
+        );
+      }
+      throw new MfaChallengeInvalidError();
+    }
+
+    let mfaMethod: MfaMethod;
+    try {
+      mfaMethod = await this.mfaVerifier.verify(
         user.id,
+        code,
+        'LOGIN',
         client,
-        { persistent: command.rememberMe, channel: command.channel },
         now,
       );
-      await this.audit.record({
-        action: AuditAction.LOGIN_SUCCEEDED,
-        actor: { type: 'USER', userId: user.id },
-        target: { type: 'USER', id: user.id },
-        client,
-        metadata: { sessionId: session.session.id, channel: command.channel },
-      });
-      return session;
-    });
+    } catch (error) {
+      await this.mfaChallenges.recordFailure(challenge.id);
+      throw error;
+    }
 
-    return this.issueTokens(user, opened, now);
+    return this.openLoginSession(
+      user,
+      { persistent: challenge.persistent, channel },
+      { upgradedHash: null, mfaMethod, challengeId: challenge.id },
+      client,
+      now,
+    );
   }
 
   async refresh(
@@ -318,6 +411,16 @@ export class AuthService {
       throw new PasswordUnchangedError();
     }
     assertPasswordPolicy(command.newPassword, { email: user.email.value });
+    if (user.hasMfa) {
+      if (!command.mfaCode) throw new MfaCodeRequiredError();
+      await this.mfaVerifier.verify(
+        user.id,
+        command.mfaCode,
+        'PASSWORD_CHANGE',
+        client,
+        now,
+      );
+    }
 
     const newHash = await this.hasher.hash(command.newPassword);
     const currentSession = await this.sessions.findActiveSession(
@@ -498,6 +601,70 @@ export class AuthService {
       client,
       metadata: { reason },
     });
+  }
+
+  private async issueMfaChallenge(
+    user: User,
+    command: LoginCommand,
+    now: Date,
+  ): Promise<MfaChallengeIssued> {
+    const mfaToken = this.tokens.generateToken();
+    const expiresAt = new Date(
+      now.getTime() + this.mfa.challengeTtlSeconds * 1000,
+    );
+    const challenge = await this.mfaChallenges.create({
+      userId: user.id,
+      tokenHash: this.tokens.hashToken(mfaToken),
+      channel: command.channel,
+      persistent: command.rememberMe,
+      expiresAt,
+    });
+    await this.audit.record({
+      action: AuditAction.MFA_CHALLENGE_ISSUED,
+      actor: { type: 'USER', userId: user.id },
+      target: { type: 'USER', id: user.id },
+      client: command.client,
+      metadata: { challengeId: challenge.id, channel: command.channel },
+    });
+    return { mfaToken, expiresAt };
+  }
+
+  /** Last step of every successful login (with or without a second factor). */
+  private async openLoginSession(
+    user: User,
+    options: { persistent: boolean; channel: SessionChannel },
+    login: {
+      upgradedHash: string | null;
+      mfaMethod: MfaMethod | null;
+      challengeId?: string;
+    },
+    client: ClientContext,
+    now: Date,
+  ): Promise<IssuedTokens> {
+    const opened = await this.unitOfWork.run(async () => {
+      if (
+        login.challengeId &&
+        !(await this.mfaChallenges.consume(login.challengeId, now))
+      ) {
+        // Raced by a concurrent request presenting the same challenge.
+        throw new MfaChallengeInvalidError();
+      }
+      await this.users.recordSuccessfulLogin(user.id, now, login.upgradedHash);
+      const session = await this.sessions.open(user.id, client, options, now);
+      await this.audit.record({
+        action: AuditAction.LOGIN_SUCCEEDED,
+        actor: { type: 'USER', userId: user.id },
+        target: { type: 'USER', id: user.id },
+        client,
+        metadata: {
+          sessionId: session.session.id,
+          channel: options.channel,
+          ...(login.mfaMethod ? { mfa: login.mfaMethod } : {}),
+        },
+      });
+      return session;
+    });
+    return this.issueTokens(user, opened, now);
   }
 
   private issueTokens(

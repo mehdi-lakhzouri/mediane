@@ -12,6 +12,7 @@ Object.assign(process.env, {
     'postgresql://cabinguard:cabinguard@127.0.0.1:5432/cabinguard_test',
   JWT_ACCESS_SECRET: 'test-access-secret-with-at-least-32-characters',
   TOKEN_HASH_SECRET: 'test-token-hash-secret-with-at-least-32-chars',
+  MFA_ENCRYPTION_KEY: 'dGVzdC1tZmEta2V5LW9mLWV4YWN0bHktMzItYnl0ZXM=',
   COOKIE_SECURE: 'false',
   MAIL_HOST: 'localhost',
   MAIL_PORT: '1025',

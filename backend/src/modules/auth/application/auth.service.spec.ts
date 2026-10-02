@@ -1,9 +1,10 @@
 import type { ClientContext } from '../../../common/application/client-context';
 import { UnitOfWork } from '../../../common/application/unit-of-work';
 import { Email } from '../../../common/domain/email';
-import type { AppConfig, AuthConfig } from '../../../config';
+import type { AppConfig, AuthConfig, MfaConfig } from '../../../config';
 import type { AuditService } from '../../audit/application/audit.service';
 import type { MailSender } from '../../mail/application/mail-sender';
+import type { MfaVerifier } from '../../mfa/application/mfa-verifier';
 import type { PasswordHasher } from '../../security/application/password-hasher';
 import type { SecureTokenService } from '../../security/infrastructure/secure-token.service';
 import type { SessionsService } from '../../sessions/application/sessions.service';
@@ -21,6 +22,7 @@ import {
 } from '../domain/auth.errors';
 import { WrongClientError } from '../domain/channel-policy';
 import { LoginPolicy } from '../domain/login-policy';
+import type { MfaChallengeRepository } from '../domain/mfa-challenge.repository';
 import type { PasswordResetTokenRepository } from '../domain/password-reset-token.repository';
 import type { AccessTokenIssuer } from '../infrastructure/access-token.issuer';
 import { AuthService } from './auth.service';
@@ -46,6 +48,7 @@ function makeUser(overrides: Partial<UserProps> = {}): User {
     passwordChangedAt: null,
     emailVerifiedAt: NOW,
     profileCompletedAt: NOW,
+    mfaEnabledAt: null,
     lastLoginAt: null,
     failedLoginAttempts: 0,
     lockedUntil: null,
@@ -66,11 +69,13 @@ describe('AuthService.login', () => {
       | 'incrementFailedLoginAttempts'
       | 'lockLogin'
       | 'recordSuccessfulLogin'
+      | 'replacePasswordHash'
     >
   >;
   let hasher: jest.Mocked<PasswordHasher>;
   let sessions: { open: jest.Mock };
   let audit: { record: jest.Mock };
+  let challenges: { create: jest.Mock };
   let service: AuthService;
 
   beforeEach(() => {
@@ -79,6 +84,7 @@ describe('AuthService.login', () => {
       incrementFailedLoginAttempts: jest.fn(),
       lockLogin: jest.fn(),
       recordSuccessfulLogin: jest.fn(),
+      replacePasswordHash: jest.fn(),
     };
     hasher = {
       hash: jest.fn().mockResolvedValue('dummy-hash'),
@@ -104,6 +110,13 @@ describe('AuthService.login', () => {
       }),
     };
     audit = { record: jest.fn().mockResolvedValue(undefined) };
+    challenges = {
+      create: jest.fn().mockResolvedValue({ id: 'c1' }),
+    };
+    const tokens = {
+      generateToken: jest.fn().mockReturnValue('raw-mfa-token'),
+      hashToken: jest.fn((raw: string) => `hash(${raw})`),
+    };
     const unitOfWork: UnitOfWork = { run: (work) => work() };
     const accessTokens = {
       issue: jest.fn().mockReturnValue({ token: 'jwt', expiresAt: NOW }),
@@ -114,13 +127,16 @@ describe('AuthService.login', () => {
       hasher,
       sessions as unknown as SessionsService,
       accessTokens as unknown as AccessTokenIssuer,
-      {} as SecureTokenService,
+      tokens as unknown as SecureTokenService,
       {} as PasswordResetTokenRepository,
       {} as MailSender,
       audit as unknown as AuditService,
       unitOfWork,
+      challenges as unknown as MfaChallengeRepository,
+      {} as MfaVerifier,
       {} as AuthConfig,
       {} as AppConfig,
+      { challengeTtlSeconds: 300 } as MfaConfig,
     );
   });
 
@@ -198,7 +214,9 @@ describe('AuthService.login', () => {
     hasher.needsRehash.mockReturnValue(true);
     hasher.hash.mockResolvedValue('upgraded-hash');
 
-    const tokens = await login();
+    const result = await login();
+    if (result.kind !== 'SESSION') throw new Error('expected a session');
+    const tokens = result.tokens;
 
     expect(sessions.open).toHaveBeenCalledWith(
       'u1',
@@ -249,5 +267,26 @@ describe('AuthService.login', () => {
     await expect(login('wrong', 'WEB')).rejects.toBeInstanceOf(
       InvalidCredentialsError,
     );
+  });
+  it('only issues an MFA challenge when a second factor is enabled', async () => {
+    users.findByEmail.mockResolvedValue(makeUser({ mfaEnabledAt: NOW }));
+    hasher.verify.mockResolvedValue(true);
+
+    const result = await login();
+
+    expect(result).toEqual({
+      kind: 'MFA_REQUIRED',
+      challenge: { mfaToken: 'raw-mfa-token', expiresAt: expect.any(Date) },
+    });
+    expect(challenges.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'u1',
+        tokenHash: 'hash(raw-mfa-token)',
+        channel: 'MOBILE',
+      }),
+    );
+    // No session, and the failure counter is not reset before the code is checked.
+    expect(sessions.open).not.toHaveBeenCalled();
+    expect(users.recordSuccessfulLogin).not.toHaveBeenCalled();
   });
 });

@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   Length,
+  Matches,
   MaxLength,
 } from 'class-validator';
 import {
@@ -38,6 +39,27 @@ export class LoginDto {
   rememberMe?: boolean;
 }
 
+/** 6-digit authenticator code, or a recovery code (XXXXX-XXXXX). */
+export const MFA_CODE_PATTERN = /^(\d{6}|[A-Za-z0-9]{5}[\s-]?[A-Za-z0-9]{5})$/;
+export const MFA_CODE_MESSAGE =
+  'must be a 6-digit code from the authenticator app or a recovery code';
+
+export class MfaChallengeDto {
+  @ApiProperty({ description: 'mfaToken returned by the login' })
+  @IsString()
+  @Length(32, 128)
+  mfaToken!: string;
+
+  @ApiProperty({
+    example: '123456',
+    description: 'Authenticator or recovery code',
+  })
+  @Transform(trim)
+  @IsString()
+  @Matches(MFA_CODE_PATTERN, { message: `code ${MFA_CODE_MESSAGE}` })
+  code!: string;
+}
+
 export class ChangePasswordDto {
   @ApiProperty({ format: 'password' })
   @IsString()
@@ -52,6 +74,16 @@ export class ChangePasswordDto {
   @IsString()
   @Length(PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH)
   newPassword!: string;
+
+  @ApiPropertyOptional({
+    example: '123456',
+    description: 'Required when two-step verification is enabled',
+  })
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @Matches(MFA_CODE_PATTERN, { message: `mfaCode ${MFA_CODE_MESSAGE}` })
+  mfaCode?: string;
 }
 
 export class ForgotPasswordDto {

@@ -22,6 +22,7 @@ import { RolesGuard } from './modules/auth/presentation/guards/roles.guard';
 import { HealthModule } from './modules/health/health.module';
 import { InvitationsModule } from './modules/invitations/invitations.module';
 import { MailModule } from './modules/mail/mail.module';
+import { MfaModule } from './modules/mfa/mfa.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { CsrfGuard } from './modules/security/presentation/csrf.guard';
 import { SecurityModule } from './modules/security/security.module';
@@ -57,6 +58,7 @@ import { UsersModule } from './modules/users/users.module';
     UsersModule,
     SessionsModule,
     AuthModule,
+    MfaModule,
     InvitationsModule,
     ProfilesModule,
     AdminModule,

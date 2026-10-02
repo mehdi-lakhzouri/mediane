@@ -39,3 +39,24 @@ export class CurrentUserResponse extends SessionPrincipalResponse {
   @ApiProperty()
   lastName!: string;
 }
+
+/** Web login, no second factor needed: cookies are set. */
+export class WebSessionLoginResponse extends SessionOpenedResponse {
+  @ApiProperty({ enum: [false] })
+  mfaRequired!: false;
+}
+
+/**
+ * Password accepted, second factor required: no session yet. Send the token
+ * back with a code to the MFA challenge endpoint of the same client.
+ */
+export class MfaChallengeResponse {
+  @ApiProperty({ enum: [true] })
+  mfaRequired!: true;
+
+  @ApiProperty({ description: 'Single use, expires in a few minutes' })
+  mfaToken!: string;
+
+  @ApiProperty({ type: Date })
+  expiresAt!: Date;
+}

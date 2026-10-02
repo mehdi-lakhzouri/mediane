@@ -9,19 +9,40 @@ interface EnvelopeOptions {
   isArray?: boolean;
 }
 
-function dataSchema(model: Type<unknown> | null, isArray: boolean) {
+/** One model, or several alternatives (documented as `oneOf`). */
+type EnvelopeModel = Type<unknown> | readonly Type<unknown>[] | null;
+
+function isAlternatives(
+  model: EnvelopeModel,
+): model is readonly Type<unknown>[] {
+  return Array.isArray(model);
+}
+
+function dataSchema(model: EnvelopeModel, isArray: boolean) {
   if (!model) return { nullable: true, example: null };
+  if (isAlternatives(model)) {
+    return {
+      oneOf: model.map((alternative) => ({
+        $ref: getSchemaPath(alternative),
+      })),
+    };
+  }
   const ref = { $ref: getSchemaPath(model) };
   return isArray ? { type: 'array', items: ref } : ref;
 }
 
+function modelsOf(model: EnvelopeModel): Type<unknown>[] {
+  if (!model) return [];
+  return isAlternatives(model) ? [...model] : [model];
+}
+
 /** Documents a success response wrapped in `{ data, meta, error: null }`. */
 export function ApiEnvelopeResponse(
-  model: Type<unknown> | null,
+  model: EnvelopeModel,
   options: EnvelopeOptions = {},
 ): MethodDecorator & ClassDecorator {
   return applyDecorators(
-    ApiExtraModels(ApiMetaDto, ...(model ? [model] : [])),
+    ApiExtraModels(ApiMetaDto, ...modelsOf(model)),
     ApiResponse({
       status: options.status ?? HttpStatus.OK,
       description: options.description,

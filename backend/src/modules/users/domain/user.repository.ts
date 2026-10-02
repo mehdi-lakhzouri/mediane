@@ -102,6 +102,15 @@ export abstract class UserRepository {
    */
   abstract markProfileCompleted(userId: string, now: Date): Promise<boolean>;
 
+  /** Stamps (or clears, with null) the moment a TOTP authenticator was confirmed. */
+  abstract setMfaEnabledAt(userId: string, at: Date | null): Promise<void>;
+
+  /** Stores a stronger hash of the same password (Argon2 parameters upgrade). */
+  abstract replacePasswordHash(
+    userId: string,
+    passwordHash: string,
+  ): Promise<void>;
+
   /**
    * Replaces the credential with a fresh temporary one (invitation resend).
    * Unlike setPassword it keeps `mustChangePassword` on, so the driver is still

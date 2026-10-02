@@ -194,6 +194,23 @@ export class PrismaUserRepository implements UserRepository {
     return count === 1;
   }
 
+  async setMfaEnabledAt(userId: string, at: Date | null): Promise<void> {
+    await this.db.client.user.update({
+      where: { id: userId },
+      data: { mfaEnabledAt: at },
+    });
+  }
+
+  async replacePasswordHash(
+    userId: string,
+    passwordHash: string,
+  ): Promise<void> {
+    await this.db.client.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+  }
+
   async setTemporaryPassword(
     userId: string,
     passwordHash: string,

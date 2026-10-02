@@ -91,6 +91,7 @@ export class InsufficientPermissionsError extends AppError {
 
 const RESTRICTION_CODES: Partial<Record<AccountState, string>> = {
   [AccountState.PASSWORD_CHANGE_REQUIRED]: 'PASSWORD_CHANGE_REQUIRED',
+  [AccountState.MFA_SETUP_REQUIRED]: 'MFA_SETUP_REQUIRED',
   [AccountState.PROFILE_SETUP_REQUIRED]: 'PROFILE_SETUP_REQUIRED',
 };
 

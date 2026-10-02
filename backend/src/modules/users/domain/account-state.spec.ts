@@ -11,8 +11,15 @@ const activeDriver: AccountStateFacts = {
   role: Role.DRIVER,
   status: UserStatus.ACTIVE,
   mustChangePassword: false,
+  mfaEnabledAt: null,
   profileCompletedAt: new Date(),
   deletedAt: null,
+};
+
+const activeAdmin: AccountStateFacts = {
+  ...activeDriver,
+  role: Role.ADMIN,
+  mfaEnabledAt: new Date(),
 };
 
 describe('deriveAccountState', () => {
@@ -33,7 +40,27 @@ describe('deriveAccountState', () => {
   it('requires profile setup for drivers only', () => {
     const facts = { ...activeDriver, profileCompletedAt: null };
     expect(deriveAccountState(facts)).toBe(AccountState.PROFILE_SETUP_REQUIRED);
-    expect(deriveAccountState({ ...facts, role: Role.ADMIN })).toBe(
+    expect(
+      deriveAccountState({ ...activeAdmin, profileCompletedAt: null }),
+    ).toBe(AccountState.ACTIVE);
+  });
+
+  it('requires an authenticator for administrators, after their own password', () => {
+    expect(deriveAccountState(activeAdmin)).toBe(AccountState.ACTIVE);
+    expect(deriveAccountState({ ...activeAdmin, mfaEnabledAt: null })).toBe(
+      AccountState.MFA_SETUP_REQUIRED,
+    );
+    expect(
+      deriveAccountState({
+        ...activeAdmin,
+        mfaEnabledAt: null,
+        mustChangePassword: true,
+      }),
+    ).toBe(AccountState.PASSWORD_CHANGE_REQUIRED);
+  });
+
+  it('keeps MFA optional for drivers', () => {
+    expect(deriveAccountState({ ...activeDriver, mfaEnabledAt: null })).toBe(
       AccountState.ACTIVE,
     );
   });
@@ -64,6 +91,7 @@ describe('canAuthenticate', () => {
   it.each([
     [AccountState.ACTIVE, true],
     [AccountState.PASSWORD_CHANGE_REQUIRED, true],
+    [AccountState.MFA_SETUP_REQUIRED, true],
     [AccountState.PROFILE_SETUP_REQUIRED, true],
     [AccountState.INVITED, false],
     [AccountState.SUSPENDED, false],

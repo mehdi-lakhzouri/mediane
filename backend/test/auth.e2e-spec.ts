@@ -157,6 +157,7 @@ describe('Web console authentication flow (e2e)', () => {
 
     const body = res.body as Envelope<Principal>;
     expect(body.data).toEqual({
+      mfaRequired: false,
       userId,
       role: 'ADMIN',
       accountState: 'PASSWORD_CHANGE_REQUIRED',
@@ -304,12 +305,19 @@ describe('Web console authentication flow (e2e)', () => {
       newPassword: NEW_PASSWORD,
     }).expect(200);
     current.absorb(res);
-    // Administrators have no profile step: straight to ACTIVE.
-    expect((res.body as Envelope<Principal>).data?.accountState).toBe('ACTIVE');
+    // Next onboarding step for administrators: the authenticator (no profile).
+    expect((res.body as Envelope<Principal>).data?.accountState).toBe(
+      'MFA_SETUP_REQUIRED',
+    );
 
     const me = await get('/auth/me', current).expect(200);
-    expect((me.body as Envelope<Principal>).data?.accountState).toBe('ACTIVE');
-    await get('/admin/users', current).expect(200);
+    expect((me.body as Envelope<Principal>).data?.accountState).toBe(
+      'MFA_SETUP_REQUIRED',
+    );
+    const console = await get('/admin/users', current).expect(403);
+    expect((console.body as Envelope<null>).error?.code).toBe(
+      'MFA_SETUP_REQUIRED',
+    );
     await get('/auth/me', other).expect(401);
 
     const oldPassword = await newBrowser();

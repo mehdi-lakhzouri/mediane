@@ -16,6 +16,7 @@ export interface UserProps {
   passwordChangedAt: Date | null;
   emailVerifiedAt: Date | null;
   profileCompletedAt: Date | null;
+  mfaEnabledAt: Date | null;
   lastLoginAt: Date | null;
   failedLoginAttempts: number;
   lockedUntil: Date | null;
@@ -61,6 +62,8 @@ export class User {
       passwordChangedAt: params.now,
       emailVerifiedAt: params.now,
       profileCompletedAt: params.now,
+      // MFA is set up at first sign-in (MFA_SETUP_REQUIRED for administrators).
+      mfaEnabledAt: null,
       lastLoginAt: null,
       failedLoginAttempts: 0,
       lockedUntil: null,
@@ -96,6 +99,7 @@ export class User {
       passwordChangedAt: null,
       emailVerifiedAt: null,
       profileCompletedAt: null,
+      mfaEnabledAt: null,
       lastLoginAt: null,
       failedLoginAttempts: 0,
       lockedUntil: null,
@@ -155,6 +159,15 @@ export class User {
 
   get profileCompletedAt(): Date | null {
     return this.props.profileCompletedAt;
+  }
+
+  get mfaEnabledAt(): Date | null {
+    return this.props.mfaEnabledAt;
+  }
+
+  /** A second factor is configured: login needs a code after the password. */
+  get hasMfa(): boolean {
+    return this.props.mfaEnabledAt !== null;
   }
 
   get isDeleted(): boolean {

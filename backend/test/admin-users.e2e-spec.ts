@@ -12,6 +12,7 @@ import {
 } from '../src/modules/mail/application/mail-sender';
 import { PasswordHasher } from '../src/modules/security/application/password-hasher';
 import { CookieJar } from './utils/cookie-jar';
+import { enrollTotp, webLoginWithMfa } from './utils/mfa';
 
 const ORIGIN = 'http://localhost:3000';
 const COOKIE = { csrf: 'cg_csrf' };
@@ -91,14 +92,14 @@ describe('Admin user management (e2e)', () => {
     adminId = admin.id;
     createdIds.push(admin.id);
 
-    jar = new CookieJar();
-    jar.absorb(await request(server).get('/api/v1/auth/csrf').expect(200));
-    jar.absorb(
-      await post('/auth/login', {
-        email: adminEmail,
-        password: ADMIN_PASSWORD,
-      }).expect(200),
-    );
+    // Administrators cannot use the console without a second factor.
+    const secret = await enrollTotp(app, prisma, admin.id);
+    jar = await webLoginWithMfa(server, prisma, {
+      id: admin.id,
+      email: adminEmail,
+      password: ADMIN_PASSWORD,
+      secret,
+    });
   });
 
   afterAll(async () => {
