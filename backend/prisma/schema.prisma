@@ -102,6 +102,9 @@ model User {
   passwordChangedAt          DateTime?
   emailVerifiedAt            DateTime?
   profileCompletedAt         DateTime?
+  /// Set when a TOTP authenticator is confirmed. Drives the MFA login step and,
+  /// for roles that require MFA, the MFA_SETUP_REQUIRED onboarding state.
+  mfaEnabledAt               DateTime?
   lastLoginAt                DateTime?
   failedLoginAttempts        Int        @default(0)
   lockedUntil                DateTime?
@@ -120,6 +123,9 @@ model User {
   sessions            RefreshSession[]
   passwordResetTokens PasswordResetToken[]
   emailVerifications  EmailVerificationToken[]
+  mfa                 UserMfa?
+  mfaRecoveryCodes    MfaRecoveryCode[]
+  mfaChallenges       MfaChallenge[]
 
   @@index([role, status, deletedAt])
   @@index([deletedAt])
@@ -251,6 +257,62 @@ model EmailVerificationToken {
   @@index([userId, usedAt])
   @@index([expiresAt])
   @@map("email_verification_tokens")
+}
+
+/// TOTP second factor, one row per user. Never loaded with the User aggregate.
+/// Secrets are AES-256-GCM encrypted with MFA_ENCRYPTION_KEY, bound to the user id.
+model UserMfa {
+  userId               String    @id @db.Uuid
+  /// Active authenticator (null until the first setup is confirmed).
+  totpSecretEnc        String?   @db.VarChar(255)
+  /// Last accepted time step: a code is never accepted twice (replay).
+  totpLastUsedStep     Int?
+  /// Setup in progress (first one, or replacing a lost phone). The active
+  /// secret keeps working until this one is confirmed.
+  pendingTotpSecretEnc String?   @db.VarChar(255)
+  pendingTotpExpiresAt DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_mfa")
+}
+
+/// Single-use backup codes, stored as keyed hashes only (shown once, at generation).
+model MfaRecoveryCode {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  userId    String    @db.Uuid
+  codeHash  String    @db.Char(64)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, codeHash])
+  @@index([userId, usedAt])
+  @@map("mfa_recovery_codes")
+}
+
+/// Password verified, second factor pending. Short-lived, single-use, bounded attempts.
+model MfaChallenge {
+  id             String         @id @default(uuid(7)) @db.Uuid
+  userId         String         @db.Uuid
+  /// HMAC-SHA256 (hex) of the raw token held by the client.
+  tokenHash      String         @unique @db.Char(64)
+  /// The session opened on success belongs to this channel.
+  channel        SessionChannel
+  persistent     Boolean
+  failedAttempts Int            @default(0)
+  expiresAt      DateTime
+  consumedAt     DateTime?
+  createdAt      DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("mfa_challenges")
 }
 
 /// Append-only. No foreign keys on purpose: entries must survive hard deletes unchanged.

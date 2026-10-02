@@ -129,6 +129,8 @@ export class AdminUserResponse {
   @ApiProperty({ enum: STATUSES }) status!: UserStatus;
   @ApiProperty({ enum: Object.values(AccountState) })
   accountState!: AccountState;
+  @ApiProperty({ description: 'A TOTP authenticator is configured' })
+  mfaEnabled!: boolean;
   @ApiProperty({ nullable: true, type: Date }) lastLoginAt!: Date | null;
   @ApiProperty() createdAt!: Date;
   @ApiProperty({ nullable: true, type: Date }) deletedAt!: Date | null;

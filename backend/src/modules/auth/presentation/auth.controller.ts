@@ -44,13 +44,16 @@ import {
   ChangePasswordDto,
   ForgotPasswordDto,
   LoginDto,
+  MfaChallengeDto,
   ResetPasswordDto,
 } from './dto/auth-request.dto';
 import {
   CsrfTokenResponse,
   CurrentUserResponse,
+  MfaChallengeResponse,
   SessionOpenedResponse,
   SessionPrincipalResponse,
+  WebSessionLoginResponse,
 } from './dto/auth-response.dto';
 
 function toPrincipalResponse(
@@ -102,20 +105,57 @@ export class AuthController {
     summary:
       'Log in to the web console (administrators); sets HttpOnly cookies',
   })
-  @ApiEnvelopeResponse(SessionOpenedResponse)
+  @ApiEnvelopeResponse([WebSessionLoginResponse, MfaChallengeResponse], {
+    description:
+      'mfaRequired=false: signed in (cookies set). mfaRequired=true: send mfaToken and a code to POST /auth/mfa/challenge.',
+  })
   @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
   async login(
     @Body() dto: LoginDto,
     @ClientInfo() client: ClientContext,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<SessionOpenedResponse> {
-    const tokens = await this.auth.login({
+  ): Promise<WebSessionLoginResponse | MfaChallengeResponse> {
+    const result = await this.auth.login({
       email: dto.email,
       password: dto.password,
       rememberMe: dto.rememberMe ?? true,
       channel: SessionChannel.WEB,
       client,
     });
+    if (result.kind === 'MFA_REQUIRED') {
+      return { mfaRequired: true, ...result.challenge };
+    }
+    return {
+      mfaRequired: false,
+      ...toSessionOpenedResponse(
+        result.tokens,
+        this.cookies.setSessionCookies(res, result.tokens),
+      ),
+    };
+  }
+
+  @Public()
+  @Post('mfa/challenge')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit(RateLimitPolicies.MFA_CHALLENGE)
+  @ApiCsrf()
+  @ApiOperation({
+    summary:
+      'Second sign-in step (web): authenticator or recovery code; sets session cookies',
+  })
+  @ApiEnvelopeResponse(SessionOpenedResponse)
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED)
+  async completeMfaChallenge(
+    @Body() dto: MfaChallengeDto,
+    @ClientInfo() client: ClientContext,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<SessionOpenedResponse> {
+    const tokens = await this.auth.completeMfaChallenge(
+      dto.mfaToken,
+      dto.code,
+      SessionChannel.WEB,
+      client,
+    );
     return toSessionOpenedResponse(
       tokens,
       this.cookies.setSessionCookies(res, tokens),
@@ -215,6 +255,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @AllowAccountStates(
     AccountState.PASSWORD_CHANGE_REQUIRED,
+    AccountState.MFA_SETUP_REQUIRED,
     AccountState.PROFILE_SETUP_REQUIRED,
     AccountState.ACTIVE,
   )
@@ -235,6 +276,7 @@ export class AuthController {
     const tokens = await this.auth.changePassword(principal, {
       currentPassword: dto.currentPassword,
       newPassword: dto.newPassword,
+      mfaCode: dto.mfaCode,
       client,
     });
     // All previous sessions were revoked; this response carries the new one.

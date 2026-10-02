@@ -16,6 +16,7 @@ export function toDomainUser(record: UserRecord): User {
     passwordChangedAt: record.passwordChangedAt,
     emailVerifiedAt: record.emailVerifiedAt,
     profileCompletedAt: record.profileCompletedAt,
+    mfaEnabledAt: record.mfaEnabledAt,
     lastLoginAt: record.lastLoginAt,
     failedLoginAttempts: record.failedLoginAttempts,
     lockedUntil: record.lockedUntil,

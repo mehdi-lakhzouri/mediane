@@ -13,6 +13,7 @@ import { MailSender } from '../src/modules/mail/application/mail-sender';
 import { PasswordHasher } from '../src/modules/security/application/password-hasher';
 import { LocalDiskFileStorage } from '../src/modules/storage/infrastructure/local-disk.file-storage';
 import { CookieJar } from './utils/cookie-jar';
+import { enrollTotp, webLoginWithMfa } from './utils/mfa';
 
 /**
  * Driver onboarding from the mobile app, end to end against PostgreSQL:
@@ -92,6 +93,8 @@ describe('Driver onboarding from the mobile app (e2e)', () => {
   const adminEmail = `mobile-admin-${stamp}@cabinguard.test`;
   const createdIds: string[] = [];
   let driverId: string;
+  let adminId: string;
+  let adminSecret: Buffer;
   /** The driver's current session, replaced as the flow moves on. */
   let session: MobileSession;
 
@@ -150,7 +153,9 @@ describe('Driver onboarding from the mobile app (e2e)', () => {
       },
     });
     driverId = driver.id;
+    adminId = admin.id;
     createdIds.push(driver.id, admin.id);
+    adminSecret = await enrollTotp(app, prisma, admin.id);
   });
 
   afterAll(async () => {
@@ -210,6 +215,7 @@ describe('Driver onboarding from the mobile app (e2e)', () => {
 
     session = body<MobileSession>(res).data!;
     expect(session).toEqual({
+      mfaRequired: false,
       userId: driverId,
       role: 'DRIVER',
       accountState: 'PASSWORD_CHANGE_REQUIRED',
@@ -655,20 +661,18 @@ describe('Driver onboarding from the mobile app (e2e)', () => {
     const photoPath = diskPathOf(body<Profile>(res).data!.avatar!.url);
     expect(existsSync(photoPath)).toBe(true);
 
-    const jar = new CookieJar().absorb(
-      await request(server).get(`${API}/auth/csrf`).expect(200),
-    );
+    const jar = await webLoginWithMfa(server, prisma, {
+      id: adminId,
+      email: adminEmail,
+      password: ADMIN_PASSWORD,
+      secret: adminSecret,
+    });
     const asAdmin = (method: 'post' | 'delete', path: string) =>
       request(server)
         [method](`${API}${path}`)
         .set('Origin', ORIGIN)
         .set('Cookie', jar.header())
         .set('X-CSRF-Token', jar.get(COOKIE.csrf) ?? '');
-    jar.absorb(
-      await asAdmin('post', '/auth/login')
-        .send({ email: adminEmail, password: ADMIN_PASSWORD })
-        .expect(200),
-    );
 
     await asAdmin('delete', `/admin/users/${driverId}`).expect(200);
     expect(existsSync(photoPath)).toBe(true); // soft delete keeps it (restorable)

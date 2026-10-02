@@ -163,6 +163,23 @@ export class AdminUsersController {
     return this.admin.restoreUser(userId, toActor(principal, client));
   }
 
+  @Post(':userId/mfa/reset')
+  @HttpCode(HttpStatus.OK)
+  @ApiCsrf()
+  @ApiOperation({
+    summary:
+      "Remove a user's authenticator (lost phone and recovery codes); revokes their sessions",
+  })
+  @ApiEnvelopeResponse(AdminUserResponse)
+  @ApiErrorResponses(HttpStatus.UNPROCESSABLE_ENTITY)
+  resetMfa(
+    @Param('userId', new ParseUUIDPipe()) userId: string,
+    @CurrentUser() principal: AuthenticatedUser,
+    @ClientInfo() client: ClientContext,
+  ): Promise<AdminUserView> {
+    return this.admin.resetUserMfa(userId, toActor(principal, client));
+  }
+
   @Post(':userId/hard-delete')
   @HttpCode(HttpStatus.OK)
   @ApiCsrf()

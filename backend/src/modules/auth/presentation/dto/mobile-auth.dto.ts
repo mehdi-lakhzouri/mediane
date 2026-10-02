@@ -36,3 +36,9 @@ export class MobileSessionResponse extends SessionPrincipalResponse {
   @ApiProperty({ type: Date })
   refreshTokenExpiresAt!: Date;
 }
+
+/** Mobile login, no second factor needed: the session is in the body. */
+export class MobileSessionLoginResponse extends MobileSessionResponse {
+  @ApiProperty({ enum: [false] })
+  mfaRequired!: false;
+}

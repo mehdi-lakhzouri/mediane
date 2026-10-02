@@ -10,6 +10,7 @@ import {
 } from '../../../config';
 import { AuditService } from '../../audit/application/audit.service';
 import { AuditAction } from '../../audit/domain/audit-action';
+import { MfaService } from '../../mfa/application/mfa.service';
 import { ProfilesService } from '../../profiles/application/profiles.service';
 import { InvitationsService } from '../../invitations/application/invitations.service';
 import { MailSender } from '../../mail/application/mail-sender';
@@ -74,6 +75,7 @@ export interface AdminUserView {
   role: Role;
   status: UserStatus;
   accountState: AccountState;
+  mfaEnabled: boolean;
   lastLoginAt: Date | null;
   createdAt: Date;
   deletedAt: Date | null;
@@ -89,6 +91,7 @@ function toView(user: User): AdminUserView {
     role: user.role,
     status: user.status,
     accountState: user.accountState,
+    mfaEnabled: user.hasMfa,
     lastLoginAt: snapshot.lastLoginAt,
     createdAt: user.createdAt,
     deletedAt: user.deletedAt,
@@ -119,6 +122,7 @@ export class AdminUserManagementService {
     private readonly audit: AuditService,
     private readonly unitOfWork: UnitOfWork,
     private readonly profiles: ProfilesService,
+    private readonly mfa: MfaService,
     @Inject(authConfig.KEY) private readonly auth: AuthConfig,
     @Inject(appConfig.KEY) private readonly app: AppConfig,
   ) {}
@@ -325,6 +329,20 @@ export class AdminUserManagementService {
       });
       return toView(updated);
     });
+  }
+
+  /**
+   * Lost phone AND recovery codes. Never on oneself: an administrator who
+   * could remove their own second factor would make it pointless.
+   */
+  async resetUserMfa(
+    userId: string,
+    actor: AdminActor,
+  ): Promise<AdminUserView> {
+    this.assertNotSelf(userId, actor, 'reset two-step verification for');
+    await this.requireUser(userId);
+    await this.mfa.resetForUser(userId, actor.adminId, actor.client);
+    return toView(await this.requireUser(userId));
   }
 
   async softDeleteUser(userId: string, actor: AdminActor): Promise<void> {

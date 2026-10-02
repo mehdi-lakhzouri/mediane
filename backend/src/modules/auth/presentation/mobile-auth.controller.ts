@@ -21,8 +21,17 @@ import {
   CurrentUser,
   Public,
 } from './decorators/auth.decorators';
-import { ChangePasswordDto, LoginDto } from './dto/auth-request.dto';
-import { MobileRefreshDto, MobileSessionResponse } from './dto/mobile-auth.dto';
+import {
+  ChangePasswordDto,
+  LoginDto,
+  MfaChallengeDto,
+} from './dto/auth-request.dto';
+import { MfaChallengeResponse } from './dto/auth-response.dto';
+import {
+  MobileRefreshDto,
+  MobileSessionLoginResponse,
+  MobileSessionResponse,
+} from './dto/mobile-auth.dto';
 
 class MobileLoginDto extends PickType(LoginDto, ['email', 'password']) {}
 
@@ -58,21 +67,50 @@ export class MobileAuthController {
   @HttpCode(HttpStatus.OK)
   @RateLimit(RateLimitPolicies.LOGIN)
   @ApiOperation({ summary: 'Log in from the mobile app (drivers)' })
-  @ApiEnvelopeResponse(MobileSessionResponse)
+  @ApiEnvelopeResponse([MobileSessionLoginResponse, MfaChallengeResponse], {
+    description:
+      'mfaRequired=false: signed in. mfaRequired=true: send mfaToken and a code to POST /auth/mobile/mfa/challenge.',
+  })
   @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
   async login(
     @Body() dto: MobileLoginDto,
     @ClientInfo() client: ClientContext,
+  ): Promise<MobileSessionLoginResponse | MfaChallengeResponse> {
+    const result = await this.auth.login({
+      email: dto.email,
+      password: dto.password,
+      // The device keystore keeps the session until logout or expiry.
+      rememberMe: true,
+      channel: SessionChannel.MOBILE,
+      client,
+    });
+    if (result.kind === 'MFA_REQUIRED') {
+      return { mfaRequired: true, ...result.challenge };
+    }
+    return { mfaRequired: false, ...toMobileSession(result.tokens) };
+  }
+
+  @Public()
+  @Post('mfa/challenge')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit(RateLimitPolicies.MFA_CHALLENGE)
+  @ApiOperation({
+    summary:
+      'Second sign-in step (mobile): authenticator or recovery code; returns the session',
+  })
+  @ApiEnvelopeResponse(MobileSessionResponse)
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED)
+  async completeMfaChallenge(
+    @Body() dto: MfaChallengeDto,
+    @ClientInfo() client: ClientContext,
   ): Promise<MobileSessionResponse> {
     return toMobileSession(
-      await this.auth.login({
-        email: dto.email,
-        password: dto.password,
-        // The device keystore keeps the session until logout or expiry.
-        rememberMe: true,
-        channel: SessionChannel.MOBILE,
+      await this.auth.completeMfaChallenge(
+        dto.mfaToken,
+        dto.code,
+        SessionChannel.MOBILE,
         client,
-      }),
+      ),
     );
   }
 
@@ -111,6 +149,7 @@ export class MobileAuthController {
   @HttpCode(HttpStatus.OK)
   @AllowAccountStates(
     AccountState.PASSWORD_CHANGE_REQUIRED,
+    AccountState.MFA_SETUP_REQUIRED,
     AccountState.PROFILE_SETUP_REQUIRED,
     AccountState.ACTIVE,
   )
@@ -131,6 +170,7 @@ export class MobileAuthController {
       await this.auth.changePassword(principal, {
         currentPassword: dto.currentPassword,
         newPassword: dto.newPassword,
+        mfaCode: dto.mfaCode,
         client,
       }),
     );

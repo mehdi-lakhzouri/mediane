@@ -135,6 +135,19 @@ export class EnvironmentVariables {
   @MinLength(32)
   TOKEN_HASH_SECRET!: string;
 
+  /**
+   * AES-256-GCM key for TOTP secrets at rest: 32 random bytes, base64.
+   * Losing or changing it makes every enrolled authenticator unusable.
+   */
+  @Matches(/^[A-Za-z0-9+/_-]{43}=?$/, {
+    message: 'MFA_ENCRYPTION_KEY must be 32 random bytes encoded in base64',
+  })
+  MFA_ENCRYPTION_KEY!: string;
+
+  /** Name shown in authenticator apps next to the account. */
+  @IsString()
+  MFA_ISSUER = 'CabinGuard';
+
   @Transform(toInt)
   @IsInt()
   @Min(3600)
@@ -236,6 +249,15 @@ function crossFieldErrors(env: EnvironmentVariables): string[] {
   const errors: string[] = [];
   if (env.JWT_ACCESS_SECRET === env.TOKEN_HASH_SECRET) {
     errors.push('JWT_ACCESS_SECRET and TOKEN_HASH_SECRET must be different');
+  }
+  if (Buffer.from(env.MFA_ENCRYPTION_KEY, 'base64').length !== 32) {
+    errors.push('MFA_ENCRYPTION_KEY must decode to exactly 32 bytes');
+  }
+  if (
+    env.MFA_ENCRYPTION_KEY === env.JWT_ACCESS_SECRET ||
+    env.MFA_ENCRYPTION_KEY === env.TOKEN_HASH_SECRET
+  ) {
+    errors.push('MFA_ENCRYPTION_KEY must not reuse another secret');
   }
   if (
     env.REFRESH_SESSION_IDLE_TTL_SECONDS >
