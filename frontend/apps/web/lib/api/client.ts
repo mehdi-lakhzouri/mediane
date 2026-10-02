@@ -17,8 +17,11 @@ const API_BASE_URL =
 const CSRF_HEADER = "X-CSRF-Token";
 
 /** Endpoints that must never trigger the refresh-and-retry dance. */
+// A 401 from these means "wrong credentials / expired step", not an expired
+// access token: refreshing the session would be pointless.
 const NO_REFRESH_PATHS = new Set([
   "/auth/login",
+  "/auth/mfa/challenge",
   "/auth/refresh",
   "/auth/logout",
   "/auth/csrf",

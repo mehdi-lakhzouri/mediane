@@ -6,6 +6,7 @@ export type UserStatus = "INVITED" | "ACTIVE" | "SUSPENDED";
 export type AccountState =
   | "INVITED"
   | "PASSWORD_CHANGE_REQUIRED"
+  | "MFA_SETUP_REQUIRED"
   | "PROFILE_SETUP_REQUIRED"
   | "ACTIVE"
   | "SUSPENDED"
@@ -19,6 +20,8 @@ export interface AdminUser {
   role: Role;
   status: UserStatus;
   accountState: AccountState;
+  /** A TOTP authenticator is configured. */
+  mfaEnabled: boolean;
   lastLoginAt: string | null;
   createdAt: string;
   deletedAt: string | null;
@@ -106,6 +109,11 @@ export function reactivateUser(userId: string): Promise<AdminUser> {
 
 export function softDeleteUser(userId: string): Promise<null> {
   return api.delete<null>(`/admin/users/${userId}`);
+}
+
+/** Lost phone and recovery codes: removes the authenticator, signs the user out. */
+export function resetUserMfa(userId: string): Promise<AdminUser> {
+  return api.post<AdminUser>(`/admin/users/${userId}/mfa/reset`);
 }
 
 export function restoreUser(userId: string): Promise<AdminUser> {

@@ -8,6 +8,7 @@ import type {
   SortingState,
 } from "@tanstack/react-table";
 import {
+  KeyRound,
   MoreVertical,
   Pencil,
   RotateCcw,
@@ -63,6 +64,7 @@ import {
   listUsers,
   reactivateUser,
   resendInvitation,
+  resetUserMfa,
   revokeInvitation,
   restoreUser,
   softDeleteUser,
@@ -753,6 +755,26 @@ function RowActions({
             >
               <RotateCcw />
               Restore
+            </DropdownMenuItem>
+          )}
+
+          {!deleted && user.mfaEnabled && !isSelf && (
+            <DropdownMenuItem
+              onSelect={() =>
+                onConfirm({
+                  title: "Reset two-step verification?",
+                  description: `Only when ${fullName(user)} has lost both their phone and their recovery codes. Their authenticator is removed and every session ends; they set up a new one at their next sign-in.`,
+                  actionLabel: "Reset",
+                  destructive: true,
+                  run: () =>
+                    onAction("Two-step verification reset.", () =>
+                      resetUserMfa(user.id),
+                    ),
+                })
+              }
+            >
+              <KeyRound />
+              Reset 2-step verification
             </DropdownMenuItem>
           )}
         </DropdownMenuGroup>

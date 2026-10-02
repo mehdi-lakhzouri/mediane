@@ -7,6 +7,7 @@ import {
   Clock3,
   Database,
   FileText,
+  KeyRound,
   LoaderCircle,
   Mail,
   MoreVertical,
@@ -19,6 +20,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
+import { Badge } from "@repo/ui/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -375,6 +377,19 @@ export function UserSheet({
                 label="Account state"
                 description="The effective access and onboarding state calculated by the backend."
                 value={<AccountStateBadge state={current.accountState} />}
+              />
+              <DetailRow
+                icon={KeyRound}
+                label="Two-step verification"
+                description="An authenticator app is required at every sign-in."
+                value={
+                  <Badge
+                    variant={current.mfaEnabled ? "success" : "outline"}
+                    className="h-7 px-2.5"
+                  >
+                    {current.mfaEnabled ? "On" : "Off"}
+                  </Badge>
+                }
               />
               <DetailRow
                 icon={CalendarDays}

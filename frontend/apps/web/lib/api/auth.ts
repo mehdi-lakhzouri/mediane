@@ -4,7 +4,10 @@ export type Role = "ADMIN" | "DRIVER";
 
 /** Only states that can hold a session are ever returned by the API. */
 export type AccountState =
-  "PASSWORD_CHANGE_REQUIRED" | "PROFILE_SETUP_REQUIRED" | "ACTIVE";
+  | "PASSWORD_CHANGE_REQUIRED"
+  | "MFA_SETUP_REQUIRED"
+  | "PROFILE_SETUP_REQUIRED"
+  | "ACTIVE";
 
 export interface SessionPrincipal {
   userId: string;
@@ -24,10 +27,26 @@ interface SessionOpened extends SessionPrincipal {
   csrfToken: string;
 }
 
+type LoginResponse =
+  | (SessionOpened & { mfaRequired: false })
+  | { mfaRequired: true; mfaToken: string; expiresAt: string };
+
+/** A correct password either opens the session or asks for the second factor. */
+export type LoginOutcome =
+  | { kind: "session"; principal: SessionPrincipal }
+  | { kind: "mfa"; mfaToken: string; expiresAt: Date };
+
 export interface LoginInput {
   email: string;
   password: string;
   rememberMe: boolean;
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
+  /** Only when two-step verification is on. */
+  mfaCode?: string;
 }
 
 function openSession(opened: SessionOpened): SessionPrincipal {
@@ -39,10 +58,52 @@ function openSession(opened: SessionOpened): SessionPrincipal {
   };
 }
 
+/**
+ * Where an authenticated administrator must go next. The API enforces the
+ * same order server-side; this only avoids showing a screen that would 403.
+ */
+export function destinationFor(state: AccountState): string {
+  switch (state) {
+    case "PASSWORD_CHANGE_REQUIRED":
+      return "/change-password";
+    case "MFA_SETUP_REQUIRED":
+      return "/mfa/setup";
+    default:
+      return "/dashboard";
+  }
+}
+
 /** GET /auth/csrf (fresh token + cookie) then POST /auth/login. */
-export async function login(input: LoginInput): Promise<SessionPrincipal> {
+export async function login(input: LoginInput): Promise<LoginOutcome> {
   await refreshCsrfToken();
-  return openSession(await api.post<SessionOpened>("/auth/login", input));
+  const response = await api.post<LoginResponse>("/auth/login", input);
+  if (response.mfaRequired) {
+    return {
+      kind: "mfa",
+      mfaToken: response.mfaToken,
+      expiresAt: new Date(response.expiresAt),
+    };
+  }
+  return { kind: "session", principal: openSession(response) };
+}
+
+/** Second sign-in step: authenticator code or recovery code. */
+export async function completeMfaChallenge(
+  mfaToken: string,
+  code: string,
+): Promise<SessionPrincipal> {
+  return openSession(
+    await api.post<SessionOpened>("/auth/mfa/challenge", { mfaToken, code }),
+  );
+}
+
+/** Every session is replaced; the response carries the new one. */
+export async function changePassword(
+  input: ChangePasswordInput,
+): Promise<SessionPrincipal> {
+  return openSession(
+    await api.post<SessionOpened>("/auth/password/change", input),
+  );
 }
 
 /** Always resolves the same way whether the address exists, preventing account enumeration. */

@@ -7,7 +7,11 @@ import { cn } from "@repo/ui/lib/utils";
 import { Sidebar } from "../components/dashboard/sidebar";
 import { Topbar } from "../components/dashboard/topbar";
 import { ToastProvider } from "../components/dashboard/toast-provider";
-import { getCurrentUser, type CurrentUser } from "../../lib/api/auth";
+import {
+  destinationFor,
+  getCurrentUser,
+  type CurrentUser,
+} from "../../lib/api/auth";
 import { onSessionLost } from "../../lib/api/client";
 import { navTitle } from "./nav";
 
@@ -38,12 +42,18 @@ export default function DashboardLayout({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Server-side guards remain authoritative; this only avoids rendering the
-  // shell for a visitor without a session and sends them to sign in.
+  // shell for a visitor without a session (sent to sign in) or an
+  // administrator who has not finished onboarding (sent to the missing step).
   useEffect(() => {
     let active = true;
     getCurrentUser()
       .then((user) => {
-        if (active) setAuth({ kind: "authenticated", user });
+        if (!active) return;
+        if (user.accountState !== "ACTIVE") {
+          router.replace(destinationFor(user.accountState));
+          return;
+        }
+        setAuth({ kind: "authenticated", user });
       })
       .catch(() => {
         if (active) setAuth({ kind: "unauthenticated" });
@@ -51,7 +61,7 @@ export default function DashboardLayout({
     return () => {
       active = false;
     };
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     setCollapsed(readCollapsed());

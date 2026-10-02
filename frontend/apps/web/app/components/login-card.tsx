@@ -17,23 +17,21 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { ApiError } from "../../lib/api/client";
-import {
-  login,
-  type AccountState,
-  type SessionPrincipal,
-} from "../../lib/api/auth";
+import { destinationFor, login, type AccountState } from "../../lib/api/auth";
+import { holdMfaChallenge } from "../../lib/mfa-challenge";
 
 type LoginStatus =
   | { kind: "idle" }
   | { kind: "submitting" }
   | { kind: "error"; message: string }
-  | { kind: "success"; principal: SessionPrincipal };
+  | { kind: "success"; message: string };
 
 const SUCCESS_MESSAGES: Record<AccountState, string> = {
   PASSWORD_CHANGE_REQUIRED:
-    "Signed in. For your security, please choose a new password to replace your temporary one.",
-  PROFILE_SETUP_REQUIRED:
-    "Signed in. Please complete your profile to finish setting up your account.",
+    "Signed in. Choose your own password to replace the temporary one.",
+  MFA_SETUP_REQUIRED:
+    "Signed in. Set up two-step verification to protect your account.",
+  PROFILE_SETUP_REQUIRED: "Signed in.",
   ACTIVE: "Signed in successfully.",
 };
 
@@ -48,6 +46,8 @@ function loginErrorMessage(error: unknown): string {
       return "Too many sign-in attempts. Please wait a few minutes and try again.";
     case "VALIDATION_FAILED":
       return "Please enter a valid email address and password.";
+    case "USE_MOBILE_APP":
+      return "Driver accounts sign in with the CabinGuard mobile app.";
     case "TEMPORARY_PASSWORD_EXPIRED":
     case "NETWORK_ERROR":
       return error.message;
@@ -55,15 +55,6 @@ function loginErrorMessage(error: unknown): string {
       return "Something went wrong. Please try again.";
   }
 }
-
-// Where to send the user once signed in, based on their account state.
-// The password-change and profile-setup pages are not built yet, so for now
-// every authenticated state lands on the dashboard (its guard handles the rest).
-const DESTINATION: Record<AccountState, string> = {
-  PASSWORD_CHANGE_REQUIRED: "/dashboard",
-  PROFILE_SETUP_REQUIRED: "/dashboard",
-  ACTIVE: "/dashboard",
-};
 
 export function LoginCard() {
   const router = useRouter();
@@ -82,14 +73,24 @@ export function LoginCard() {
     const data = new FormData(form);
     setStatus({ kind: "submitting" });
     try {
-      const principal = await login({
+      const outcome = await login({
         email: String(data.get("email") ?? "").trim(),
         password: String(data.get("password") ?? ""),
         rememberMe: remember,
       });
       form.reset();
-      setStatus({ kind: "success", principal });
-      router.replace(DESTINATION[principal.accountState]);
+      if (outcome.kind === "mfa") {
+        holdMfaChallenge(outcome);
+        setStatus({
+          kind: "success",
+          message: "Password accepted. One more step: your verification code.",
+        });
+        router.push("/mfa/verify");
+        return;
+      }
+      const state = outcome.principal.accountState;
+      setStatus({ kind: "success", message: SUCCESS_MESSAGES[state] });
+      router.replace(destinationFor(state));
     } catch (error) {
       setStatus({ kind: "error", message: loginErrorMessage(error) });
     }
@@ -287,7 +288,7 @@ export function LoginCard() {
               }}
             >
               <CheckCircle2 className="mt-0.5 size-[18px] shrink-0" />
-              {SUCCESS_MESSAGES[status.principal.accountState]}
+              {status.message}
             </p>
           )}
         </div>
