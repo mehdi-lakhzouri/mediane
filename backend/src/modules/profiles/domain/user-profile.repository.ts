@@ -5,6 +5,8 @@ import { UserProfile } from './user-profile';
 export abstract class UserProfileRepository {
   abstract findByUserId(userId: string): Promise<UserProfile | null>;
 
+  abstract findByUserIds(userIds: readonly string[]): Promise<UserProfile[]>;
+
   /**
    * Creates or updates the profile and REPLACES its emergency contacts with
    * `details.emergencyContacts`. Must run inside a UnitOfWork.

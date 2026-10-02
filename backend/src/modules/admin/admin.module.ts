@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuditModule } from '../audit/audit.module';
+import { FamiliesModule } from '../families/families.module';
 import { InvitationsModule } from '../invitations/invitations.module';
 import { MailModule } from '../mail/mail.module';
 import { MfaModule } from '../mfa/mfa.module';
@@ -13,7 +14,7 @@ import { AdminUsersController } from './presentation/admin-users.controller';
 
 /**
  * Administration context: owns no aggregate, composes the others.
- * Dependency direction is one-way (admin -> users/invitations/sessions/profiles/mfa), no cycles.
+ * Dependency direction is one-way (admin -> users/invitations/sessions/profiles/mfa/families), no cycles.
  */
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { AdminUsersController } from './presentation/admin-users.controller';
     MailModule,
     ProfilesModule,
     MfaModule,
+    FamiliesModule,
   ],
   controllers: [AdminUsersController, AdminInvitationsController],
   providers: [AdminUserManagementService],

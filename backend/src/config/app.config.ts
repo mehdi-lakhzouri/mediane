@@ -12,6 +12,9 @@ export const appConfig = registerAs('app', () => {
     logLevel: env.LOG_LEVEL,
     corsOrigins: env.CORS_ORIGINS,
     frontendUrl: env.FRONTEND_URL,
+    familyInviteUrl: (
+      env.FAMILY_INVITE_URL ?? `${env.FRONTEND_URL}/join-family`
+    ).replace(/\/+$/, ''),
     trustProxy: env.TRUST_PROXY,
     // Hard rule: never exposed in production, even if misconfigured.
     swaggerEnabled: env.SWAGGER_ENABLED && !isProduction,

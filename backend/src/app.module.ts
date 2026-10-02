@@ -16,6 +16,7 @@ import { PrismaModule } from './infrastructure/prisma/prisma.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { FamiliesModule } from './modules/families/families.module';
 import { AccountStateGuard } from './modules/auth/presentation/guards/account-state.guard';
 import { JwtAuthGuard } from './modules/auth/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/presentation/guards/roles.guard';
@@ -61,6 +62,7 @@ import { UsersModule } from './modules/users/users.module';
     MfaModule,
     InvitationsModule,
     ProfilesModule,
+    FamiliesModule,
     AdminModule,
     HealthModule,
   ],

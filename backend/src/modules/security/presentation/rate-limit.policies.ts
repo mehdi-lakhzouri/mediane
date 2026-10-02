@@ -28,6 +28,8 @@ export const RateLimitPolicies = {
   AVATAR_UPLOAD: { limit: 10, ttlSeconds: 3600 },
   MFA_CHALLENGE: { limit: 10, ttlSeconds: 300, blockSeconds: 300 },
   MFA_MANAGE: { limit: 10, ttlSeconds: 900 },
+  /** Bounds join-code guessing (a valid code still needs the owner's approval). */
+  FAMILY_JOIN: { limit: 10, ttlSeconds: 3600, blockSeconds: 3600 },
 } as const satisfies Record<string, RateLimitPolicy>;
 
 export const RateLimit = (
