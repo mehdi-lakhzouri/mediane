@@ -1,10 +1,17 @@
+import type { EmergencyContact, Gender } from './emergency-contact';
+import { MIN_EMERGENCY_CONTACTS } from './profile-rules';
+
 export interface UserProfileProps {
   id: string;
   userId: string;
   phoneNumber: string | null;
   dateOfBirth: Date | null;
-  emergencyContactName: string | null;
-  emergencyContactPhone: string | null;
+  gender: Gender | null;
+  /** Storage key of the processed avatar, never a URL. */
+  avatarKey: string | null;
+  avatarUpdatedAt: Date | null;
+  /** Sorted by priority (1 first). */
+  emergencyContacts: readonly EmergencyContact[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,13 +32,20 @@ export class UserProfile {
     return this.props.userId;
   }
 
-  /** Completion rule used to set User.profileCompletedAt. */
+  get avatarKey(): string | null {
+    return this.props.avatarKey;
+  }
+
+  /**
+   * Completion rule used to set User.profileCompletedAt. The avatar is
+   * optional and never part of it.
+   */
   isComplete(): boolean {
     return (
       this.props.phoneNumber !== null &&
       this.props.dateOfBirth !== null &&
-      this.props.emergencyContactName !== null &&
-      this.props.emergencyContactPhone !== null
+      this.props.gender !== null &&
+      this.props.emergencyContacts.length >= MIN_EMERGENCY_CONTACTS
     );
   }
 

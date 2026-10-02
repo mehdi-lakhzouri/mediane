@@ -96,6 +96,13 @@ export abstract class UserRepository {
   abstract activateInvitedUser(userId: string, now: Date): Promise<boolean>;
 
   /**
+   * Stamps profileCompletedAt once (moves a driver from PROFILE_SETUP_REQUIRED
+   * to ACTIVE). Returns false if it was already set: later edits keep the
+   * original completion date.
+   */
+  abstract markProfileCompleted(userId: string, now: Date): Promise<boolean>;
+
+  /**
    * Replaces the credential with a fresh temporary one (invitation resend).
    * Unlike setPassword it keeps `mustChangePassword` on, so the driver is still
    * forced to choose their own password at next sign-in.

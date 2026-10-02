@@ -26,6 +26,8 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
  *   2. Origin / Referer must belong to the CORS allow-list when present
  *   3. Signed double-submit token: X-CSRF-Token header === CSRF cookie
  * Safe methods are never checked, so GET handlers must never mutate state.
+ * Requests authenticated only by a Bearer token (mobile app) are exempt: see
+ * isNativeBearerRequest.
  */
 @Injectable()
 export class CsrfGuard implements CanActivate {
@@ -49,7 +51,7 @@ export class CsrfGuard implements CanActivate {
       SKIP_CSRF_KEY,
       [context.getHandler(), context.getClass()],
     );
-    if (skip) return true;
+    if (skip || this.isNativeBearerRequest(req)) return true;
 
     this.assertTrustedOrigin(req);
 
@@ -79,5 +81,21 @@ export class CsrfGuard implements CanActivate {
       }
     }
     // Neither header: not a modern browser request. The double-submit token still applies.
+  }
+
+  /**
+   * CSRF abuses credentials a browser attaches on its own (cookies). A Bearer
+   * token is never attached automatically — a cross-site page cannot even send
+   * the header without a CORS preflight, and `Authorization` is not in the CORS
+   * allow-list. So a request that authenticates ONLY with a Bearer token (the
+   * mobile app) needs no CSRF token. If any session cookie is present the
+   * request is treated as a browser request and fully checked.
+   */
+  private isNativeBearerRequest(req: Request): boolean {
+    return (
+      /^Bearer\s/.test(req.get('authorization') ?? '') &&
+      !readCookie(req, this.cookies.names.accessToken) &&
+      !readCookie(req, this.cookies.names.refreshToken)
+    );
   }
 }

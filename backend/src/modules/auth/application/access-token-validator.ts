@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { SessionsService } from '../../sessions/application/sessions.service';
+import { SessionChannel } from '../../sessions/domain/refresh-session';
 import { canAuthenticate } from '../../users/domain/account-state';
 import { UserRepository } from '../../users/domain/user.repository';
 import type { AccessTokenPayload } from '../domain/access-token-payload';
 import type { AuthenticatedUser } from '../domain/authenticated-user';
 import { SessionInvalidError } from '../domain/auth.errors';
+import { channelForRole } from '../domain/channel-policy';
 
 /**
  * Runs on every authenticated request, after the JWT signature/expiry check.
@@ -19,12 +21,22 @@ export class AccessTokenValidator {
     private readonly users: UserRepository,
   ) {}
 
-  async validate(payload: AccessTokenPayload): Promise<AuthenticatedUser> {
+  /** @param channel how the token reached us (cookie => WEB, Bearer => MOBILE). */
+  async validate(
+    payload: AccessTokenPayload,
+    channel: SessionChannel,
+  ): Promise<AuthenticatedUser> {
     const [session, user] = await Promise.all([
       this.sessions.findActiveSession(payload.sid),
       this.users.findById(payload.sub),
     ]);
-    if (!session || !user || session.userId !== user.id) {
+    if (
+      !session ||
+      !user ||
+      session.userId !== user.id ||
+      session.channel !== channel ||
+      channelForRole(user.role) !== channel
+    ) {
       throw new SessionInvalidError();
     }
     const accountState = user.accountState;

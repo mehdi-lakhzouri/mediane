@@ -333,16 +333,10 @@ describe('Admin user management (e2e)', () => {
     const unknown = await acceptWith(anon, 'a'.repeat(43)).expect(422);
     expect(body(unknown).error).toEqual(body(replay).error);
 
-    // The link alone grants nothing: the temporary password still gates sign-in.
-    const driverJar = new CookieJar();
-    driverJar.absorb(
-      await request(server).get('/api/v1/auth/csrf').expect(200),
-    );
+    // The link alone grants nothing: the temporary password still gates
+    // sign-in, in the mobile app (drivers do not use the web console).
     const signIn = await request(server)
-      .post('/api/v1/auth/login')
-      .set('Origin', ORIGIN)
-      .set('Cookie', driverJar.header())
-      .set('X-CSRF-Token', driverJar.get(COOKIE.csrf) ?? '')
+      .post('/api/v1/auth/mobile/login')
       .send({ email, password: mail.temporaryPassword })
       .expect(200);
     expect(body<UserView>(signIn).data).toMatchObject({
@@ -351,10 +345,6 @@ describe('Admin user management (e2e)', () => {
   });
 
   it('keeps the whole area closed to drivers', async () => {
-    const driverJar = new CookieJar();
-    driverJar.absorb(
-      await request(server).get('/api/v1/auth/csrf').expect(200),
-    );
     const password = 'Driver-Own-Passphrase-7';
     const driver = await prisma.user.create({
       data: {
@@ -370,19 +360,15 @@ describe('Admin user management (e2e)', () => {
     });
     createdIds.push(driver.id);
 
-    driverJar.absorb(
-      await request(server)
-        .post('/api/v1/auth/login')
-        .set('Origin', ORIGIN)
-        .set('Cookie', driverJar.header())
-        .set('X-CSRF-Token', driverJar.get(COOKIE.csrf) ?? '')
-        .send({ email: driver.email, password })
-        .expect(200),
-    );
+    const signIn = await request(server)
+      .post('/api/v1/auth/mobile/login')
+      .send({ email: driver.email, password })
+      .expect(200);
+    const { accessToken } = body<{ accessToken: string }>(signIn).data ?? {};
 
     const res = await request(server)
       .get('/api/v1/admin/users')
-      .set('Cookie', driverJar.header())
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(403);
     expect(body(res).error?.code).toBe('FORBIDDEN');
   });

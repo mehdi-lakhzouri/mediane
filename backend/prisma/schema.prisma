@@ -49,6 +49,30 @@ enum SessionRevocationReason {
   ADMIN_REVOKED
 }
 
+/// Which client a session belongs to. Bound at login and checked on every request:
+/// a web session cannot be used with a Bearer token and a mobile token cannot be
+/// sent as a cookie.
+enum SessionChannel {
+  WEB
+  MOBILE
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum EmergencyContactRelationship {
+  SPOUSE
+  PARENT
+  CHILD
+  SIBLING
+  RELATIVE
+  FRIEND
+  COLLEAGUE
+  OTHER
+}
+
 enum AuditActorType {
   USER
   SYSTEM
@@ -102,20 +126,45 @@ model User {
   @@map("users")
 }
 
+/// Driver profile (personal data: never logged, never put in tokens or audit metadata).
+/// Columns are nullable so the avatar can be uploaded at any point of onboarding;
+/// completeness is a domain rule (see modules/profiles/domain/user-profile.ts).
 model UserProfile {
-  id                    String    @id @default(uuid(7)) @db.Uuid
-  userId                String    @unique @db.Uuid
-  phoneNumber           String?   @db.VarChar(32)
-  dateOfBirth           DateTime? @db.Date
-  emergencyContactName  String?   @db.VarChar(200)
-  emergencyContactPhone String?   @db.VarChar(32)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id              String    @id @default(uuid(7)) @db.Uuid
+  userId          String    @unique @db.Uuid
+  /// E.164, e.g. +21612345678
+  phoneNumber     String?   @db.VarChar(32)
+  dateOfBirth     DateTime? @db.Date
+  gender          Gender?
+  /// Object-storage key (never a URL): URLs are signed on read and expire.
+  avatarKey       String?   @db.VarChar(255)
+  avatarUpdatedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   /// Composition: a profile cannot outlive its user (only reachable through an explicit hard delete).
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emergencyContacts EmergencyContact[]
 
   @@map("user_profiles")
+}
+
+/// People to call when the driver has an incident, in priority order (1 = first).
+model EmergencyContact {
+  id           String                       @id @default(uuid(7)) @db.Uuid
+  profileId    String                       @db.Uuid
+  fullName     String                       @db.VarChar(200)
+  relationship EmergencyContactRelationship
+  /// E.164, e.g. +21698765432
+  phoneNumber  String                       @db.VarChar(32)
+  priority     Int                          @db.SmallInt
+  createdAt    DateTime                     @default(now())
+  updatedAt    DateTime                     @updatedAt
+
+  profile UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, priority])
+  @@map("emergency_contacts")
 }
 
 model Invitation {
@@ -154,6 +203,7 @@ model RefreshSession {
   absoluteExpiresAt DateTime
   /// "Keep me signed in": false => cookies are browser-session cookies (kept across rotations).
   persistent        Boolean                  @default(true)
+  channel           SessionChannel           @default(WEB)
   /// Set on every rotation; used for the concurrent-refresh grace window.
   lastUsedAt        DateTime?
   revokedAt         DateTime?

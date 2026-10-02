@@ -10,6 +10,7 @@ import {
 } from '../../../config';
 import { AuditService } from '../../audit/application/audit.service';
 import { AuditAction } from '../../audit/domain/audit-action';
+import { ProfilesService } from '../../profiles/application/profiles.service';
 import { InvitationsService } from '../../invitations/application/invitations.service';
 import { MailSender } from '../../mail/application/mail-sender';
 import { PasswordHasher } from '../../security/application/password-hasher';
@@ -117,6 +118,7 @@ export class AdminUserManagementService {
     private readonly mail: MailSender,
     private readonly audit: AuditService,
     private readonly unitOfWork: UnitOfWork,
+    private readonly profiles: ProfilesService,
     @Inject(authConfig.KEY) private readonly auth: AuthConfig,
     @Inject(appConfig.KEY) private readonly app: AppConfig,
   ) {}
@@ -377,6 +379,9 @@ export class AdminUserManagementService {
       throw new HardDeleteConfirmationMismatchError();
     }
 
+    // The cascade removes the profile row, not the photo in object storage.
+    const avatarKey = await this.profiles.findStoredAvatarKey(user.id);
+
     await this.unitOfWork.run(async () => {
       // Audited before the row disappears; audit rows carry no FK and survive.
       await this.audit.record({
@@ -388,6 +393,7 @@ export class AdminUserManagementService {
       });
       await this.users.hardDelete(user.id);
     });
+    if (avatarKey) await this.profiles.deleteStoredAvatar(avatarKey);
   }
 
   private async requireUser(userId: string): Promise<User> {

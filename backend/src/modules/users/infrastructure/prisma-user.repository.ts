@@ -186,6 +186,14 @@ export class PrismaUserRepository implements UserRepository {
     return count === 1;
   }
 
+  async markProfileCompleted(userId: string, now: Date): Promise<boolean> {
+    const { count } = await this.db.client.user.updateMany({
+      where: { id: userId, profileCompletedAt: null, deletedAt: null },
+      data: { profileCompletedAt: now },
+    });
+    return count === 1;
+  }
+
   async setTemporaryPassword(
     userId: string,
     passwordHash: string,

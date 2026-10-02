@@ -23,6 +23,7 @@ function toDomain(row: SessionRow): RefreshSession {
     expiresAt: row.expiresAt,
     absoluteExpiresAt: row.absoluteExpiresAt,
     persistent: row.persistent,
+    channel: row.channel,
     lastUsedAt: row.lastUsedAt,
     revokedAt: row.revokedAt,
     revokedReason: row.revokedReason,

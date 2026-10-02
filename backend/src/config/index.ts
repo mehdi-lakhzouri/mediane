@@ -3,6 +3,7 @@ import { authConfig } from './auth.config';
 import { cookieConfig } from './cookie.config';
 import { databaseConfig } from './database.config';
 import { mailConfig } from './mail.config';
+import { storageConfig } from './storage.config';
 import { throttleConfig } from './throttle.config';
 
 export * from './api.constants';
@@ -12,6 +13,7 @@ export * from './cookie.config';
 export * from './database.config';
 export * from './env.validation';
 export * from './mail.config';
+export * from './storage.config';
 export * from './throttle.config';
 
 export const allConfigs = [
@@ -20,5 +22,6 @@ export const allConfigs = [
   cookieConfig,
   databaseConfig,
   mailConfig,
+  storageConfig,
   throttleConfig,
 ];

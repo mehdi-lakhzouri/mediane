@@ -3,6 +3,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import {
   SWAGGER_ACCESS_COOKIE,
   SWAGGER_CSRF_HEADER,
+  SWAGGER_MOBILE_BEARER,
 } from '../common/http/swagger/api-security.decorators';
 import {
   API_DEFAULT_VERSION,
@@ -31,6 +32,10 @@ export function configureSwagger(app: INestApplication): void {
     .addApiKey(
       { type: 'apiKey', in: 'header', name: CSRF_HEADER },
       SWAGGER_CSRF_HEADER,
+    )
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      SWAGGER_MOBILE_BEARER,
     )
     .build();
 

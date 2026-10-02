@@ -19,7 +19,10 @@ import {
   OpenedSession,
   SessionsService,
 } from '../../sessions/application/sessions.service';
-import { SessionRevocationReason } from '../../sessions/domain/refresh-session';
+import {
+  SessionChannel,
+  SessionRevocationReason,
+} from '../../sessions/domain/refresh-session';
 import {
   AccountState,
   canAuthenticate,
@@ -35,6 +38,7 @@ import {
   TemporaryPasswordExpiredError,
 } from '../domain/auth.errors';
 import type { AuthenticatedUser } from '../domain/authenticated-user';
+import { channelForRole, WrongClientError } from '../domain/channel-policy';
 import { LoginPolicy, PasswordResetPolicy } from '../domain/login-policy';
 import { PasswordResetTokenRepository } from '../domain/password-reset-token.repository';
 import { AccessTokenIssuer } from '../infrastructure/access-token.issuer';
@@ -43,6 +47,8 @@ export interface LoginCommand {
   email: string;
   password: string;
   rememberMe: boolean;
+  /** The client the request came through (web console or mobile app). */
+  channel: SessionChannel;
   client: ClientContext;
 }
 
@@ -62,7 +68,10 @@ export interface CurrentUserView {
   accountState: AuthenticatedUser['accountState'];
 }
 
-/** Tokens produced by login/refresh. The presentation layer turns them into cookies. */
+/**
+ * Tokens produced by login/refresh. The web adapter turns them into cookies,
+ * the mobile adapter returns them in the response body.
+ */
 export interface IssuedTokens {
   accessToken: string;
   accessTokenExpiresAt: Date;
@@ -78,6 +87,7 @@ type LoginFailureReason =
   | 'ACCOUNT_LOCKED'
   | 'INVALID_PASSWORD'
   | 'ACCOUNT_NOT_AUTHENTICABLE'
+  | 'WRONG_CLIENT'
   | 'TEMPORARY_PASSWORD_EXPIRED';
 
 function revocationReasonFor(
@@ -99,6 +109,8 @@ function revocationReasonFor(
  *    pay for an Argon2 verification (constant-ish timing).
  *  - A new session (new id + tokens) on every login and password change: no fixation.
  *  - Password change/reset revokes every session and every pending reset token.
+ *  - Every session is bound to one channel (web cookies or mobile Bearer tokens),
+ *    and each role may only use its own channel (see channel-policy.ts).
  */
 @Injectable()
 export class AuthService {
@@ -150,6 +162,11 @@ export class AuthService {
       );
       throw new InvalidCredentialsError();
     }
+    const expectedChannel = channelForRole(user.role);
+    if (command.channel !== expectedChannel) {
+      await this.auditLoginFailure(user.id, 'WRONG_CLIENT', client);
+      throw new WrongClientError(expectedChannel);
+    }
     if (user.isTemporaryPasswordExpired(now)) {
       await this.auditLoginFailure(
         user.id,
@@ -169,7 +186,7 @@ export class AuthService {
       const session = await this.sessions.open(
         user.id,
         client,
-        { persistent: command.rememberMe },
+        { persistent: command.rememberMe, channel: command.channel },
         now,
       );
       await this.audit.record({
@@ -177,7 +194,7 @@ export class AuthService {
         actor: { type: 'USER', userId: user.id },
         target: { type: 'USER', id: user.id },
         client,
-        metadata: { sessionId: session.session.id },
+        metadata: { sessionId: session.session.id, channel: command.channel },
       });
       return session;
     });
@@ -187,14 +204,25 @@ export class AuthService {
 
   async refresh(
     rawRefreshToken: string | undefined,
+    channel: SessionChannel,
     client: ClientContext,
   ): Promise<IssuedTokens> {
     const now = new Date();
-    const opened = await this.sessions.rotate(rawRefreshToken, client, now);
+    const opened = await this.sessions.rotate(
+      rawRefreshToken,
+      channel,
+      client,
+      now,
+    );
     const user = await this.users.findById(opened.session.userId);
     const accountState = user?.accountState ?? null;
 
-    if (!user || !accountState || !canAuthenticate(accountState)) {
+    if (
+      !user ||
+      !accountState ||
+      !canAuthenticate(accountState) ||
+      channelForRole(user.role) !== channel
+    ) {
       await this.sessions.revoke(
         opened.session.id,
         revocationReasonFor(accountState),
@@ -206,15 +234,17 @@ export class AuthService {
   }
 
   /**
-   * Driven by the refresh cookie (not the access token) so that logout still
+   * Driven by the refresh token (not the access token) so that logout still
    * works after the access token expired. Revokes only this device's session.
    */
   async logout(
     rawRefreshToken: string | undefined,
+    channel: SessionChannel,
     client: ClientContext,
   ): Promise<void> {
     const session = await this.sessions.revokeByRefreshToken(
       rawRefreshToken,
+      channel,
       SessionRevocationReason.LOGOUT,
     );
     if (!session) return;
@@ -304,10 +334,14 @@ export class AuthService {
         now,
       );
       await this.resetTokens.invalidateAllForUser(user.id, now);
+      // The replacement session stays on the client the change was made from.
       const session = await this.sessions.open(
         user.id,
         client,
-        { persistent: currentSession?.persistent ?? true },
+        {
+          persistent: currentSession?.persistent ?? true,
+          channel: currentSession?.channel ?? channelForRole(user.role),
+        },
         now,
       );
       await this.audit.record({
