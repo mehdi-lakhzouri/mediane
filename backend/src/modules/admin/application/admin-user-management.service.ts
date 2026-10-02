@@ -10,6 +10,7 @@ import {
 } from '../../../config';
 import { AuditService } from '../../audit/application/audit.service';
 import { AuditAction } from '../../audit/domain/audit-action';
+import { FamiliesService } from '../../families/application/families.service';
 import { MfaService } from '../../mfa/application/mfa.service';
 import { ProfilesService } from '../../profiles/application/profiles.service';
 import { InvitationsService } from '../../invitations/application/invitations.service';
@@ -123,6 +124,7 @@ export class AdminUserManagementService {
     private readonly unitOfWork: UnitOfWork,
     private readonly profiles: ProfilesService,
     private readonly mfa: MfaService,
+    private readonly families: FamiliesService,
     @Inject(authConfig.KEY) private readonly auth: AuthConfig,
     @Inject(appConfig.KEY) private readonly app: AppConfig,
   ) {}
@@ -299,6 +301,11 @@ export class AdminUserManagementService {
         user.id,
         SessionRevocationReason.USER_SUSPENDED,
       );
+      // A suspended driver must not stay (or own) a family others rely on.
+      await this.families.detachUser(user.id, {
+        userId: actor.adminId,
+        client: actor.client,
+      });
       await this.audit.record({
         action: AuditAction.USER_SUSPENDED,
         actor: { type: 'USER', userId: actor.adminId },
@@ -355,6 +362,10 @@ export class AdminUserManagementService {
         user.id,
         SessionRevocationReason.USER_DELETED,
       );
+      await this.families.detachUser(user.id, {
+        userId: actor.adminId,
+        client: actor.client,
+      });
       await this.audit.record({
         action: AuditAction.USER_SOFT_DELETED,
         actor: { type: 'USER', userId: actor.adminId },
@@ -408,6 +419,11 @@ export class AdminUserManagementService {
         target: { type: 'USER', id: user.id },
         client: actor.client,
         metadata: { role: user.role },
+      });
+      // Before the cascade: an owner's family must get a new owner.
+      await this.families.detachUser(user.id, {
+        userId: actor.adminId,
+        client: actor.client,
       });
       await this.users.hardDelete(user.id);
     });

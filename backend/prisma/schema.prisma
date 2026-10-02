@@ -73,6 +73,19 @@ enum EmergencyContactRelationship {
   OTHER
 }
 
+enum FamilyRole {
+  OWNER
+  MEMBER
+}
+
+enum FamilyJoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  EXPIRED
+}
+
 enum AuditActorType {
   USER
   SYSTEM
@@ -126,6 +139,8 @@ model User {
   mfa                 UserMfa?
   mfaRecoveryCodes    MfaRecoveryCode[]
   mfaChallenges       MfaChallenge[]
+  familyMembership    FamilyMember?
+  familyJoinRequests  FamilyJoinRequest[]
 
   @@index([role, status, deletedAt])
   @@index([deletedAt])
@@ -313,6 +328,69 @@ model MfaChallenge {
   @@index([userId])
   @@index([expiresAt])
   @@map("mfa_challenges")
+}
+
+/// Drivers who look out for each other. Exactly one OWNER (enforced by a partial
+/// unique index in the migration), at most 10 members (enforced by the service
+/// under a row lock).
+model Family {
+  id                  String    @id @default(uuid(7)) @db.Uuid
+  name                String    @db.VarChar(80)
+  /// Normalized join code (no dash). It only lets someone ASK to join: the
+  /// owner approves every request, so it is stored readable for re-sharing.
+  inviteCode          String?   @unique @db.VarChar(16)
+  inviteCodeExpiresAt DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  members      FamilyMember[]
+  joinRequests FamilyJoinRequest[]
+
+  @@map("families")
+}
+
+/// One family per driver (unique userId). Sharing beyond name and photo is
+/// opt-in per member; the *At columns record when consent was given.
+model FamilyMember {
+  id               String     @id @default(uuid(7)) @db.Uuid
+  familyId         String     @db.Uuid
+  userId           String     @unique @db.Uuid
+  role             FamilyRole
+  joinedAt         DateTime   @default(now())
+  sharePhone       Boolean    @default(false)
+  sharePhoneAt     DateTime?
+  shareIncidents   Boolean    @default(false)
+  shareIncidentsAt DateTime?
+  shareHealth      Boolean    @default(false)
+  shareHealthAt    DateTime?
+  updatedAt        DateTime   @updatedAt
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([familyId, joinedAt])
+  @@map("family_members")
+}
+
+/// Created by a join code; the owner approves or rejects. At most one PENDING
+/// request per driver (partial unique index in the migration).
+model FamilyJoinRequest {
+  id          String                  @id @default(uuid(7)) @db.Uuid
+  familyId    String                  @db.Uuid
+  userId      String                  @db.Uuid
+  status      FamilyJoinRequestStatus @default(PENDING)
+  expiresAt   DateTime
+  decidedAt   DateTime?
+  decidedById String?                 @db.Uuid
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([familyId, status])
+  @@index([userId, status])
+  @@map("family_join_requests")
 }
 
 /// Append-only. No foreign keys on purpose: entries must survive hard deletes unchanged.

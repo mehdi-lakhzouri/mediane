@@ -48,6 +48,15 @@ export class PrismaUserProfileRepository implements UserProfileRepository {
     return row ? toDomain(row) : null;
   }
 
+  async findByUserIds(userIds: readonly string[]): Promise<UserProfile[]> {
+    if (!userIds.length) return [];
+    const rows = await this.db.client.userProfile.findMany({
+      where: { userId: { in: [...userIds] } },
+      include: WITH_CONTACTS,
+    });
+    return rows.map(toDomain);
+  }
+
   async saveDetails(
     userId: string,
     details: ProfileDetails,

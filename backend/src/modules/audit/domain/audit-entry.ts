@@ -4,7 +4,7 @@ import type { AuditAction } from './audit-action';
 
 export type AuditActorType = 'USER' | 'SYSTEM' | 'CLI';
 export type AuditOutcome = 'SUCCESS' | 'FAILURE';
-export type AuditTargetType = 'USER' | 'INVITATION' | 'SESSION';
+export type AuditTargetType = 'USER' | 'INVITATION' | 'SESSION' | 'FAMILY';
 
 /** What business code submits. `metadata` is sanitized before persistence. */
 export interface AuditEntry {

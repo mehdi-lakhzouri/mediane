@@ -37,6 +37,12 @@ export interface SaveProfileCommand {
   }[];
 }
 
+/** What family members may see of each other (the phone only with consent). */
+export interface MemberCard {
+  avatar: { url: string; expiresAt: Date } | null;
+  phoneNumber: string | null;
+}
+
 export interface ProfileView {
   phoneNumber: string | null;
   /** YYYY-MM-DD */
@@ -189,6 +195,33 @@ export class ProfilesService {
       if (previousKey) await this.discard(previousKey);
     }
     return this.getOwnProfile(userId);
+  }
+
+  /**
+   * Photo (always) and phone number (only for ids in `phoneVisibleFor`) of
+   * several users at once, for family member lists.
+   */
+  async getMemberCards(
+    userIds: readonly string[],
+    phoneVisibleFor: ReadonlySet<string>,
+  ): Promise<Map<string, MemberCard>> {
+    const profiles = await this.profiles.findByUserIds(userIds);
+    const cards = new Map<string, MemberCard>();
+    for (const profile of profiles) {
+      const snapshot = profile.toSnapshot();
+      cards.set(snapshot.userId, {
+        avatar: snapshot.avatarKey
+          ? await this.storage.signedDownloadUrl(
+              snapshot.avatarKey,
+              AVATAR_URL_TTL_SECONDS,
+            )
+          : null,
+        phoneNumber: phoneVisibleFor.has(snapshot.userId)
+          ? snapshot.phoneNumber
+          : null,
+      });
+    }
+    return cards;
   }
 
   /**

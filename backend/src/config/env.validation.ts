@@ -144,6 +144,14 @@ export class EnvironmentVariables {
   })
   MFA_ENCRYPTION_KEY!: string;
 
+  /**
+   * Base of the shareable family invitation link (an https page that opens
+   * the mobile app). The code is appended as a fragment. Default: FRONTEND_URL/join-family.
+   */
+  @IsOptional()
+  @IsUrl(HTTP_URL)
+  FAMILY_INVITE_URL?: string;
+
   /** Name shown in authenticator apps next to the account. */
   @IsString()
   MFA_ISSUER = 'CabinGuard';
