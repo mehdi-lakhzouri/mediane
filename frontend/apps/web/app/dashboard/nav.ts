@@ -1,5 +1,6 @@
 import {
   ClipboardList,
+  HeartHandshake,
   HeartPulse,
   LayoutDashboard,
   MailPlus,
@@ -27,6 +28,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
       { label: "Users", href: "/dashboard/drivers", icon: Users },
+      { label: "Families", href: "/dashboard/families", icon: HeartHandshake },
       { label: "Invitations", href: "/dashboard/invitations", icon: MailPlus },
     ],
   },

@@ -1,14 +1,10 @@
-import { Settings } from "lucide-react";
-import { SectionPlaceholder } from "../../components/dashboard/section-placeholder";
+import type { Metadata } from "next";
+import { SecuritySettings } from "./security-settings";
+
+export const metadata: Metadata = {
+  title: "Settings | CabinGuard",
+};
 
 export default function SettingsPage() {
-  return (
-    <SectionPlaceholder
-      icon={Settings}
-      title="Settings"
-      description="Account and workspace preferences will live here. Password and security settings will connect to the existing auth endpoints."
-      actionHref="/mfa/setup"
-      actionLabel="Preview MFA setup"
-    />
-  );
+  return <SecuritySettings />;
 }
