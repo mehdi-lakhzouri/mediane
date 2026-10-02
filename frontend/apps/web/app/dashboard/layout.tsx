@@ -77,6 +77,16 @@ export default function DashboardLayout({
     if (auth.kind === "unauthenticated") router.replace("/");
   }, [auth.kind, router]);
 
+  useEffect(() => {
+    const updateUser = (event: Event) => {
+      const user = (event as CustomEvent<CurrentUser>).detail;
+      if (user) setAuth({ kind: "authenticated", user });
+    };
+    window.addEventListener("cabinguard:user-updated", updateUser);
+    return () =>
+      window.removeEventListener("cabinguard:user-updated", updateUser);
+  }, []);
+
   // Close the mobile drawer on navigation.
   useEffect(() => {
     setMobileOpen(false);
@@ -121,6 +131,7 @@ export default function DashboardLayout({
         >
           <Topbar
             section={navTitle(pathname)}
+            user={auth.user}
             collapsed={collapsed}
             onToggleCollapsed={toggleCollapsed}
             onOpenMobile={() => setMobileOpen(true)}

@@ -9,6 +9,7 @@ interface MfaCodeInputProps {
   disabled?: boolean;
   hasError?: boolean;
   autoFocus?: boolean;
+  variant?: "security" | "settings";
 }
 
 function CodeSlot({
@@ -17,7 +18,8 @@ function CodeSlot({
   isActive,
   hasFakeCaret,
   hasError,
-}: SlotProps & { hasError: boolean }) {
+  variant,
+}: SlotProps & { hasError: boolean; variant: "security" | "settings" }) {
   const reduceMotion = useReducedMotion();
 
   return (
@@ -28,7 +30,7 @@ function CodeSlot({
           : { y: char ? -1 : 0, scale: isActive ? 1.035 : 1 }
       }
       transition={{ type: "spring", stiffness: 360, damping: 24 }}
-      className={`mfa-code-slot ${isActive ? "is-active" : ""} ${hasError ? "has-error" : ""}`}
+      className={`mfa-code-slot ${variant === "settings" ? "settings-code-slot" : ""} ${isActive ? "is-active" : ""} ${hasError ? "has-error" : ""}`}
     >
       <span className="relative z-10">{char ?? placeholderChar}</span>
       {hasFakeCaret && <span className="mfa-code-caret" aria-hidden="true" />}
@@ -42,6 +44,7 @@ export function MfaCodeInput({
   disabled = false,
   hasError = false,
   autoFocus = false,
+  variant = "security",
 }: MfaCodeInputProps) {
   return (
     <OTPInput
@@ -57,11 +60,16 @@ export function MfaCodeInput({
       required
       aria-label="Six-digit authentication code"
       aria-invalid={hasError}
-      containerClassName="mfa-code-group"
+      containerClassName={`mfa-code-group ${variant === "settings" ? "settings-code-group" : ""}`}
       render={({ slots }) => (
         <div className="flex w-full items-center justify-center gap-2 sm:gap-3">
           {slots.map((slot, index) => (
-            <CodeSlot key={index} {...slot} hasError={hasError} />
+            <CodeSlot
+              key={index}
+              {...slot}
+              hasError={hasError}
+              variant={variant}
+            />
           ))}
         </div>
       )}

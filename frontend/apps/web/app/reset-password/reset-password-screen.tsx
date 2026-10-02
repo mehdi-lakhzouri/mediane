@@ -116,6 +116,7 @@ export function ResetPasswordScreen() {
         eyebrow="Secure verification"
         title="Checking your link"
         description="One moment while we verify your single-use recovery link."
+        visual="password-reset"
       >
         <LoaderCircle className="mx-auto size-6 animate-spin text-[var(--sx-accent)]" />
       </RecoveryShell>
@@ -129,6 +130,7 @@ export function ResetPasswordScreen() {
         eyebrow="Link unavailable"
         title="Request a fresh link"
         description="This reset link is invalid, expired, or has already been used. Your current password has not changed."
+        visual="password-reset"
       >
         <Link href="/forgot-password" className="recovery-primary">
           <RefreshCw className="size-5" />
@@ -152,6 +154,7 @@ export function ResetPasswordScreen() {
         eyebrow="Password updated"
         title="You’re ready to sign in"
         description="Your new password is active and previous sessions have been securely signed out."
+        visual="password-reset"
       >
         <div className="rounded-2xl border border-[var(--sx-success-border)] bg-[var(--sx-success-bg)] px-5 py-4 text-center text-sm leading-6 text-[var(--sx-success-text)]">
           Your account is protected with the new password. Use it the next time
@@ -171,6 +174,7 @@ export function ResetPasswordScreen() {
       eyebrow="Secure recovery"
       title="Choose a new password"
       description="Use a memorable passphrase with at least 12 characters. All existing sessions will be signed out."
+      visual="password-reset"
     >
       <form onSubmit={handleSubmit} aria-busy={submitting}>
         <label

@@ -64,6 +64,7 @@ export function ForgotPasswordScreen() {
         eyebrow="Request received"
         title="Check your inbox"
         description="If an account matches that address, a secure reset link is already on its way."
+        visual="password-reset"
       >
         <div className="rounded-2xl border border-[var(--sx-success-border)] bg-[var(--sx-success-bg)] px-5 py-4 text-center">
           <p className="text-sm font-semibold text-[var(--sx-success-text)]">
@@ -91,6 +92,7 @@ export function ForgotPasswordScreen() {
       eyebrow="Account recovery"
       title="Reset your password"
       description="Enter the email linked to your CabinGuard account. We’ll send a single-use recovery link."
+      visual="password-reset"
     >
       <form onSubmit={handleSubmit} aria-busy={submitting}>
         <label

@@ -123,6 +123,12 @@ export async function logout(): Promise<void> {
   setCsrfToken(null);
 }
 
+/** Revoke every web and mobile session owned by the current account. */
+export async function logoutAll(): Promise<void> {
+  await api.post<null>("/auth/logout-all");
+  setCsrfToken(null);
+}
+
 export function getCurrentUser(): Promise<CurrentUser> {
   return api.get<CurrentUser>("/auth/me");
 }

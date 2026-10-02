@@ -11,6 +11,7 @@ interface RecoveryShellProps {
   eyebrow: string;
   title: string;
   description: string;
+  visual?: "default" | "password-reset";
   /** Reassurance line at the bottom of the page. */
   footnote?: string;
   children: React.ReactNode;
@@ -21,13 +22,16 @@ export function RecoveryShell({
   eyebrow,
   title,
   description,
+  visual = "default",
   footnote = "Secure recovery. Your reset link is single-use and time-limited.",
   children,
 }: RecoveryShellProps) {
   const reduceMotion = useReducedMotion();
 
   return (
-    <main className="recovery-canvas relative min-h-svh overflow-hidden text-[var(--sx-ink)]">
+    <main
+      className={`recovery-canvas relative min-h-svh overflow-hidden text-[var(--sx-ink)] ${visual === "password-reset" ? "reset-password-canvas" : ""}`}
+    >
       <div className="recovery-background" aria-hidden="true" />
       <div className="recovery-shade" aria-hidden="true" />
       <div className="recovery-orb recovery-orb-left" aria-hidden="true" />

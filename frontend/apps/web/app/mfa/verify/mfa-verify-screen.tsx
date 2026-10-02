@@ -14,7 +14,7 @@ import {
   Smartphone,
 } from "lucide-react";
 import { MfaCodeInput } from "../../components/mfa-code-input";
-import { RecoveryShell } from "../../components/recovery-shell";
+import { MfaSecurityShell } from "../../components/mfa-security-shell";
 import { ApiError } from "../../../lib/api/client";
 import { completeMfaChallenge, destinationFor } from "../../../lib/api/auth";
 import {
@@ -120,53 +120,51 @@ export function MfaVerifyScreen() {
 
   if (!challenge) {
     return (
-      <RecoveryShell
-        icon={LoaderCircle}
-        eyebrow="Two-step verification"
-        title="One moment"
-        description="Preparing the verification step."
-        footnote="Codes rotate every 30 seconds and are never accepted twice."
-      >
-        <LoaderCircle className="mx-auto size-6 animate-spin text-[var(--sx-accent)]" />
-      </RecoveryShell>
+      <MfaSecurityShell activeStep={0} progressLabels={["Verify identity", "Sign in", "Complete"]}>
+        <div className="grid min-h-[480px] place-items-center text-center">
+          <div>
+            <LoaderCircle className="mx-auto size-9 animate-spin text-[#32caff]" />
+            <p className="mt-5 text-sm font-semibold text-[#aebed0]">Preparing the verification step…</p>
+          </div>
+        </div>
+      </MfaSecurityShell>
     );
   }
 
   if (secondsLeft === 0) {
     return (
-      <RecoveryShell
-        icon={LockKeyhole}
-        eyebrow="Two-step verification"
-        title="Sign in again"
-        description="This sign-in attempt expired or was stopped after too many wrong codes. Your account is safe."
-        footnote="Codes rotate every 30 seconds and are never accepted twice."
-      >
-        <Link href="/" className="recovery-primary">
-          <ArrowLeft className="size-5" />
-          Back to sign in
-        </Link>
-      </RecoveryShell>
+      <MfaSecurityShell activeStep={0} progressLabels={["Verify identity", "Sign in", "Complete"]}>
+        <div className="flex min-h-[500px] flex-col items-center justify-center text-center">
+          <div className="mfa-stage-icon"><LockKeyhole className="size-8" strokeWidth={1.6} /></div>
+          <p className="mfa-screen-eyebrow mt-6">Two-step verification</p>
+          <h1 className="mfa-screen-title mt-2">Sign in again</h1>
+          <p className="mfa-screen-copy mt-3 max-w-[440px]">This sign-in attempt expired or was stopped after too many wrong codes. Your account is safe.</p>
+          <Link href="/" className="mfa-primary mt-7 max-w-[390px]"><ArrowLeft className="size-5" />Back to sign in</Link>
+        </div>
+      </MfaSecurityShell>
     );
   }
 
   return (
-    <RecoveryShell
-      icon={method === "app" ? Smartphone : LifeBuoy}
-      eyebrow="Two-step verification"
-      title={method === "app" ? "Enter your code" : "Use a recovery code"}
-      description={
-        method === "app"
-          ? "Open your authenticator app and type the six-digit code for CabinGuard."
-          : "Type one of the recovery codes you saved when you set up two-step verification. Each one works once."
-      }
-      footnote="Codes rotate every 30 seconds and are never accepted twice."
-    >
-      <form onSubmit={handleSubmit} aria-busy={verifying}>
+    <MfaSecurityShell activeStep={0} progressLabels={["Verify identity", "Sign in", "Complete"]}>
+      <div className="text-center">
+        <div className="mfa-stage-icon mx-auto">
+          {method === "app" ? <Smartphone className="size-8" strokeWidth={1.6} /> : <LifeBuoy className="size-8" strokeWidth={1.6} />}
+        </div>
+        <p className="mfa-screen-eyebrow mt-5">Two-step verification</p>
+        <h1 className="mfa-screen-title mt-2">{method === "app" ? "Enter your code" : "Use a recovery code"}</h1>
+        <p className="mfa-screen-copy mx-auto mt-3 max-w-[470px]">
+          {method === "app"
+            ? "Open your authenticator app and type the six-digit code for CabinGuard."
+            : "Type one of the recovery codes you saved during setup. Each code works once."}
+        </p>
+      </div>
+      <form className="mt-8" onSubmit={handleSubmit} aria-busy={verifying}>
         <AnimatePresence mode="wait" initial={false}>
           {method === "app" ? (
             <motion.div
               key="app"
-              initial={reduceMotion ? false : { opacity: 0, x: 16 }}
+              initial={false}
               animate={{ opacity: 1, x: 0 }}
               exit={reduceMotion ? undefined : { opacity: 0, x: -16 }}
             >
@@ -186,18 +184,15 @@ export function MfaVerifyScreen() {
           ) : (
             <motion.div
               key="recovery"
-              initial={reduceMotion ? false : { opacity: 0, x: 16 }}
+              initial={false}
               animate={{ opacity: 1, x: 0 }}
               exit={reduceMotion ? undefined : { opacity: 0, x: -16 }}
             >
-              <label
-                htmlFor="recovery-code"
-                className="text-sm font-bold text-[var(--sx-label)]"
-              >
+              <label htmlFor="recovery-code" className="text-sm font-bold text-[#eaf4fc]">
                 Recovery code
               </label>
-              <div className="recovery-input-shell mt-2 flex h-14 items-center rounded-xl border px-4">
-                <KeyRound className="size-5 shrink-0 text-[var(--sx-icon-muted)]" />
+              <div className="mfa-key-row mt-2 h-14">
+                <KeyRound className="size-5 shrink-0 text-[#5dccf4]" />
                 <input
                   id="recovery-code"
                   value={recovery}
@@ -212,7 +207,7 @@ export function MfaVerifyScreen() {
                   autoFocus
                   disabled={verifying}
                   placeholder="XXXXX-XXXXX"
-                  className="h-full min-w-0 flex-1 bg-transparent px-4 font-mono text-[16px] tracking-[0.12em] text-[var(--sx-ink)] outline-none placeholder:text-[var(--sx-placeholder)]"
+                  className="h-full min-w-0 flex-1 bg-transparent px-2 font-mono text-[16px] tracking-[0.12em] text-white outline-none placeholder:text-[#607a90]"
                 />
               </div>
             </motion.div>
@@ -223,13 +218,13 @@ export function MfaVerifyScreen() {
           {error ? (
             <p
               role="alert"
-              className="inline-flex items-start gap-2 text-left text-sm font-semibold text-[var(--sx-error-text)]"
+            className="inline-flex items-start gap-2 text-left text-sm font-semibold text-[#ff8291]"
             >
               <AlertCircle className="mt-0.5 size-4 shrink-0" />
               {error}
             </p>
           ) : (
-            <p className="text-xs text-[var(--sx-muted)]">
+            <p className="text-xs text-[#8fa5bc]">
               This sign-in attempt expires in {formatClock(secondsLeft)}
             </p>
           )}
@@ -241,7 +236,7 @@ export function MfaVerifyScreen() {
             verifying ||
             (method === "app" ? code.length !== 6 : recovery.trim().length < 10)
           }
-          className="recovery-primary mt-5"
+          className="mfa-primary mt-5"
         >
           {verifying ? (
             <LoaderCircle className="size-5 animate-spin" />
@@ -256,7 +251,7 @@ export function MfaVerifyScreen() {
         <button
           type="button"
           onClick={() => switchMethod(method === "app" ? "recovery" : "app")}
-          className="text-[var(--sx-accent)] transition hover:text-[var(--sx-accent-hover)]"
+          className="text-[#35caff] transition hover:text-[#8ae5ff]"
         >
           {method === "app"
             ? "Lost your phone? Use a recovery code"
@@ -265,12 +260,12 @@ export function MfaVerifyScreen() {
         <Link
           href="/"
           onClick={() => clearMfaChallenge()}
-          className="flex items-center gap-2 text-[var(--sx-muted)] transition hover:text-[var(--sx-accent)]"
+          className="flex items-center gap-2 text-[#8fa5bc] transition hover:text-[#35caff]"
         >
           <ArrowLeft className="size-4" />
           Back to sign in
         </Link>
       </div>
-    </RecoveryShell>
+    </MfaSecurityShell>
   );
 }

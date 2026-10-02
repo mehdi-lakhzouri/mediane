@@ -130,6 +130,7 @@ export function ChangePasswordScreen() {
         eyebrow="Secure sign-in"
         title="One moment"
         description="Checking your session."
+        visual="password-reset"
         footnote="Your temporary password only works once and expires soon."
       >
         <LoaderCircle className="mx-auto size-6 animate-spin text-[var(--sx-accent)]" />
@@ -143,6 +144,7 @@ export function ChangePasswordScreen() {
       eyebrow={`Welcome, ${user.firstName}`}
       title="Choose your own password"
       description="Replace the temporary password from your invitation email. You'll set up two-step verification right after."
+      visual="password-reset"
       footnote="Your temporary password stops working as soon as you choose your own."
     >
       <form onSubmit={handleSubmit} aria-busy={submitting} noValidate>
