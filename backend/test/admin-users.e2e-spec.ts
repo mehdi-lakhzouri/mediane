@@ -260,6 +260,16 @@ describe('Admin user management (e2e)', () => {
     ).expect(200);
     expect(body<UserView[]>(shown).data?.[0].accountState).toBe('DELETED');
 
+    const deletedOnly = await get(
+      `/admin/users?onlyDeleted=true&search=${encodeURIComponent(driverEmail)}`,
+    ).expect(200);
+    expect(body<UserView[]>(deletedOnly).data).toHaveLength(1);
+
+    const activeOnly = await get(
+      `/admin/users?onlyDeleted=true&search=${encodeURIComponent(adminEmail)}`,
+    ).expect(200);
+    expect(body<UserView[]>(activeOnly).data).toHaveLength(0);
+
     const restored = await post(`/admin/users/${driverId}/restore`).expect(200);
     expect(body<UserView>(restored).data?.deletedAt).toBeNull();
   });
@@ -268,6 +278,75 @@ describe('Admin user management (e2e)', () => {
     await post(`/admin/users/${driverId}/hard-delete`, {
       confirmEmail: driverEmail,
     }).expect(422);
+
+    const profile = await prisma.userProfile.create({
+      data: {
+        userId: driverId,
+        phoneNumber: '+2348012345678',
+        emergencyContacts: {
+          create: {
+            fullName: 'Emergency Contact',
+            relationship: 'FRIEND',
+            phoneNumber: '+2348087654321',
+            priority: 1,
+          },
+        },
+      },
+    });
+    await prisma.refreshSession.create({
+      data: {
+        userId: driverId,
+        tokenHash: driverId.replaceAll('-', '').padEnd(64, 'a'),
+        expiresAt: new Date(Date.now() + 60_000),
+        absoluteExpiresAt: new Date(Date.now() + 120_000),
+      },
+    });
+    await prisma.userMfa.create({ data: { userId: driverId } });
+    await prisma.mfaRecoveryCode.create({
+      data: {
+        userId: driverId,
+        codeHash: driverId.replaceAll('-', '').padEnd(64, 'b'),
+      },
+    });
+    await prisma.userNotification.create({
+      data: {
+        userId: driverId,
+        category: 'ACCOUNT',
+        type: 'ACCOUNT_TEST',
+        title: 'Account notice',
+        body: 'Cascade verification',
+      },
+    });
+    await prisma.notificationPreference.create({
+      data: { userId: driverId },
+    });
+    const incident = await prisma.incident.create({
+      data: {
+        userId: driverId,
+        status: 'AWAITING_RESPONSE',
+        severity: 'CRITICAL',
+        triggerType: 'SOS',
+      },
+    });
+    await prisma.medicalEvent.create({
+      data: {
+        userId: driverId,
+        incidentId: incident.id,
+        source: 'DRIVER',
+        type: 'SOS',
+        severity: 'CRITICAL',
+        clientEventId: `cascade-${stamp}`,
+        detectedAt: new Date(),
+      },
+    });
+    const device = await prisma.vehicleDevice.create({
+      data: {
+        serialNumber: `CASCADE-${stamp}`,
+        label: 'Cascade verification unit',
+        secretEnc: 'test-only-encrypted-secret',
+        pairedUserId: driverId,
+      },
+    });
 
     await del(`/admin/users/${driverId}`).expect(200);
 
@@ -285,12 +364,62 @@ describe('Admin user management (e2e)', () => {
     expect(
       await prisma.user.findUnique({ where: { id: driverId } }),
     ).toBeNull();
+    expect(
+      await Promise.all([
+        prisma.userProfile.count({ where: { userId: driverId } }),
+        prisma.emergencyContact.count({ where: { profileId: profile.id } }),
+        prisma.invitation.count({ where: { userId: driverId } }),
+        prisma.refreshSession.count({ where: { userId: driverId } }),
+        prisma.userMfa.count({ where: { userId: driverId } }),
+        prisma.mfaRecoveryCode.count({ where: { userId: driverId } }),
+        prisma.userNotification.count({ where: { userId: driverId } }),
+        prisma.notificationPreference.count({ where: { userId: driverId } }),
+        prisma.medicalEvent.count({ where: { userId: driverId } }),
+        prisma.incident.count({ where: { userId: driverId } }),
+      ]),
+    ).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(
+      await prisma.vehicleDevice.findUnique({ where: { id: device.id } }),
+    ).toMatchObject({ pairedUserId: null });
     // The audit trail outlives the row it describes.
     expect(
       await prisma.auditLog.count({
         where: { targetId: driverId, action: 'USER_HARD_DELETED' },
       }),
     ).toBe(1);
+    await prisma.vehicleDevice.delete({ where: { id: device.id } });
+  });
+
+  it('lets the mobile app accept an invitation without cookies or CSRF', async () => {
+    const email = `mobile-invitee-${stamp}@cabinguard.test`;
+    const created = await post('/admin/users', {
+      email,
+      firstName: 'Mona',
+      lastName: 'Mobile',
+      role: 'DRIVER',
+    }).expect(201);
+    const inviteeId = body<UserView>(created).data!.id;
+    createdIds.push(inviteeId);
+
+    const mail = sentInvites.at(-1)!;
+    const token = mail.acceptUrl.split('#token=')[1];
+    const accept = () =>
+      request(server).post('/api/v1/invitations/mobile/accept').send({ token });
+
+    const accepted = await accept().expect(200);
+    expect(accepted.get('Set-Cookie')).toBeUndefined();
+    expect(accepted.body).toMatchObject({ data: null, error: null });
+
+    const replay = await accept().expect(422);
+    expect(body(replay).error?.code).toBe('INVITATION_INVALID');
+
+    const signIn = await request(server)
+      .post('/api/v1/auth/mobile/login')
+      .send({ email, password: mail.temporaryPassword })
+      .expect(200);
+    expect(body<UserView>(signIn).data).toMatchObject({
+      accountState: 'PASSWORD_CHANGE_REQUIRED',
+    });
   });
 
   it('lets the invited driver accept once, then sign in with the temporary password', async () => {

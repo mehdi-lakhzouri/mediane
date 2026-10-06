@@ -42,3 +42,11 @@ export class MobileSessionLoginResponse extends MobileSessionResponse {
   @ApiProperty({ enum: [false] })
   mfaRequired!: false;
 }
+
+export class PasswordResetValidationResponse {
+  @ApiProperty({
+    type: Date,
+    description: 'Expiry of the single-use reset link',
+  })
+  expiresAt!: Date;
+}

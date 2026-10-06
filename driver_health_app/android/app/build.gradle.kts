@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.driver_health_app"
+    namespace = "com.cabinguard.mobile"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -15,11 +15,10 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.driver_health_app"
+        applicationId = "com.cabinguard.mobile"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = 24
         targetSdk = flutter.targetSdkVersion
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
@@ -27,6 +26,13 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Release builds refuse plain HTTP. A release APK for testing against
+        // a backend on the local network opts in explicitly with the Gradle
+        // property allowCleartext=true (env ORG_GRADLE_PROJECT_allowCleartext);
+        // store builds never set it.
+        manifestPlaceholders["usesCleartextTraffic"] =
+            (project.findProperty("allowCleartext")?.toString() == "true").toString()
     }
 
     buildTypes {

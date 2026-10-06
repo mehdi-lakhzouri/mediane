@@ -54,7 +54,7 @@ export function MfaVerifyScreen() {
   useEffect(() => {
     const current = pendingMfaChallenge();
     if (!current) {
-      router.replace("/");
+      router.replace("/sign-in");
       return;
     }
     setChallenge(current);
@@ -139,7 +139,7 @@ export function MfaVerifyScreen() {
           <p className="mfa-screen-eyebrow mt-6">Two-step verification</p>
           <h1 className="mfa-screen-title mt-2">Sign in again</h1>
           <p className="mfa-screen-copy mt-3 max-w-[440px]">This sign-in attempt expired or was stopped after too many wrong codes. Your account is safe.</p>
-          <Link href="/" className="mfa-primary mt-7 max-w-[390px]"><ArrowLeft className="size-5" />Back to sign in</Link>
+          <Link href="/sign-in" className="mfa-primary mt-7 max-w-[390px]"><ArrowLeft className="size-5" />Back to sign in</Link>
         </div>
       </MfaSecurityShell>
     );
@@ -258,7 +258,7 @@ export function MfaVerifyScreen() {
             : "Use the authenticator app instead"}
         </button>
         <Link
-          href="/"
+          href="/sign-in"
           onClick={() => clearMfaChallenge()}
           className="flex items-center gap-2 text-[#8fa5bc] transition hover:text-[#35caff]"
         >

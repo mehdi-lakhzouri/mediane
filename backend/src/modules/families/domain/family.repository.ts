@@ -42,6 +42,13 @@ export interface FamilyListFilter {
   search?: string;
 }
 
+export interface AdminFamilyStatsRecord {
+  totalFamilies: number;
+  totalMembers: number;
+  fullFamilies: number;
+  pendingRequests: number;
+}
+
 /**
  * Port. Methods that read-then-write must run inside a UnitOfWork, after
  * `lockFamily`, so capacity and ownership checks cannot race.
@@ -138,4 +145,7 @@ export abstract class FamilyRepository {
   abstract listFamilies(
     filter: FamilyListFilter,
   ): Promise<{ items: FamilySummaryRecord[]; totalItems: number }>;
+
+  /** Global figures for the administrator family workspace. */
+  abstract getAdminStats(now: Date): Promise<AdminFamilyStatsRecord>;
 }

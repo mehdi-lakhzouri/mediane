@@ -25,6 +25,7 @@ const COOKIE = { access: 'cg_at', refresh: 'cg_rt', csrf: 'cg_csrf' };
 const TEMPORARY_PASSWORD = 'Temporary-Pass-2026!';
 const NEW_PASSWORD = 'My-Own-Strong-Passphrase-1';
 const RESET_PASSWORD = 'Reset-Via-Email-Passphrase-2';
+const MOBILE_RESET_PASSWORD = 'Reset-Via-Mobile-Passphrase-3';
 
 interface Envelope<T> {
   data: T | null;
@@ -364,5 +365,43 @@ describe('Web console authentication flow (e2e)', () => {
 
     await get('/auth/me', session).expect(401); // sessions revoked by the reset
     await login(RESET_PASSWORD);
+  });
+
+  it('exposes password recovery to native clients without cookies or CSRF', async () => {
+    const before = sentResetMails.length;
+    const forgot = await request(server)
+      .post('/api/v1/auth/mobile/password/forgot')
+      .send({ email })
+      .expect(202);
+    expect(forgot.get('Set-Cookie')).toBeUndefined();
+    expect(forgot.body).toMatchObject({ data: null, error: null });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(sentResetMails).toHaveLength(before + 1);
+    const resetUrl = new URL(sentResetMails.at(-1)!.resetUrl);
+    const token = resetUrl.hash.replace('#token=', '');
+
+    const validation = await request(server)
+      .post('/api/v1/auth/mobile/password/validate')
+      .send({ token })
+      .expect(200);
+    expect(validation.body).toMatchObject({
+      data: { expiresAt: expect.any(String) },
+      error: null,
+    });
+
+    await request(server)
+      .post('/api/v1/auth/mobile/password/reset')
+      .send({ token, newPassword: MOBILE_RESET_PASSWORD })
+      .expect(200);
+
+    const consumed = await request(server)
+      .post('/api/v1/auth/mobile/password/validate')
+      .send({ token })
+      .expect(422);
+    expect((consumed.body as Envelope<null>).error?.code).toBe(
+      'PASSWORD_RESET_TOKEN_INVALID',
+    );
+    await login(MOBILE_RESET_PASSWORD);
   });
 });

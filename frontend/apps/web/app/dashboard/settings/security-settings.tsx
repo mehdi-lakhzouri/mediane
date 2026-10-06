@@ -1368,7 +1368,7 @@ function SessionsCard() {
     setBusy(true);
     try {
       await logoutAll();
-      router.replace("/");
+      router.replace("/sign-in");
     } catch (failure) {
       toast.error("Could not sign out all sessions.", messageFor(failure));
       setBusy(false);

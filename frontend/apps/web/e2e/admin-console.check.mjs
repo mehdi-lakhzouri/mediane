@@ -81,7 +81,7 @@ page.on("console", (m) => {
 const dialog = () => page.getByRole("dialog");
 
 // --- first sign-in: authenticator setup -------------------------------------
-await page.goto(WEB, { waitUntil: "networkidle" });
+await page.goto(`${WEB}/sign-in`, { waitUntil: "networkidle" });
 await page.fill("#email", ADMIN_EMAIL);
 await page.fill("#password", PASSWORD);
 await page.click('button[type="submit"]');

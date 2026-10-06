@@ -1,12 +1,10 @@
-import { ClipboardList } from "lucide-react";
-import { SectionPlaceholder } from "../../components/dashboard/section-placeholder";
+import type { Metadata } from "next";
+import { AuditScreen } from "./audit-screen";
+
+export const metadata: Metadata = {
+  title: "Audit log | CabinGuard",
+};
 
 export default function AuditPage() {
-  return (
-    <SectionPlaceholder
-      icon={ClipboardList}
-      title="Audit log"
-      description="A searchable, immutable record of administrative actions will be shown here once the audit query API is exposed."
-    />
-  );
+  return <AuditScreen />;
 }

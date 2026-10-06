@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import type {
   ColumnDef,
   PaginationState,
@@ -57,6 +58,13 @@ import {
   UserStats,
   type UserStatsValue,
 } from "../../components/dashboard/users/user-stats";
+import {
+  ctaMotion,
+  headerMotion,
+  rowMotion,
+  sectionMotion,
+  stagger,
+} from "../../components/dashboard/motion";
 import { useToast } from "../../components/dashboard/toast-provider";
 import {
   ConfirmDialog,
@@ -81,6 +89,7 @@ import { ApiError } from "../../../lib/api/client";
 
 type RoleFilter = Role | "ALL";
 type StatusFilter = UserStatus | "ALL";
+type DeletionFilter = "ACTIVE" | "DELETED" | "ALL";
 
 const SORT_FIELDS: readonly UserSortField[] = [
   "createdAt",
@@ -114,7 +123,8 @@ export function UsersScreen() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
-  const [includeDeleted, setIncludeDeleted] = useState(false);
+  const [deletionFilter, setDeletionFilter] =
+    useState<DeletionFilter>("ACTIVE");
 
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -162,7 +172,8 @@ export function UsersScreen() {
         search: search || undefined,
         role: roleFilter === "ALL" ? undefined : roleFilter,
         status: statusFilter === "ALL" ? undefined : statusFilter,
-        includeDeleted,
+        includeDeleted: deletionFilter === "ALL",
+        onlyDeleted: deletionFilter === "DELETED",
         sortBy,
         sortDir,
       });
@@ -188,7 +199,7 @@ export function UsersScreen() {
     search,
     roleFilter,
     statusFilter,
-    includeDeleted,
+    deletionFilter,
     sortBy,
     sortDir,
   ]);
@@ -266,11 +277,15 @@ export function UsersScreen() {
   );
 
   const runSingle = useCallback(
-    async (label: string, action: () => Promise<unknown>) => {
+    async (
+      label: string,
+      action: () => Promise<unknown>,
+      detail = "The change is now reflected in the user list.",
+    ) => {
       setBusy(true);
       try {
         await action();
-        toast.success(label, "The change is now reflected in the user list.");
+        toast.success(label, detail);
       } catch (err) {
         toast.error(
           "The action could not be completed.",
@@ -393,7 +408,12 @@ export function UsersScreen() {
     [selfId, busy, runSingle],
   );
 
-  const anyDeleted = selectedRows.some((row) => row.deletedAt !== null);
+  const allSelectedDeleted =
+    selectedRows.length > 0 &&
+    selectedRows.every((row) => row.deletedAt !== null);
+  const allSelectedActive =
+    selectedRows.length > 0 &&
+    selectedRows.every((row) => row.deletedAt === null);
 
   const handleDrawerAction = useCallback(
     (action: UserDrawerAction, user: AdminUser) => {
@@ -425,7 +445,7 @@ export function UsersScreen() {
             : `Delete ${fullName(user)}?`,
         description:
           action === "hard-delete"
-            ? "This erases the account and its data for good. The audit trail is kept. Type the email address to confirm."
+            ? "This permanently erases the profile, sessions, invitations, family links, health events, incidents, and notifications. A paired device is unlinked and the immutable audit trail is kept. Type the email address to confirm."
             : "They lose access immediately and all their sessions end. You can restore this account afterwards.",
         actionLabel: action === "hard-delete" ? "Delete permanently" : "Delete",
         destructive: true,
@@ -435,211 +455,268 @@ export function UsersScreen() {
             ? runSingle("Account permanently deleted.", () =>
                 hardDeleteUser(user.id, user.email),
               )
-            : runSingle("Account deleted.", () => softDeleteUser(user.id)),
+            : runSingle(
+                "Account soft deleted.",
+                () => softDeleteUser(user.id),
+                "Open the Deleted accounts filter to restore it or delete it permanently.",
+              ),
       });
     },
     [runSingle],
   );
 
   return (
-    <div className="flex flex-col gap-6">
+    <motion.div
+      variants={stagger(0.08)}
+      initial="hidden"
+      animate="show"
+      className="flex flex-col gap-6"
+    >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+        <motion.div variants={headerMotion.drivers.title}>
           <h1 className="text-[32px] font-bold leading-tight tracking-[-0.035em] text-foreground">
             Users
           </h1>
           <p className="mt-1 text-[14px] text-muted-foreground">
             Invite drivers and administrators, and manage their access.
           </p>
-        </div>
-        <Button
-          size="lg"
-          onClick={() => setInviteOpen(true)}
-          className="h-[46px] rounded-[9px] px-6 shadow-[0_5px_14px_rgba(48,71,217,.18)]"
+        </motion.div>
+        <motion.div
+          variants={headerMotion.drivers.actions}
+          className="inline-flex"
         >
-          <UserPlus />
-          Invite user
-        </Button>
+          <motion.div {...ctaMotion} className="inline-flex">
+            <Button
+              size="lg"
+              onClick={() => setInviteOpen(true)}
+              className="h-[46px] rounded-[9px] px-6 shadow-[0_5px_14px_rgba(48,71,217,.18)]"
+            >
+              <UserPlus />
+              Invite user
+            </Button>
+          </motion.div>
+        </motion.div>
       </div>
 
       <UserStats stats={stats} />
 
-      <DataTable
-        columns={columns}
-        data={rows}
-        rowCount={totalItems}
-        getRowId={(row) => row.id}
-        pagination={pagination}
-        onPaginationChange={setPagination}
-        sorting={sorting}
-        onSortingChange={setSorting}
-        rowSelection={rowSelection}
-        onRowSelectionChange={setRowSelection}
-        loading={loading}
-        activeRowId={editing?.id}
-        onRowClick={setEditing}
-        toolbar={
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div className="relative min-w-[240px] flex-1">
-              <Search className="pointer-events-none absolute top-1/2 left-4 size-[18px] -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search name or email..."
-                aria-label="Search users"
-                className="h-11 rounded-[9px] bg-white pl-11"
-              />
+      <motion.div variants={sectionMotion}>
+        <DataTable
+          rowVariants={rowMotion.sweep}
+          columns={columns}
+          data={rows}
+          rowCount={totalItems}
+          getRowId={(row) => row.id}
+          pagination={pagination}
+          onPaginationChange={setPagination}
+          sorting={sorting}
+          onSortingChange={setSorting}
+          rowSelection={rowSelection}
+          onRowSelectionChange={setRowSelection}
+          loading={loading}
+          activeRowId={editing?.id}
+          onRowClick={setEditing}
+          toolbar={
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="relative min-w-[240px] flex-1">
+                <Search className="pointer-events-none absolute top-1/2 left-4 size-[18px] -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={searchInput}
+                  onChange={(event) => setSearchInput(event.target.value)}
+                  placeholder="Search name or email..."
+                  aria-label="Search users"
+                  className="h-11 rounded-[9px] bg-white pl-11"
+                />
+              </div>
+
+              <Select
+                value={roleFilter}
+                onValueChange={(value) => {
+                  setRoleFilter(value as RoleFilter);
+                  setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                }}
+              >
+                <SelectTrigger
+                  aria-label="Filter by role"
+                  className="h-11 w-[165px] rounded-[9px]"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All roles</SelectItem>
+                  <SelectItem value="DRIVER">Drivers</SelectItem>
+                  <SelectItem value="ADMIN">Admins</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value as StatusFilter);
+                  setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                }}
+              >
+                <SelectTrigger
+                  aria-label="Filter by status"
+                  className="h-11 w-[170px] rounded-[9px]"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Any status</SelectItem>
+                  <SelectItem value="INVITED">Invited</SelectItem>
+                  <SelectItem value="ACTIVE">Active</SelectItem>
+                  <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={deletionFilter}
+                onValueChange={(value) => {
+                  setDeletionFilter(value as DeletionFilter);
+                  setRowSelection({});
+                  setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                }}
+              >
+                <SelectTrigger
+                  aria-label="Deleted accounts"
+                  className="h-11 w-[190px] rounded-[9px]"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ACTIVE">Active accounts</SelectItem>
+                  <SelectItem value="DELETED">Deleted accounts</SelectItem>
+                  <SelectItem value="ALL">All accounts</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-
-            <Select
-              value={roleFilter}
-              onValueChange={(value) => {
-                setRoleFilter(value as RoleFilter);
-                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-              }}
-            >
-              <SelectTrigger
-                aria-label="Filter by role"
-                className="h-11 w-[165px] rounded-[9px]"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All roles</SelectItem>
-                <SelectItem value="DRIVER">Drivers</SelectItem>
-                <SelectItem value="ADMIN">Admins</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => {
-                setStatusFilter(value as StatusFilter);
-                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-              }}
-            >
-              <SelectTrigger
-                aria-label="Filter by status"
-                className="h-11 w-[170px] rounded-[9px]"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">Any status</SelectItem>
-                <SelectItem value="INVITED">Invited</SelectItem>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="SUSPENDED">Suspended</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={includeDeleted ? "WITH" : "WITHOUT"}
-              onValueChange={(value) => {
-                setIncludeDeleted(value === "WITH");
-                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-              }}
-            >
-              <SelectTrigger
-                aria-label="Deleted accounts"
-                className="h-11 w-[190px] rounded-[9px]"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="WITHOUT">Hide deleted</SelectItem>
-                <SelectItem value="WITH">Include deleted</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        }
-        bulkBar={
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-1.5">
-            <Badge variant="default">{selectedIds.length}</Badge>
-            <span className="text-[13px] font-medium text-foreground">
-              selected
-            </span>
-            <div className="ml-auto flex flex-wrap items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={busy}
-                onClick={() =>
-                  void runBulk("Suspended", selectedIds, suspendUser)
-                }
-              >
-                <ShieldBan />
-                Suspend
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={busy}
-                onClick={() =>
-                  void runBulk("Reactivated", selectedIds, reactivateUser)
-                }
-              >
-                <ShieldCheck />
-                Reactivate
-              </Button>
-              {anyDeleted && (
+          }
+          bulkBar={
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-1.5">
+              <Badge variant="default">{selectedIds.length}</Badge>
+              <span className="text-[13px] font-medium text-foreground">
+                selected
+              </span>
+              <div className="ml-auto flex flex-wrap items-center gap-2">
+                {allSelectedActive && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() =>
+                        void runBulk("Suspended", selectedIds, suspendUser)
+                      }
+                    >
+                      <ShieldBan />
+                      Suspend
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() =>
+                        void runBulk("Reactivated", selectedIds, reactivateUser)
+                      }
+                    >
+                      <ShieldCheck />
+                      Reactivate
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      disabled={busy}
+                      onClick={() =>
+                        setConfirm({
+                          title: `Delete ${selectedIds.length} account${selectedIds.length === 1 ? "" : "s"}?`,
+                          description:
+                            "They lose access immediately and all their sessions end. You can restore them from the Deleted accounts filter.",
+                          actionLabel: "Soft delete",
+                          destructive: true,
+                          run: () =>
+                            runBulk("Deleted", selectedIds, softDeleteUser),
+                        })
+                      }
+                    >
+                      <Trash2 />
+                      Soft delete
+                    </Button>
+                  </>
+                )}
+                {allSelectedDeleted && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() =>
+                      void runBulk("Restored", selectedIds, restoreUser)
+                    }
+                  >
+                    <RotateCcw />
+                    Restore
+                  </Button>
+                )}
+                {allSelectedDeleted && selectedRows.length === 1 && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    disabled={busy}
+                    onClick={() => {
+                      const user = selectedRows[0];
+                      if (!user) return;
+                      setConfirm({
+                        title: `Permanently delete ${fullName(user)}?`,
+                        description:
+                          "This permanently erases all user-owned information and cannot be undone. A paired device is unlinked; the immutable audit trail is retained. Type the email address to confirm.",
+                        actionLabel: "Delete permanently",
+                        destructive: true,
+                        confirmText: user.email,
+                        run: () =>
+                          runSingle("Account permanently deleted.", () =>
+                            hardDeleteUser(user.id, user.email),
+                          ),
+                      });
+                    }}
+                  >
+                    <Trash2 />
+                    Delete permanently
+                  </Button>
+                )}
+                {!allSelectedActive && !allSelectedDeleted && (
+                  <span className="text-[12px] text-muted-foreground">
+                    Select only active or only deleted accounts.
+                  </span>
+                )}
                 <Button
                   size="sm"
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() =>
-                    void runBulk("Restored", selectedIds, restoreUser)
-                  }
+                  variant="ghost"
+                  onClick={() => setRowSelection({})}
                 >
-                  <RotateCcw />
-                  Restore
+                  Clear
                 </Button>
-              )}
-              <Button
-                size="sm"
-                variant="destructive"
-                disabled={busy}
-                onClick={() =>
-                  setConfirm({
-                    title: `Delete ${selectedIds.length} account${selectedIds.length === 1 ? "" : "s"}?`,
-                    description:
-                      "They lose access immediately and all their sessions end. You can restore them afterwards.",
-                    actionLabel: "Delete",
-                    destructive: true,
-                    run: () => runBulk("Deleted", selectedIds, softDeleteUser),
-                  })
-                }
-              >
-                <Trash2 />
-                Delete
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setRowSelection({})}
-              >
-                Clear
-              </Button>
+              </div>
             </div>
-          </div>
-        }
-        emptyState={
-          <div className="grid h-52 place-items-center px-6 text-center">
-            <div>
-              <span className="mx-auto grid size-11 place-items-center rounded-xl bg-secondary">
-                <Users className="size-5 text-primary" />
-              </span>
-              <p className="mt-3 text-[14px] font-semibold text-foreground">
-                {loadError ?? "No users match these filters"}
-              </p>
-              <p className="mt-1 text-[13px] text-muted-foreground">
-                {loadError
-                  ? "Check that the API is reachable and try again."
-                  : "Adjust the search or filters, or invite someone new."}
-              </p>
+          }
+          emptyState={
+            <div className="grid h-52 place-items-center px-6 text-center">
+              <div>
+                <span className="mx-auto grid size-11 place-items-center rounded-xl bg-secondary">
+                  <Users className="size-5 text-primary" />
+                </span>
+                <p className="mt-3 text-[14px] font-semibold text-foreground">
+                  {loadError ?? "No users match these filters"}
+                </p>
+                <p className="mt-1 text-[13px] text-muted-foreground">
+                  {loadError
+                    ? "Check that the API is reachable and try again."
+                    : "Adjust the search or filters, or invite someone new."}
+                </p>
+              </div>
             </div>
-          </div>
-        }
-      />
+          }
+        />
+      </motion.div>
 
       <UserSheet
         user={editing}
@@ -670,7 +747,7 @@ export function UsersScreen() {
       />
 
       <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
-    </div>
+    </motion.div>
   );
 }
 
@@ -686,7 +763,11 @@ function RowActions({
   isSelf: boolean;
   disabled: boolean;
   onEdit: () => void;
-  onAction: (label: string, action: () => Promise<unknown>) => Promise<void>;
+  onAction: (
+    label: string,
+    action: () => Promise<unknown>,
+    detail?: string,
+  ) => Promise<void>;
   onConfirm: (request: ConfirmRequest) => void;
 }) {
   const deleted = user.deletedAt !== null;
@@ -696,6 +777,7 @@ function RowActions({
       <DropdownMenuTrigger
         aria-label={`Actions for ${fullName(user)}`}
         disabled={disabled}
+        onClick={(event) => event.stopPropagation()}
         className="grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none data-[state=open]:bg-accent"
       >
         <MoreVertical className="size-4" />
@@ -790,20 +872,22 @@ function RowActions({
                 variant="destructive"
                 onSelect={() =>
                   onConfirm({
-                    title: `Delete ${fullName(user)}?`,
+                    title: `Soft delete ${fullName(user)}?`,
                     description:
-                      "They lose access immediately and all their sessions end. You can restore this account afterwards.",
-                    actionLabel: "Delete",
+                      "They lose access immediately and all their sessions end. You can restore the account from the Deleted accounts filter, or permanently delete it there.",
+                    actionLabel: "Soft delete",
                     destructive: true,
                     run: () =>
-                      onAction("Account deleted.", () =>
-                        softDeleteUser(user.id),
+                      onAction(
+                        "Account soft deleted.",
+                        () => softDeleteUser(user.id),
+                        "Open the Deleted accounts filter to restore it or delete it permanently.",
                       ),
                   })
                 }
               >
                 <Trash2 />
-                Delete
+                Soft delete
               </DropdownMenuItem>
             ) : (
               <DropdownMenuItem
@@ -812,7 +896,7 @@ function RowActions({
                   onConfirm({
                     title: "Delete permanently?",
                     description:
-                      "This erases the account and its data for good. The audit trail is kept. Type the email address to confirm.",
+                      "This permanently erases the profile, sessions, invitations, family links, health events, incidents, and notifications. A paired device is unlinked and the immutable audit trail is kept. Type the email address to confirm.",
                     actionLabel: "Delete permanently",
                     destructive: true,
                     confirmText: user.email,

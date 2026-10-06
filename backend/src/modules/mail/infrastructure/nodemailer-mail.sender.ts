@@ -3,6 +3,7 @@ import { ISendMailOptions, MailerService } from '@nestjs-modules/mailer';
 import { Inject, Injectable } from '@nestjs/common';
 import { mailConfig, type MailConfig } from '../../../config';
 import {
+  FamilyIncidentMail,
   InvitationMail,
   MailSender,
   PasswordResetMail,
@@ -59,6 +60,35 @@ export class NodemailerMailSender implements MailSender {
         expiresAt: `${dateFormatter.format(mail.expiresAt)} (UTC)`,
       },
     });
+  }
+
+  sendFamilyIncidentAlert(mail: FamilyIncidentMail): Promise<void> {
+    return this.send({
+      to: mail.to,
+      subject: `${mail.driverName} a peut-être besoin d’aide`,
+      template: 'family-incident-alert',
+      context: this.familyIncidentContext(mail),
+      priority: 'high',
+    });
+  }
+
+  sendFamilyAllClear(mail: FamilyIncidentMail): Promise<void> {
+    return this.send({
+      to: mail.to,
+      subject: `${mail.driverName} va bien`,
+      template: 'family-all-clear',
+      context: this.familyIncidentContext(mail),
+    });
+  }
+
+  private familyIncidentContext(
+    mail: FamilyIncidentMail,
+  ): Record<string, string> {
+    return {
+      firstName: mail.firstName,
+      driverName: mail.driverName,
+      occurredAt: `${dateFormatter.format(mail.occurredAt)} (UTC)`,
+    };
   }
 
   private async send(options: ISendMailOptions): Promise<void> {

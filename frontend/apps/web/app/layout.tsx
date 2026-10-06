@@ -27,8 +27,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sign in | CabinGuard",
-  description: "Secure access to your CabinGuard journey and health data.",
+  title: "CabinGuard",
+  description:
+    "Driver health monitoring, family safety and emergency response for every journey.",
 };
 
 // Applies a saved sign-in theme preference to <html> before first paint, so

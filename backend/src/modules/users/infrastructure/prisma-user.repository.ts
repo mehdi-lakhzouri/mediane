@@ -40,6 +40,14 @@ export class PrismaUserRepository implements UserRepository {
     return record ? toDomainUser(record) : null;
   }
 
+  async findManyByIdsIncludingDeleted(ids: string[]): Promise<User[]> {
+    if (ids.length === 0) return [];
+    const records = await this.db.client.user.findMany({
+      where: { id: { in: ids } },
+    });
+    return records.map(toDomainUser);
+  }
+
   async existsByEmailIncludingDeleted(email: Email): Promise<boolean> {
     const count = await this.db.client.user.count({
       where: { email: email.value },
@@ -57,7 +65,11 @@ export class PrismaUserRepository implements UserRepository {
   async list(filter: ListUsersFilter): Promise<UserPage> {
     const search = filter.search?.trim();
     const where: Prisma.UserWhereInput = {
-      ...(filter.includeDeleted ? {} : NOT_DELETED),
+      ...(filter.onlyDeleted
+        ? { deletedAt: { not: null } }
+        : filter.includeDeleted
+          ? {}
+          : NOT_DELETED),
       ...(filter.role ? { role: filter.role } : {}),
       ...(filter.status ? { status: filter.status } : {}),
       ...(search

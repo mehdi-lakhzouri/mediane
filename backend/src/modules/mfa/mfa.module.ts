@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuditModule } from '../audit/audit.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { SecurityModule } from '../security/security.module';
 import { SessionsModule } from '../sessions/sessions.module';
 import { UsersModule } from '../users/users.module';
@@ -16,7 +17,13 @@ import { MfaController } from './presentation/mfa.controller';
  * never depends on auth, so there is no cycle.
  */
 @Module({
-  imports: [UsersModule, SessionsModule, SecurityModule, AuditModule],
+  imports: [
+    UsersModule,
+    SessionsModule,
+    SecurityModule,
+    AuditModule,
+    NotificationsModule,
+  ],
   controllers: [MfaController],
   providers: [
     MfaService,

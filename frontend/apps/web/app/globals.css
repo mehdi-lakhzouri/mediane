@@ -1889,6 +1889,42 @@ body:has(.cg-dash) {
   background-clip: content-box;
 }
 
+/* Dashboard form fields enter in a short stagger when a dialog or edit panel
+   is mounted. The motion is intentionally restrained so focus and validation
+   remain easy to follow. */
+.cg-form-reveal {
+  opacity: 0;
+  transform: translateY(7px);
+  animation: cg-form-reveal 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.cg-form-delay-1 {
+  animation-delay: 45ms;
+}
+
+.cg-form-delay-2 {
+  animation-delay: 90ms;
+}
+
+.cg-form-delay-3 {
+  animation-delay: 135ms;
+}
+
+.cg-form-delay-4 {
+  animation-delay: 180ms;
+}
+
+.cg-form-delay-5 {
+  animation-delay: 225ms;
+}
+
+@keyframes cg-form-reveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Settings-specific verification and international phone controls. */
 .settings-code-group .settings-code-slot {
   width: clamp(42px, 11vw, 50px);
@@ -2064,6 +2100,12 @@ body:has(.cg-dash) {
   .mfa-glow,
   .mfa-qr-scan,
   .mfa-code-caret {
+    animation: none !important;
+  }
+
+  .cg-form-reveal {
+    opacity: 1;
+    transform: none;
     animation: none !important;
   }
 }

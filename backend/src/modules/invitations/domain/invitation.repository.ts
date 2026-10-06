@@ -1,4 +1,7 @@
 import { Invitation } from './invitation';
+import type { EffectiveInvitationStatus } from './invitation';
+import type { Role } from '../../users/domain/role';
+import type { UserStatus } from '../../users/domain/user-status';
 
 export interface NewInvitationData {
   userId: string;
@@ -6,6 +9,54 @@ export interface NewInvitationData {
   /** HMAC of the raw token. The raw token only ever exists in the email link. */
   tokenHash: string;
   expiresAt: Date;
+}
+
+export const INVITATION_SORT_FIELDS = [
+  'createdAt',
+  'expiresAt',
+  'status',
+  'email',
+] as const;
+export type InvitationSortField = (typeof INVITATION_SORT_FIELDS)[number];
+
+export interface AdminInvitationListFilter {
+  page: number;
+  pageSize: number;
+  search?: string;
+  status?: EffectiveInvitationStatus;
+  role?: Role;
+  sortBy?: InvitationSortField;
+  sortDir?: 'asc' | 'desc';
+}
+
+export interface AdminInvitationRecord {
+  invitationId: string;
+  userId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: Role;
+  userStatus: UserStatus;
+  userDeletedAt: Date | null;
+  status: EffectiveInvitationStatus;
+  invitedBy: {
+    userId: string;
+    firstName: string;
+    lastName: string;
+  } | null;
+  createdAt: Date;
+  expiresAt: Date;
+  acceptedAt: Date | null;
+  revokedAt: Date | null;
+}
+
+export interface AdminInvitationStatsRecord {
+  total: number;
+  pending: number;
+  accepted: number;
+  expired: number;
+  revoked: number;
+  superseded: number;
 }
 
 /**
@@ -45,4 +96,11 @@ export abstract class InvitationRepository {
     revokedById: string,
     now: Date,
   ): Promise<boolean>;
+
+  abstract adminList(
+    filter: AdminInvitationListFilter,
+    now: Date,
+  ): Promise<{ items: AdminInvitationRecord[]; totalItems: number }>;
+
+  abstract adminStats(now: Date): Promise<AdminInvitationStatsRecord>;
 }

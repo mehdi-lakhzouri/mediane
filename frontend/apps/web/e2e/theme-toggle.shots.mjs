@@ -34,7 +34,7 @@ const attr = () =>
   page.evaluate(() => document.documentElement.getAttribute("data-theme"));
 
 // 1. Fresh load: light by default.
-await page.goto(WEB, { waitUntil: "networkidle" });
+await page.goto(`${WEB}/sign-in`, { waitUntil: "networkidle" });
 check("defaults to light with no saved preference", (await attr()) === "light");
 await shot("01-light");
 
@@ -68,7 +68,7 @@ await darkPage.addInitScript(() => {
 // domcontentloaded fires once the HTML is fully parsed, i.e. after a
 // synchronous beforeInteractive script has run but before React hydrates —
 // the real checkpoint for "did the visitor ever see the wrong theme".
-await darkPage.goto(WEB, { waitUntil: "domcontentloaded" });
+await darkPage.goto(`${WEB}/sign-in`, { waitUntil: "domcontentloaded" });
 const earlyTheme = await darkPage.evaluate(
   () => document.documentElement.getAttribute("data-theme"),
 );

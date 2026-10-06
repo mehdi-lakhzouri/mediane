@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import type { AuditEntry } from '../domain/audit-entry';
-import { AuditLogRepository } from '../domain/audit-log.repository';
+import {
+  AuditListFilter,
+  AuditLogRepository,
+  AuditLogViewRecord,
+  AuditStatsRecord,
+} from '../domain/audit-log.repository';
 import { sanitizeAuditMetadata } from '../domain/sanitize-metadata';
 
 /**
@@ -25,5 +30,15 @@ export class AuditService {
       userAgent: entry.client?.userAgent ?? null,
       metadata: sanitizeAuditMetadata(entry.metadata),
     });
+  }
+
+  list(
+    filter: AuditListFilter,
+  ): Promise<{ items: AuditLogViewRecord[]; totalItems: number }> {
+    return this.repository.list(filter);
+  }
+
+  stats(): Promise<AuditStatsRecord> {
+    return this.repository.stats(new Date());
   }
 }

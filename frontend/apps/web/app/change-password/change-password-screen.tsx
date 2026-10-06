@@ -76,7 +76,7 @@ export function ChangePasswordScreen() {
         setUser(me);
       })
       .catch(() => {
-        if (active) router.replace("/");
+        if (active) router.replace("/sign-in");
       });
     return () => {
       active = false;
@@ -119,7 +119,7 @@ export function ChangePasswordScreen() {
     try {
       await logout();
     } finally {
-      router.replace("/");
+      router.replace("/sign-in");
     }
   }
 

@@ -1,0 +1,342 @@
+/* -----------------------------------------------------------------------
+   CabinGuard marketing site.
+   Scoped to `.lp-root` (set by the (marketing) layout) and prefixed `--lp-*`
+   so nothing here can leak into the console or the sign-in screens.
+   Everything sits in the `components` layer, below Tailwind's utilities, so a
+   utility class on an element always wins over these defaults.
+----------------------------------------------------------------------- */
+
+@layer components {
+  .lp-root {
+    --lp-ink: #0a1330;
+    --lp-ink-soft: #1a2547;
+    --lp-body: #4b5876;
+    --lp-muted: #6e7c98;
+    --lp-faint: #98a4bb;
+
+    --lp-blue: #1253fd;
+    --lp-blue-strong: #0a44e4;
+    --lp-blue-accent: #1658ff;
+    --lp-blue-soft: #e9f0ff;
+    --lp-blue-tint: #f4f8ff;
+    --lp-blue-line: #c9d8fb;
+
+    --lp-page: #f7faff;
+    --lp-surface: #ffffff;
+    --lp-line: #e5ecf7;
+    --lp-line-strong: #d6e1f3;
+
+    --lp-navy-top: #26449e;
+    --lp-navy-bottom: #1c3886;
+    --lp-footer: #061631;
+
+    --lp-green: #12924f;
+    --lp-green-bg: #e5f7ed;
+    --lp-red: #e1262f;
+    --lp-red-strong: #c1121c;
+    --lp-red-bg: #fdecee;
+    --lp-amber: #e3860b;
+    --lp-amber-bg: #fff3de;
+    --lp-violet: #5b3df5;
+    --lp-violet-bg: #efebff;
+
+    --lp-shadow-card:
+      0 1px 2px rgba(16, 40, 94, 0.04), 0 14px 34px -14px rgba(16, 40, 94, 0.14);
+    --lp-shadow-float:
+      0 2px 6px rgba(16, 40, 94, 0.05), 0 28px 60px -22px rgba(16, 40, 94, 0.28);
+    --lp-shadow-button: 0 12px 26px -10px rgba(18, 83, 253, 0.55);
+
+    --lp-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+    font-family:
+      var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+      sans-serif;
+    color: var(--lp-ink);
+    background: var(--lp-page);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .lp-container {
+    width: 100%;
+    max-width: 1680px;
+    margin-inline: auto;
+    padding-inline: clamp(20px, 4.4vw, 74px);
+  }
+
+  /* Type ------------------------------------------------------------------ */
+
+  .lp-eyebrow {
+    font-size: clamp(11px, 0.85vw, 14px);
+    font-weight: 600;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--lp-blue-strong);
+  }
+
+  .lp-display {
+    font-weight: 800;
+    font-size: clamp(42px, 4.25vw, 72px);
+    line-height: 1.03;
+    letter-spacing: -0.045em;
+    color: var(--lp-ink);
+  }
+
+  .lp-title {
+    font-weight: 800;
+    font-size: clamp(34px, 3.45vw, 58px);
+    line-height: 1.06;
+    letter-spacing: -0.04em;
+    color: var(--lp-ink);
+  }
+
+  .lp-accent {
+    color: var(--lp-blue-accent);
+  }
+
+  .lp-lead {
+    font-size: clamp(16px, 1.17vw, 19.5px);
+    line-height: 1.45;
+    color: var(--lp-body);
+  }
+
+  .lp-tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Surfaces -------------------------------------------------------------- */
+
+  .lp-card {
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+    border-radius: 20px;
+    box-shadow: var(--lp-shadow-card);
+  }
+
+  .lp-glass {
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+    box-shadow: var(--lp-shadow-float);
+    backdrop-filter: blur(14px) saturate(1.2);
+  }
+
+  /* Console mock: a light glass frame around a navy sidebar and white panels. */
+  .lp-console {
+    background: linear-gradient(180deg, #fbfdff 0%, #f1f6fd 100%);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    border-radius: 28px;
+    box-shadow:
+      0 50px 90px -40px rgba(20, 50, 120, 0.45),
+      0 0 0 1px rgba(201, 216, 251, 0.6);
+    overflow: hidden;
+  }
+
+  .lp-console-sidebar {
+    background: linear-gradient(180deg, var(--lp-navy-top), var(--lp-navy-bottom));
+  }
+
+  .lp-panel {
+    background: #ffffff;
+    border: 1px solid #ebf0f8;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px -14px rgba(16, 40, 94, 0.18);
+  }
+
+  /* Controls -------------------------------------------------------------- */
+
+  .lp-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #2f6bff 0%, var(--lp-blue) 100%);
+    color: #ffffff;
+    font-weight: 600;
+    box-shadow: var(--lp-shadow-button);
+    transition:
+      transform 0.25s var(--lp-ease),
+      box-shadow 0.25s var(--lp-ease),
+      background 0.25s var(--lp-ease);
+  }
+
+  .lp-btn-primary:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(180deg, #2a63f5 0%, var(--lp-blue-strong) 100%);
+    box-shadow: 0 16px 32px -12px rgba(18, 83, 253, 0.6);
+  }
+
+  .lp-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--lp-line-strong);
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--lp-ink);
+    font-weight: 600;
+    box-shadow: 0 10px 24px -16px rgba(16, 40, 94, 0.3);
+    transition:
+      transform 0.25s var(--lp-ease),
+      border-color 0.25s var(--lp-ease);
+  }
+
+  .lp-btn-secondary:hover {
+    transform: translateY(-1px);
+    border-color: var(--lp-blue-line);
+  }
+
+  .lp-focus:focus-visible,
+  .lp-root a:focus-visible,
+  .lp-root button:focus-visible,
+  .lp-root input:focus-visible,
+  .lp-root select:focus-visible,
+  .lp-root textarea:focus-visible {
+    outline: 3px solid rgba(18, 83, 253, 0.45);
+    outline-offset: 3px;
+    border-radius: 10px;
+  }
+
+  /* Icon tiles and pills -------------------------------------------------- */
+
+  .lp-tile {
+    display: grid;
+    place-items: center;
+    flex: none;
+    border-radius: 14px;
+    background: var(--lp-blue-soft);
+    color: var(--lp-blue);
+  }
+
+  .lp-tile-red {
+    background: var(--lp-red-bg);
+    color: var(--lp-red);
+  }
+
+  .lp-tile-violet {
+    background: var(--lp-violet-bg);
+    color: var(--lp-violet);
+  }
+
+  .lp-tile-green {
+    background: var(--lp-green-bg);
+    color: var(--lp-green);
+  }
+
+  .lp-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: 7px;
+    padding: 2px 8px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lp-pill-green {
+    background: var(--lp-green-bg);
+    color: var(--lp-green);
+  }
+
+  .lp-pill-red {
+    background: var(--lp-red-bg);
+    color: var(--lp-red);
+  }
+
+  .lp-pill-amber {
+    background: var(--lp-amber-bg);
+    color: var(--lp-amber);
+  }
+
+  /* Artwork that dissolves into the page on its open sides. */
+  .lp-art-fade-left {
+    mask-image: linear-gradient(90deg, transparent 0%, #000 22%, #000 100%);
+  }
+
+  .lp-art-fade-edges {
+    mask-image: radial-gradient(
+      120% 100% at 60% 55%,
+      #000 55%,
+      transparent 100%
+    );
+  }
+
+  /* Ambient page wash behind the hero (sky to white). */
+  .lp-hero-wash {
+    background:
+      radial-gradient(70% 60% at 85% 20%, rgba(214, 229, 255, 0.85), transparent 70%),
+      radial-gradient(60% 50% at 10% 85%, rgba(255, 228, 214, 0.45), transparent 70%),
+      linear-gradient(180deg, #f9fbff 0%, #f3f8ff 60%, #f7faff 100%);
+  }
+
+  .lp-section-wash {
+    background:
+      radial-gradient(60% 50% at 90% 10%, rgba(221, 233, 255, 0.8), transparent 70%),
+      linear-gradient(180deg, #f8fbff 0%, #f3f7fd 100%);
+  }
+
+  /* Typewriter heading: characters fade in from a soft blur as they are
+     typed. Inline spans keep the font's kerning across characters. */
+  .lp-tw-char {
+    opacity: 0;
+    filter: blur(4px);
+    transition:
+      opacity 0.26s var(--lp-ease),
+      filter 0.26s var(--lp-ease);
+  }
+
+  .lp-tw-char[data-on="true"] {
+    opacity: 1;
+    filter: blur(0);
+  }
+
+  .lp-tw-caret {
+    position: absolute;
+    top: 0.12em;
+    bottom: 0.06em;
+    width: 0.065em;
+    border-radius: 2px;
+    background: var(--lp-blue);
+  }
+
+  .lp-tw-caret-after {
+    right: -0.1em;
+  }
+
+  .lp-tw-caret-before {
+    left: -0.1em;
+  }
+
+  /* Once the line is typed, the caret blinks twice and bows out. */
+  .lp-tw-caret[data-done="true"] {
+    animation:
+      lp-caret-blink 0.9s steps(1) 2,
+      lp-caret-out 0.3s ease 1.8s forwards;
+  }
+
+  @keyframes lp-caret-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes lp-caret-out {
+    to {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lp-btn-primary,
+    .lp-btn-secondary,
+    .lp-tw-char {
+      transition: none;
+    }
+
+    .lp-tw-caret {
+      display: none;
+    }
+  }
+}

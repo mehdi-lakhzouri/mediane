@@ -1,12 +1,10 @@
-import { MailPlus } from "lucide-react";
-import { SectionPlaceholder } from "../../components/dashboard/section-placeholder";
+import type { Metadata } from "next";
+import { InvitationsScreen } from "./invitations-screen";
+
+export const metadata: Metadata = {
+  title: "Invitations | CabinGuard",
+};
 
 export default function InvitationsPage() {
-  return (
-    <SectionPlaceholder
-      icon={MailPlus}
-      title="Invitations"
-      description="Send, resend, revoke and inspect invitation status here. This view activates once the invitation APIs are implemented."
-    />
-  );
+  return <InvitationsScreen />;
 }

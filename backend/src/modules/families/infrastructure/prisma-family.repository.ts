@@ -2,12 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../generated/prisma/client';
 import { isUniqueConstraintViolation } from '../../../infrastructure/prisma/prisma-errors';
 import { PrismaTransactionHost } from '../../../infrastructure/prisma/prisma-transaction.host';
-import { FamilyRole, FamilySharing, JoinRequestStatus } from '../domain/family';
+import {
+  FamilyPolicy,
+  FamilyRole,
+  FamilySharing,
+  JoinRequestStatus,
+} from '../domain/family';
 import {
   AlreadyInFamilyError,
   JoinRequestAlreadyPendingError,
 } from '../domain/family.errors';
 import {
+  AdminFamilyStatsRecord,
   FamilyListFilter,
   FamilyMemberRecord,
   FamilyRecord,
@@ -352,6 +358,33 @@ export class PrismaFamilyRepository implements FamilyRepository {
             : null,
         };
       }),
+    };
+  }
+
+  async getAdminStats(now: Date): Promise<AdminFamilyStatsRecord> {
+    const [totalFamilies, totalMembers, pendingRequests, membersByFamily] =
+      await Promise.all([
+        this.db.client.family.count(),
+        this.db.client.familyMember.count(),
+        this.db.client.familyJoinRequest.count({
+          where: {
+            status: JoinRequestStatus.PENDING,
+            expiresAt: { gt: now },
+          },
+        }),
+        this.db.client.familyMember.groupBy({
+          by: ['familyId'],
+          _count: { _all: true },
+        }),
+      ]);
+
+    return {
+      totalFamilies,
+      totalMembers,
+      pendingRequests,
+      fullFamilies: membersByFamily.filter(
+        (family) => family._count._all >= FamilyPolicy.MAX_MEMBERS,
+      ).length,
     };
   }
 }

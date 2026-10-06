@@ -1,3 +1,4 @@
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { VersioningType } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
@@ -5,6 +6,7 @@ import helmet, { type HelmetOptions } from 'helmet';
 import { Logger } from 'nestjs-pino';
 import { REQUEST_ID_HEADER } from '../common/http/request-context';
 import {
+  API_BASE_PATH,
   API_DEFAULT_VERSION,
   API_PREFIX,
   appConfig,
@@ -40,6 +42,20 @@ function helmetOptions(config: AppConfig): HelmetOptions {
   };
 }
 
+const DEVICE_PATH_PREFIX = `${API_BASE_PATH}/device/`;
+
+/**
+ * In-cabin units sign the exact bytes they send, so their JSON bodies are
+ * kept raw for signature verification. Other routes never pay for it.
+ */
+function keepDeviceRawBody(
+  req: IncomingMessage & { rawBody?: Buffer },
+  _res: ServerResponse,
+  buffer: Buffer,
+): void {
+  if (req.url?.startsWith(DEVICE_PATH_PREFIX)) req.rawBody = buffer;
+}
+
 /**
  * HTTP-level setup shared by main.ts and e2e tests. Global pipe, guards,
  * interceptor and filter are registered in AppModule (so tests get them too).
@@ -53,7 +69,10 @@ export function configureApp(app: NestExpressApplication): void {
   app.set('trust proxy', config.trustProxy);
   app.use(helmet(helmetOptions(config)));
   app.use(cookieParser());
-  app.useBodyParser('json', { limit: config.bodyLimit });
+  app.useBodyParser('json', {
+    limit: config.bodyLimit,
+    verify: keepDeviceRawBody,
+  });
   app.useBodyParser('urlencoded', { extended: false, limit: config.bodyLimit });
 
   app.enableCors({

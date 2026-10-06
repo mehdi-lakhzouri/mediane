@@ -4,6 +4,7 @@ import { UnitOfWork } from '../../../common/application/unit-of-work';
 import { appConfig, type AppConfig } from '../../../config';
 import { AuditService } from '../../audit/application/audit.service';
 import { AuditAction } from '../../audit/domain/audit-action';
+import { NotificationsService } from '../../notifications/application/notifications.service';
 import { ProfilesService } from '../../profiles/application/profiles.service';
 import { AccountState } from '../../users/domain/account-state';
 import { Role } from '../../users/domain/role';
@@ -33,6 +34,7 @@ import {
   NotInFamilyError,
 } from '../domain/family.errors';
 import {
+  AdminFamilyStatsRecord,
   FamilyListFilter,
   FamilyMemberRecord,
   FamilyRecord,
@@ -127,6 +129,12 @@ export interface AdminFamilyView {
   pendingRequestCount?: number;
 }
 
+export interface AdminFamilyStatsView extends AdminFamilyStatsRecord {
+  maxMembersPerFamily: number;
+  availableSeats: number;
+  averageMembers: number;
+}
+
 export interface Actor {
   userId: string;
   client: ClientContext;
@@ -147,6 +155,7 @@ export class FamiliesService {
     private readonly profiles: ProfilesService,
     private readonly audit: AuditService,
     private readonly unitOfWork: UnitOfWork,
+    private readonly notifications: NotificationsService,
     @Inject(appConfig.KEY) private readonly app: AppConfig,
   ) {}
 
@@ -296,6 +305,15 @@ export class FamiliesService {
         client,
         metadata: { requestId: request.id },
       });
+      const owner = (await this.families.listMembers(family.id)).find(
+        (m) => m.role === FamilyRole.OWNER,
+      );
+      if (owner) {
+        await this.notifications.notify(owner.userId, {
+          type: 'FAMILY_JOIN_REQUESTED',
+          requesterName: `${request.firstName} ${request.lastName}`,
+        });
+      }
     });
     return this.getMine(userId);
   }
@@ -412,6 +430,17 @@ export class FamiliesService {
         client,
         metadata: { requestId: request.id, memberId: request.userId },
       });
+      await this.notifications.notify(request.userId, {
+        type: 'FAMILY_JOIN_APPROVED',
+        familyName: request.familyName,
+      });
+      await this.announceNewMember(
+        owner.familyId,
+        request.userId,
+        `${request.firstName} ${request.lastName}`,
+        request.familyName,
+        userId,
+      );
     });
     return this.getMine(userId);
   }
@@ -444,6 +473,10 @@ export class FamiliesService {
       target: { type: 'FAMILY', id: owner.familyId },
       client,
       metadata: { requestId: request.id },
+    });
+    await this.notifications.notify(request.userId, {
+      type: 'FAMILY_JOIN_REJECTED',
+      familyName: request.familyName,
     });
   }
 
@@ -540,6 +573,22 @@ export class FamiliesService {
     };
   }
 
+  async adminStats(): Promise<AdminFamilyStatsView> {
+    const stats = await this.families.getAdminStats(new Date());
+    return {
+      ...stats,
+      maxMembersPerFamily: FamilyPolicy.MAX_MEMBERS,
+      availableSeats: Math.max(
+        0,
+        stats.totalFamilies * FamilyPolicy.MAX_MEMBERS - stats.totalMembers,
+      ),
+      averageMembers:
+        stats.totalFamilies === 0
+          ? 0
+          : Number((stats.totalMembers / stats.totalFamilies).toFixed(1)),
+    };
+  }
+
   async adminGet(familyId: string): Promise<AdminFamilyView> {
     const family = await this.requireFamily(familyId);
     const now = new Date();
@@ -601,6 +650,18 @@ export class FamiliesService {
         client: actor.client,
         metadata: { memberId: driverId },
       });
+      const family = await this.requireFamily(familyId);
+      await this.notifications.notify(driverId, {
+        type: 'FAMILY_ADDED',
+        familyName: family.name,
+      });
+      await this.announceNewMember(
+        familyId,
+        driverId,
+        `${driver.firstName} ${driver.lastName}`,
+        family.name,
+        null,
+      );
     });
     return this.adminGet(familyId);
   }
@@ -653,6 +714,7 @@ export class FamiliesService {
   ): Promise<boolean> {
     const members = await this.families.listMembers(member.familyId);
     const others = members.filter((m) => m.userId !== member.userId);
+    const familyName = (await this.requireFamily(member.familyId)).name;
 
     if (member.role === FamilyRole.OWNER && others.length === 0) {
       await this.families.deleteFamily(member.familyId);
@@ -677,11 +739,30 @@ export class FamiliesService {
       client: actor.client,
       metadata: { memberId: member.userId },
     });
+    if (reason === 'LEFT') {
+      await this.notifications.notify(
+        others.map((m) => m.userId),
+        {
+          type: 'FAMILY_MEMBER_LEFT',
+          memberName: `${member.firstName} ${member.lastName}`,
+          familyName,
+        },
+      );
+    } else if (member.userId !== actor.userId) {
+      await this.notifications.notify(member.userId, {
+        type: 'FAMILY_MEMBER_REMOVED',
+        familyName,
+      });
+    }
 
     if (member.role === FamilyRole.OWNER) {
       // Longest-standing member (others is ordered by join date).
       const successor = others[0];
       await this.families.setRole(successor.userId, FamilyRole.OWNER);
+      await this.notifications.notify(successor.userId, {
+        type: 'FAMILY_OWNERSHIP_RECEIVED',
+        familyName,
+      });
       await this.audit.record({
         action: AuditAction.FAMILY_OWNERSHIP_TRANSFERRED,
         actor: { type: 'USER', userId: actor.userId },
@@ -711,6 +792,12 @@ export class FamiliesService {
     // Demote first: the database allows only one owner at any instant.
     if (current) await this.families.setRole(current.userId, FamilyRole.MEMBER);
     await this.families.setRole(newOwnerId, FamilyRole.OWNER);
+    if (newOwnerId !== actor.userId) {
+      await this.notifications.notify(newOwnerId, {
+        type: 'FAMILY_OWNERSHIP_RECEIVED',
+        familyName: (await this.requireFamily(familyId)).name,
+      });
+    }
     await this.audit.record({
       action: AuditAction.FAMILY_OWNERSHIP_TRANSFERRED,
       actor: { type: 'USER', userId: actor.userId },
@@ -723,8 +810,14 @@ export class FamiliesService {
   private async dissolveFamily(familyId: string, actor: Actor): Promise<void> {
     await this.unitOfWork.run(async () => {
       await this.families.lockFamily(familyId);
-      const memberCount = await this.families.countMembers(familyId);
+      const family = await this.requireFamily(familyId);
+      const members = await this.families.listMembers(familyId);
+      const memberCount = members.length;
       await this.families.deleteFamily(familyId);
+      await this.notifications.notify(
+        members.map((m) => m.userId).filter((id) => id !== actor.userId),
+        { type: 'FAMILY_DISSOLVED', familyName: family.name },
+      );
       await this.audit.record({
         action: AuditAction.FAMILY_DISSOLVED,
         actor: { type: 'USER', userId: actor.userId },
@@ -845,6 +938,23 @@ export class FamiliesService {
     const membership = await this.requireMembership(userId);
     if (membership.role !== FamilyRole.OWNER) throw new FamilyOwnerOnlyError();
     return membership;
+  }
+
+  /** Tells existing members (not the newcomer, not whoever approved) about a join. */
+  private async announceNewMember(
+    familyId: string,
+    newMemberId: string,
+    memberName: string,
+    familyName: string,
+    approvedBy: string | null,
+  ): Promise<void> {
+    const members = await this.families.listMembers(familyId);
+    await this.notifications.notify(
+      members
+        .map((m) => m.userId)
+        .filter((id) => id !== newMemberId && id !== approvedBy),
+      { type: 'FAMILY_MEMBER_JOINED', memberName, familyName },
+    );
   }
 
   private async requireFamily(familyId: string): Promise<FamilyRecord> {

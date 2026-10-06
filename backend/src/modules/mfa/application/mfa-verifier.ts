@@ -3,12 +3,14 @@ import type { ClientContext } from '../../../common/application/client-context';
 import { AuditService } from '../../audit/application/audit.service';
 import { AuditAction } from '../../audit/domain/audit-action';
 import { LoginPolicy } from '../../auth/domain/login-policy';
+import { NotificationsService } from '../../notifications/application/notifications.service';
 import { SecureTokenService } from '../../security/infrastructure/secure-token.service';
 import { UserRepository } from '../../users/domain/user.repository';
 import { InvalidMfaCodeError } from '../domain/mfa.errors';
 import {
   looksLikeRecoveryCode,
   normalizeRecoveryCode,
+  RECOVERY_CODES_LOW_WATERMARK,
 } from '../domain/recovery-codes';
 import { matchTotpStep } from '../domain/totp';
 import { UserMfaRepository } from '../domain/user-mfa.repository';
@@ -38,6 +40,7 @@ export class MfaVerifier {
     private readonly tokens: SecureTokenService,
     private readonly users: UserRepository,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /** @throws InvalidMfaCodeError */
@@ -51,16 +54,20 @@ export class MfaVerifier {
     const method = await this.tryVerify(userId, code.trim(), now);
     if (method) {
       if (method === 'RECOVERY_CODE') {
+        const remaining = await this.mfa.countUnusedRecoveryCodes(userId);
         await this.audit.record({
           action: AuditAction.MFA_RECOVERY_CODE_USED,
           actor: { type: 'USER', userId },
           target: { type: 'USER', id: userId },
           client,
-          metadata: {
-            purpose,
-            remaining: await this.mfa.countUnusedRecoveryCodes(userId),
-          },
+          metadata: { purpose, remaining },
         });
+        if (remaining <= RECOVERY_CODES_LOW_WATERMARK) {
+          await this.notifications.notify(userId, {
+            type: 'RECOVERY_CODES_LOW',
+            remaining,
+          });
+        }
       }
       return method;
     }

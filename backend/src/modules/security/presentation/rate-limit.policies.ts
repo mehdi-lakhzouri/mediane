@@ -30,6 +30,10 @@ export const RateLimitPolicies = {
   MFA_MANAGE: { limit: 10, ttlSeconds: 900 },
   /** Bounds join-code guessing (a valid code still needs the owner's approval). */
   FAMILY_JOIN: { limit: 10, ttlSeconds: 3600, blockSeconds: 3600 },
+  /** In-cabin units: heartbeats plus bursts of events during an episode. */
+  DEVICE: { limit: 120, ttlSeconds: 60 },
+  /** Driver-side safety actions (acknowledge, SOS). Never blocks for long. */
+  SAFETY_ACTION: { limit: 30, ttlSeconds: 60 },
 } as const satisfies Record<string, RateLimitPolicy>;
 
 export const RateLimit = (

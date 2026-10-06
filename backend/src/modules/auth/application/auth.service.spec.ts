@@ -23,6 +23,7 @@ import {
 import { WrongClientError } from '../domain/channel-policy';
 import { LoginPolicy } from '../domain/login-policy';
 import type { MfaChallengeRepository } from '../domain/mfa-challenge.repository';
+import type { NotificationsService } from '../../notifications/application/notifications.service';
 import type { PasswordResetTokenRepository } from '../domain/password-reset-token.repository';
 import type { AccessTokenIssuer } from '../infrastructure/access-token.issuer';
 import { AuthService } from './auth.service';
@@ -73,7 +74,7 @@ describe('AuthService.login', () => {
     >
   >;
   let hasher: jest.Mocked<PasswordHasher>;
-  let sessions: { open: jest.Mock };
+  let sessions: { open: jest.Mock; countOtherActive: jest.Mock };
   let audit: { record: jest.Mock };
   let challenges: { create: jest.Mock };
   let service: AuthService;
@@ -92,6 +93,7 @@ describe('AuthService.login', () => {
       needsRehash: jest.fn().mockReturnValue(false),
     };
     sessions = {
+      countOtherActive: jest.fn().mockResolvedValue(0),
       open: jest.fn().mockResolvedValue({
         session: RefreshSession.rehydrate({
           id: 's1',
@@ -134,6 +136,9 @@ describe('AuthService.login', () => {
       unitOfWork,
       challenges as unknown as MfaChallengeRepository,
       {} as MfaVerifier,
+      {
+        notify: jest.fn().mockResolvedValue(0),
+      } as unknown as NotificationsService,
       {} as AuthConfig,
       {} as AppConfig,
       { challengeTtlSeconds: 300 } as MfaConfig,

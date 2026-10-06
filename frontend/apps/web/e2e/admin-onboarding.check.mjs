@@ -80,7 +80,7 @@ page.on("console", (m) => {
 });
 
 async function signIn(password) {
-  await page.goto(WEB, { waitUntil: "networkidle" });
+  await page.goto(`${WEB}/sign-in`, { waitUntil: "networkidle" });
   await page.fill("#email", EMAIL);
   await page.fill("#password", password);
   await page.click('button[type="submit"]');

@@ -64,6 +64,7 @@ export interface ListUsersQuery {
   status?: UserStatus;
   search?: string;
   includeDeleted: boolean;
+  onlyDeleted: boolean;
   sortBy?: UserSortField;
   sortDir?: SortDirection;
 }

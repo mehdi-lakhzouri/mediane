@@ -146,7 +146,7 @@ export function AcceptInvitationScreen() {
         </div>
 
         <Link
-          href="/"
+          href="/sign-in"
           className="primary-button mt-8 inline-flex h-[56px] w-full items-center justify-center gap-4 rounded-2xl text-base font-extrabold text-white transition duration-300"
         >
           <ArrowRight className="size-5" />

@@ -4,6 +4,7 @@ import { UnitOfWork } from '../../../common/application/unit-of-work';
 import { mfaConfig, type MfaConfig } from '../../../config';
 import { AuditService } from '../../audit/application/audit.service';
 import { AuditAction } from '../../audit/domain/audit-action';
+import { NotificationsService } from '../../notifications/application/notifications.service';
 import { SessionsService } from '../../sessions/application/sessions.service';
 import { SessionRevocationReason } from '../../sessions/domain/refresh-session';
 import { AccountState, isMfaRequired } from '../../users/domain/account-state';
@@ -78,6 +79,7 @@ export class MfaService {
     private readonly sessions: SessionsService,
     private readonly audit: AuditService,
     private readonly unitOfWork: UnitOfWork,
+    private readonly notifications: NotificationsService,
     @Inject(mfaConfig.KEY) private readonly config: MfaConfig,
   ) {}
 
@@ -185,6 +187,9 @@ export class MfaService {
         target: { type: 'USER', id: userId },
         client,
       });
+      if (!replacing) {
+        await this.notifications.notify(userId, { type: 'TWO_STEP_ENABLED' });
+      }
     });
     return { recoveryCodes, accountState: await this.stateOf(userId) };
   }
@@ -239,6 +244,7 @@ export class MfaService {
         target: { type: 'USER', id: userId },
         client,
       });
+      await this.notifications.notify(userId, { type: 'TWO_STEP_DISABLED' });
     });
     return this.getStatus(userId);
   }

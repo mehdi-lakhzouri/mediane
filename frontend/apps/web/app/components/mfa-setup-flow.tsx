@@ -359,7 +359,7 @@ export function MfaSetupFlow() {
       })
       .catch((failure: unknown) => {
         if (failure instanceof ApiError && failure.status === 401) {
-          router.replace("/");
+          router.replace("/sign-in");
           return;
         }
         setFatal(setupErrorMessage(failure));
@@ -471,7 +471,7 @@ export function MfaSetupFlow() {
           <p className="mt-5 max-w-[400px] text-sm font-semibold text-[#c0ccda]">
             {fatal}
           </p>
-          <Link href="/" className="mfa-secondary mt-6 w-full max-w-[320px]">
+          <Link href="/sign-in" className="mfa-secondary mt-6 w-full max-w-[320px]">
             <ArrowLeft className="size-4" />
             Back to sign in
           </Link>

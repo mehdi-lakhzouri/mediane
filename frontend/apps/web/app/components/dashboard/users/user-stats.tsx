@@ -1,3 +1,6 @@
+"use client";
+
+import { motion } from "framer-motion";
 import {
   CircleX,
   Mail,
@@ -6,6 +9,13 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
+import {
+  AnimatedNumber,
+  cardHover,
+  stagger,
+  statCardMotion,
+  statIconMotion,
+} from "../motion";
 
 export interface UserStatsValue {
   total: number;
@@ -78,24 +88,28 @@ export function UserStats({ stats }: { stats: UserStatsValue }) {
   ];
 
   return (
-    <section
+    <motion.section
       aria-label="User statistics"
+      variants={stagger(0.06)}
       className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5"
     >
       {cards.map(({ label, value, detail, icon: Icon, tone, positive }) => (
-        <article
+        <motion.article
           key={label}
+          variants={statCardMotion.drivers}
+          whileHover={cardHover}
           className={`flex min-h-[112px] items-start gap-4 rounded-xl border bg-card px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,.02),0_4px_12px_rgba(16,24,40,.025)] ${label === "Total users" ? "border-[#ccd9fb]" : "border-border"}`}
         >
-          <span
+          <motion.span
+            variants={statIconMotion}
             className={`grid size-12 shrink-0 place-items-center rounded-xl ${toneClasses[tone]}`}
           >
             <Icon className="size-5" strokeWidth={2} />
-          </span>
+          </motion.span>
           <div className="min-w-0 pt-0.5">
             <p className="truncate text-[12px] text-[#526180]">{label}</p>
             <p className="mt-0.5 text-[24px] font-bold leading-none tracking-[-0.03em] text-foreground tabular-nums">
-              {value}
+              <AnimatedNumber value={value} />
             </p>
             <p
               className={`mt-2 truncate text-[11px] ${positive ? "font-medium text-[#159455]" : "text-muted-foreground"}`}
@@ -104,8 +118,8 @@ export function UserStats({ stats }: { stats: UserStatsValue }) {
               {detail}
             </p>
           </div>
-        </article>
+        </motion.article>
       ))}
-    </section>
+    </motion.section>
   );
 }

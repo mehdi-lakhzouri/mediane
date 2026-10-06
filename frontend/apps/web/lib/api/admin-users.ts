@@ -37,6 +37,7 @@ export interface ListUsersParams {
   role?: Role;
   status?: UserStatus;
   includeDeleted?: boolean;
+  onlyDeleted?: boolean;
   sortBy?: UserSortField;
   sortDir?: "asc" | "desc";
 }
@@ -63,6 +64,7 @@ function query(params: ListUsersParams): string {
   if (params.role) search.set("role", params.role);
   if (params.status) search.set("status", params.status);
   if (params.includeDeleted) search.set("includeDeleted", "true");
+  if (params.onlyDeleted) search.set("onlyDeleted", "true");
   if (params.sortBy) search.set("sortBy", params.sortBy);
   if (params.sortDir) search.set("sortDir", params.sortDir);
   return search.toString();

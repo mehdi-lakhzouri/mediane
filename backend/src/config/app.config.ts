@@ -8,6 +8,8 @@ export const appConfig = registerAs('app', () => {
     name: 'CabinGuard API',
     nodeEnv: env.NODE_ENV,
     isProduction,
+    /** Background jobs stay off; tests drive them explicitly. */
+    isTest: env.NODE_ENV === NodeEnv.Test,
     port: env.PORT,
     logLevel: env.LOG_LEVEL,
     corsOrigins: env.CORS_ORIGINS,

@@ -23,6 +23,8 @@ export interface ListUsersFilter {
   /** Case-insensitive match on email, first name or last name. */
   search?: string;
   includeDeleted: boolean;
+  /** When true, returns only rows that have been soft deleted. */
+  onlyDeleted: boolean;
 }
 
 export interface UserPage {
@@ -46,6 +48,9 @@ export abstract class UserRepository {
   abstract findByEmail(email: Email): Promise<User | null>;
 
   abstract findByIdIncludingDeleted(id: string): Promise<User | null>;
+
+  /** Batch identity lookup for audit actor enrichment, including soft deletes. */
+  abstract findManyByIdsIncludingDeleted(ids: string[]): Promise<User[]>;
 
   abstract existsByEmailIncludingDeleted(email: Email): Promise<boolean>;
 

@@ -49,6 +49,39 @@ describe('HTTP contract (e2e)', () => {
     );
   });
 
+  it('exposes the public mobile bootstrap contract', async () => {
+    const res = await request(server)
+      .get('/api/v1/mobile/bootstrap')
+      .expect(200);
+
+    expect(res.body).toMatchObject({
+      data: {
+        minimumSupportedVersion: '1.0.0',
+        latestVersion: '1.0.0',
+        maintenance: false,
+        termsVersion: '2026-10-01',
+        privacyVersion: '2026-10-01',
+        features: {
+          selfRegistration: false,
+          biometricUnlock: true,
+          familyJoin: true,
+        },
+        profileRules: {
+          driverMinimumAge: 18,
+          minEmergencyContacts: 1,
+          maxEmergencyContacts: 20,
+          avatarMaxBytes: 5 * 1024 * 1024,
+          avatarMinSidePx: 128,
+        },
+      },
+      meta: {
+        requestId: expect.any(String),
+        timestamp: expect.any(String),
+      },
+      error: null,
+    });
+  });
+
   it('rejects unauthenticated access to protected routes', async () => {
     const res = await request(server).get('/api/v1/auth/me').expect(401);
     expect(res.body).toMatchObject({

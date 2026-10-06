@@ -11,7 +11,12 @@ import {
   InvalidInvitationError,
   InvitationNotFoundError,
 } from '../domain/invitation.errors';
-import { InvitationRepository } from '../domain/invitation.repository';
+import {
+  AdminInvitationListFilter,
+  AdminInvitationRecord,
+  AdminInvitationStatsRecord,
+  InvitationRepository,
+} from '../domain/invitation.repository';
 import { UserRepository } from '../../users/domain/user.repository';
 
 export interface InvitationStatusView {
@@ -20,6 +25,12 @@ export interface InvitationStatusView {
   invitedBy: string | null;
   expiresAt: Date;
   createdAt: Date;
+}
+
+export type AdminInvitationView = AdminInvitationRecord;
+
+export interface AdminInvitationStatsView extends AdminInvitationStatsRecord {
+  acceptanceRate: number;
 }
 
 /** What the caller needs to build the acceptance link. */
@@ -50,6 +61,23 @@ export class InvitationsService {
     private readonly unitOfWork: UnitOfWork,
     @Inject(authConfig.KEY) private readonly auth: AuthConfig,
   ) {}
+
+  async adminList(
+    filter: AdminInvitationListFilter,
+  ): Promise<{ items: AdminInvitationView[]; totalItems: number }> {
+    return this.invitations.adminList(filter, new Date());
+  }
+
+  async adminStats(): Promise<AdminInvitationStatsView> {
+    const stats = await this.invitations.adminStats(new Date());
+    return {
+      ...stats,
+      acceptanceRate:
+        stats.total === 0
+          ? 0
+          : Number(((stats.accepted / stats.total) * 100).toFixed(1)),
+    };
+  }
 
   async issueFor(
     userId: string,

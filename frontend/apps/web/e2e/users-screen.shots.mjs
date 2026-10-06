@@ -38,7 +38,7 @@ const check = (name, ok, detail = "") =>
     `${ok ? "PASS" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}`,
   );
 
-await page.goto(WEB, { waitUntil: "networkidle" });
+await page.goto(`${WEB}/sign-in`, { waitUntil: "networkidle" });
 await page.fill("#email", EMAIL);
 await page.fill("#password", PASSWORD);
 await page.click('button[type="submit"]');

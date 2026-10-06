@@ -37,7 +37,7 @@ const shot = async (name, target = page) => {
 };
 
 // 1. Sign-in screen: must look exactly as it did before this work.
-await page.goto(WEB, { waitUntil: "networkidle" });
+await page.goto(`${WEB}/sign-in`, { waitUntil: "networkidle" });
 await shot("01-login");
 
 // 2. Sign in and land on the dashboard.

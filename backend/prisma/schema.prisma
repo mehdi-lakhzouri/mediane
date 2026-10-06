@@ -90,6 +90,7 @@ enum AuditActorType {
   USER
   SYSTEM
   CLI
+  DEVICE
 }
 
 enum AuditOutcome {
@@ -141,6 +142,11 @@ model User {
   mfaChallenges       MfaChallenge[]
   familyMembership    FamilyMember?
   familyJoinRequests  FamilyJoinRequest[]
+  pairedDevice        VehicleDevice?           @relation("DevicePairedUser")
+  medicalEvents       MedicalEvent[]
+  incidents           Incident[]
+  notifications       UserNotification[]
+  notificationPrefs   NotificationPreference?
 
   @@index([role, status, deletedAt])
   @@index([deletedAt])
@@ -413,4 +419,276 @@ model AuditLog {
   @@index([targetType, targetId, createdAt])
   @@index([action, createdAt])
   @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------- devices
+
+enum DeviceStatus {
+  ACTIVE
+  REVOKED
+}
+
+/// An in-cabin detection unit. It authenticates every request with an HMAC
+/// signature; the shared secret is stored encrypted (AES-256-GCM), never in clear.
+model VehicleDevice {
+  id                String       @id @default(uuid(7)) @db.Uuid
+  serialNumber      String       @unique @db.VarChar(64)
+  label             String       @db.VarChar(100)
+  secretEnc         String       @db.VarChar(255)
+  status            DeviceStatus @default(ACTIVE)
+  /// One unit per driver, one driver per unit.
+  pairedUserId      String?      @unique @db.Uuid
+  pairedAt          DateTime?
+  firmwareVersion   String?      @db.VarChar(50)
+  lastSeenAt        DateTime?
+  secretRotatedAt   DateTime?
+  /// Set when the driver was told the unit went quiet; cleared by a heartbeat.
+  offlineNotifiedAt DateTime?
+  revokedAt         DateTime?
+  createdById       String?      @db.Uuid
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  pairedUser User?                @relation("DevicePairedUser", fields: [pairedUserId], references: [id], onDelete: SetNull)
+  nonces     DeviceRequestNonce[]
+  events     MedicalEvent[]
+
+  @@index([status])
+  @@map("vehicle_devices")
+}
+
+/// Replay protection: a signed request nonce is accepted once per device
+/// within the signature window, then purged.
+model DeviceRequestNonce {
+  deviceId  String   @db.Uuid
+  nonce     String   @db.VarChar(64)
+  expiresAt DateTime
+
+  device VehicleDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@id([deviceId, nonce])
+  @@index([expiresAt])
+  @@map("device_request_nonces")
+}
+
+// ---------------------------------------------------------------- safety
+
+enum MedicalEventType {
+  HEART_RHYTHM
+  DROWSINESS
+  SEIZURE
+  STROKE
+  CARDIAC_ARREST
+  SOS
+}
+
+enum MedicalEventSeverity {
+  WARNING
+  URGENT
+  CRITICAL
+}
+
+enum MedicalEventSource {
+  DEVICE
+  DRIVER
+}
+
+enum IncidentStatus {
+  AWAITING_RESPONSE
+  ESCALATED
+  RESOLVED
+  FALSE_ALARM
+}
+
+enum IncidentActorChannel {
+  APP
+  DEVICE
+  SYSTEM
+}
+
+enum IncidentTimelineKind {
+  OPENED
+  EVENT_ADDED
+  ACKNOWLEDGED
+  ESCALATED
+  NOTIFIED
+  RESOLVED
+}
+
+enum NotificationKind {
+  ALERT
+  ALL_CLEAR
+}
+
+enum NotificationRecipientType {
+  EMERGENCY_CONTACT
+  FAMILY_MEMBER
+}
+
+enum NotificationChannel {
+  LOG
+  EMAIL
+  SMS
+  VOICE
+  PUSH
+}
+
+enum NotificationStatus {
+  SENT
+  FAILED
+  SKIPPED
+}
+
+/// A detection from an in-cabin unit, or a driver SOS. Details (readings,
+/// location) are purged after the retention period.
+model MedicalEvent {
+  id                String               @id @default(uuid(7)) @db.Uuid
+  userId            String               @db.Uuid
+  deviceId          String?              @db.Uuid
+  incidentId        String?              @db.Uuid
+  source            MedicalEventSource
+  type              MedicalEventType
+  severity          MedicalEventSeverity
+  /// Idempotency key chosen by the sender; one event per key and driver.
+  clientEventId     String               @db.VarChar(64)
+  /// 0..1 as reported by the detector.
+  confidence        Float?
+  detectedAt        DateTime
+  receivedAt        DateTime             @default(now())
+  vitals            Json?
+  latitude          Float?
+  longitude         Float?
+  locationAccuracyM Float?
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device   VehicleDevice? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  incident Incident?      @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, clientEventId])
+  @@index([userId, detectedAt])
+  @@index([receivedAt])
+  @@map("medical_events")
+}
+
+/// A situation needing the driver's answer and, without one, help. At most one
+/// active incident per driver (partial unique index in the migration).
+model Incident {
+  id                 String                @id @default(uuid(7)) @db.Uuid
+  userId             String                @db.Uuid
+  status             IncidentStatus
+  severity           MedicalEventSeverity
+  triggerType        MedicalEventType
+  openedAt           DateTime              @default(now())
+  /// Escalates when this passes without an answer. Null once settled.
+  respondBy          DateTime?
+  acknowledgedAt     DateTime?
+  acknowledgedVia    IncidentActorChannel?
+  escalatedAt        DateTime?
+  resolvedAt         DateTime?
+  resolvedVia        IncidentActorChannel?
+  /// Outbox markers: alerts and the all-clear are delivered at least once.
+  alertsSentAt       DateTime?
+  allClearSentAt     DateTime?
+  /// A worker owns delivery until then; a crashed worker's lease expires.
+  dispatchLeaseUntil DateTime?
+  latitude           Float?
+  longitude          Float?
+  locationAccuracyM  Float?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  user          User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events        MedicalEvent[]
+  timeline      IncidentTimelineEntry[]
+  notifications IncidentNotification[]
+
+  @@index([status, respondBy])
+  @@index([userId, openedAt])
+  @@index([openedAt])
+  @@map("incidents")
+}
+
+model IncidentTimelineEntry {
+  id         String               @id @default(uuid(7)) @db.Uuid
+  incidentId String               @db.Uuid
+  kind       IncidentTimelineKind
+  at         DateTime             @default(now())
+  /// Non-medical context only (channel, recipient count...).
+  detail     Json?
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, at])
+  @@map("incident_timeline")
+}
+
+/// One attempt to reach someone about an incident.
+model IncidentNotification {
+  id              String                    @id @default(uuid(7)) @db.Uuid
+  incidentId      String                    @db.Uuid
+  kind            NotificationKind
+  recipientType   NotificationRecipientType
+  recipientUserId String?                   @db.Uuid
+  recipientName   String                    @db.VarChar(200)
+  /// Emergency contacts: call priority (1 = first).
+  priority        Int?
+  channel         NotificationChannel
+  status          NotificationStatus
+  error           String?                   @db.VarChar(200)
+  attemptedAt     DateTime                  @default(now())
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, attemptedAt])
+  @@map("incident_notifications")
+}
+
+// ---------------------------------------------------------- notifications
+
+enum NotificationCategory {
+  SAFETY
+  FAMILY
+  SECURITY
+  ACCOUNT
+}
+
+/// One entry of a user's in-app notification center. Written for its
+/// recipient; never carries medical details. Purged after 90 days.
+model UserNotification {
+  id        String               @id @default(uuid(7)) @db.Uuid
+  userId    String               @db.Uuid
+  category  NotificationCategory
+  /// Stable machine name, e.g. FAMILY_MEMBER_NEEDS_HELP.
+  type      String               @db.VarChar(48)
+  title     String               @db.VarChar(120)
+  body      String               @db.VarChar(500)
+  /// In-app destination (route path, e.g. /incidents/<id>), never a web URL.
+  link      String?              @db.VarChar(200)
+  /// Family emergencies: delivered whatever the mute settings.
+  critical  Boolean              @default(false)
+  readAt    DateTime?
+  createdAt DateTime             @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@index([createdAt])
+  @@map("user_notifications")
+}
+
+/// Mute switches per category. Security has none: it always reaches the
+/// center. Absent row = defaults.
+model NotificationPreference {
+  userId                String   @id @db.Uuid
+  safety                Boolean  @default(true)
+  family                Boolean  @default(true)
+  account               Boolean  @default(true)
+  /// Lock-screen previews may name people (never medical details).
+  showNamesOnLockScreen Boolean  @default(false)
+  updatedAt             DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
 }

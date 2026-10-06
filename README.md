@@ -2,7 +2,7 @@
 
 CabinGuard is a driver-safety platform developed for the IEEE EMBS/VTS TSYP14 challenge. It combines a secure administration console, a mobile API for drivers, family safety features, and the foundations for multimodal in-cabin medical-event detection.
 
-> The administration console and the authentication, profile, MFA, invitation, and family APIs are implemented. The Flutter application is currently a starter shell; its production screen specifications are available in [`design/mobile-app`](design/mobile-app/README.md). Medical-event detection and vehicle-response services are outside the current implementation.
+> The administration console and the authentication, profile, MFA, invitation, and family APIs are implemented. The Flutter application has its production foundation and implementation roadmap; product screens are being built from the specifications in [`design/mobile-app`](design/mobile-app/README.md). Medical-event detection and vehicle-response services are outside the current implementation.
 
 ## System architecture
 
@@ -27,7 +27,7 @@ The backend is a modular NestJS application. Controllers expose transport-specif
 ├── frontend/
 │   ├── apps/web/            Next.js administration console
 │   └── packages/            Shared UI, ESLint, and TypeScript packages
-├── driver_health_app/       Flutter mobile application scaffold
+├── driver_health_app/       Flutter mobile application and delivery plan
 ├── docker/                  Local PostgreSQL and Redis services
 └── design/mobile-app/       Mobile UX specifications and generated mockups
 ```
@@ -130,9 +130,9 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open `http://localhost:3000`. The browser client calls `http://localhost:4000/api/v1` unless `NEXT_PUBLIC_API_BASE_URL` overrides it.
+Open `http://localhost:3000` for the marketing site and `http://localhost:3000/sign-in` for the console. The browser client calls `http://localhost:4000/api/v1` unless `NEXT_PUBLIC_API_BASE_URL` overrides it.
 
-### 5. Run the Flutter scaffold
+### 5. Run the Flutter application
 
 ```bash
 cd driver_health_app
@@ -140,13 +140,14 @@ flutter pub get
 flutter run
 ```
 
-The current Flutter target is a clean project scaffold. Use the API contracts below and the [mobile screen pack](design/mobile-app/README.md) when implementing the production application.
+The current Flutter target contains the production architecture and platform foundation. Follow the [mobile implementation plan](driver_health_app/docs/IMPLEMENTATION_PLAN.md) and [mobile screen pack](design/mobile-app/README.md) for feature delivery.
 
 ## Local URLs
 
 | Service | URL |
 |---|---|
-| Web console | `http://localhost:3000` |
+| Marketing site | `http://localhost:3000` |
+| Web console sign-in | `http://localhost:3000/sign-in` |
 | API base | `http://localhost:4000/api/v1` |
 | API health | `http://localhost:4000/api/v1/health` |
 | Swagger UI | `http://localhost:4000/api/docs` |

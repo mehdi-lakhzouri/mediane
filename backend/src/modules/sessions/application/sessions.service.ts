@@ -9,8 +9,27 @@ import {
   SessionChannel,
   SessionRevocationReason,
 } from '../domain/refresh-session';
+import {
+  describeUserAgent,
+  type DeviceDescription,
+} from '../domain/device-description';
 import { RefreshSessionRepository } from '../domain/refresh-session.repository';
-import { InvalidRefreshTokenError } from '../domain/session.errors';
+import {
+  CurrentSessionRevocationError,
+  InvalidRefreshTokenError,
+  SessionNotFoundError,
+} from '../domain/session.errors';
+
+/** One signed-in device, for its owner. */
+export interface ActiveSessionView {
+  id: string;
+  channel: SessionChannel;
+  device: DeviceDescription;
+  ipAddress: string | null;
+  signedInAt: Date;
+  lastActiveAt: Date;
+  current: boolean;
+}
 
 export interface OpenedSession {
   session: RefreshSession;
@@ -155,6 +174,81 @@ export class SessionsService {
     now = new Date(),
   ): Promise<number> {
     return this.sessions.revokeAllForUser(userId, reason, now);
+  }
+
+  async listActive(
+    userId: string,
+    currentSessionId: string,
+    now = new Date(),
+  ): Promise<ActiveSessionView[]> {
+    const sessions = await this.sessions.listActiveForUser(userId, now);
+    return sessions.map((session) => ({
+      id: session.id,
+      channel: session.channel,
+      device: describeUserAgent(session.userAgent),
+      ipAddress: session.ipAddress,
+      signedInAt: session.createdAt,
+      lastActiveAt: session.lastUsedAt ?? session.createdAt,
+      current: session.id === currentSessionId,
+    }));
+  }
+
+  /** Signed-in devices other than [excludingSessionId]. */
+  async countOtherActive(
+    userId: string,
+    excludingSessionId: string,
+    now = new Date(),
+  ): Promise<number> {
+    const sessions = await this.sessions.listActiveForUser(userId, now);
+    return sessions.filter((s) => s.id !== excludingSessionId).length;
+  }
+
+  /** Signs one of the user's other devices out. */
+  async revokeOwn(
+    userId: string,
+    sessionId: string,
+    currentSessionId: string,
+    client: ClientContext,
+    now = new Date(),
+  ): Promise<void> {
+    if (sessionId === currentSessionId) {
+      throw new CurrentSessionRevocationError();
+    }
+    const session = await this.sessions.findById(sessionId);
+    if (!session || session.userId !== userId || !session.isActive(now)) {
+      throw new SessionNotFoundError();
+    }
+    await this.sessions.revoke(sessionId, SessionRevocationReason.LOGOUT, now);
+    await this.audit.record({
+      action: AuditAction.SESSION_REVOKED,
+      actor: { type: 'USER', userId },
+      target: { type: 'SESSION', id: sessionId },
+      client,
+      metadata: { reason: 'REVOKED_FROM_ANOTHER_DEVICE' },
+    });
+  }
+
+  /** "Sign out everywhere else": keeps only the current device. */
+  async revokeOthers(
+    userId: string,
+    currentSessionId: string,
+    client: ClientContext,
+    now = new Date(),
+  ): Promise<number> {
+    const count = await this.sessions.revokeAllForUserExcept(
+      userId,
+      currentSessionId,
+      SessionRevocationReason.LOGOUT_ALL,
+      now,
+    );
+    await this.audit.record({
+      action: AuditAction.ALL_SESSIONS_REVOKED,
+      actor: { type: 'USER', userId },
+      target: { type: 'USER', id: userId },
+      client,
+      metadata: { revokedSessions: count, keptCurrent: true },
+    });
+    return count;
   }
 
   /**

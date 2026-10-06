@@ -78,7 +78,7 @@ export function ForgotPasswordScreen() {
           For your privacy, we show this confirmation whether or not the address
           exists. Check spam if the email does not arrive within a few minutes.
         </p>
-        <Link href="/" className="recovery-primary mt-7">
+        <Link href="/sign-in" className="recovery-primary mt-7">
           <ArrowLeft className="size-5" />
           Return to sign in
         </Link>
@@ -153,7 +153,7 @@ export function ForgotPasswordScreen() {
 
       <div className="mt-6 flex items-center justify-between gap-4 border-t border-[var(--sx-divider)] pt-5">
         <Link
-          href="/"
+          href="/sign-in"
           className="inline-flex items-center gap-2 text-sm font-bold text-[var(--sx-accent)] transition hover:text-[var(--sx-accent-hover)]"
         >
           <ArrowLeft className="size-4" />

@@ -24,6 +24,16 @@ export interface RotationData {
   now: Date;
 }
 
+/** A signed-in device as its owner sees it in "active devices". */
+export interface SessionSummary {
+  id: string;
+  channel: SessionChannel;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: Date;
+  lastUsedAt: Date | null;
+}
+
 /** Port. Lookups by token always take the HMAC hash, never the raw token. */
 export abstract class RefreshSessionRepository {
   abstract findById(id: string): Promise<RefreshSession | null>;
@@ -52,6 +62,19 @@ export abstract class RefreshSessionRepository {
   /** Revokes every active session of the user. Returns how many were revoked. */
   abstract revokeAllForUser(
     userId: string,
+    reason: SessionRevocationReason,
+    now: Date,
+  ): Promise<number>;
+
+  /** Sessions that can still be used, most recently active first. */
+  abstract listActiveForUser(
+    userId: string,
+    now: Date,
+  ): Promise<SessionSummary[]>;
+
+  abstract revokeAllForUserExcept(
+    userId: string,
+    keepSessionId: string,
     reason: SessionRevocationReason,
     now: Date,
   ): Promise<number>;

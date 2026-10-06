@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -70,17 +70,26 @@ export function ConfirmDialog({
         </AlertDialogHeader>
 
         {request?.confirmText && (
-          <div className="flex flex-col gap-2">
+          <div className="cg-form-reveal flex flex-col gap-2">
             <Label htmlFor="confirm-text">
               Type <span className="font-mono">{request.confirmText}</span>
             </Label>
-            <Input
-              id="confirm-text"
-              value={typed}
-              autoComplete="off"
-              disabled={running}
-              onChange={(event) => setTyped(event.target.value)}
-            />
+            <div className="relative">
+              <Trash2
+                aria-hidden="true"
+                className="pointer-events-none absolute top-1/2 left-3.5 z-10 size-[17px] -translate-y-1/2 text-danger"
+                strokeWidth={1.8}
+              />
+              <Input
+                id="confirm-text"
+                value={typed}
+                autoComplete="off"
+                placeholder={`Type ${request.confirmText} to confirm`}
+                disabled={running}
+                className="pl-10"
+                onChange={(event) => setTyped(event.target.value)}
+              />
+            </div>
           </div>
         )}
 

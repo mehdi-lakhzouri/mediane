@@ -49,7 +49,7 @@ export function MfaSecurityShell({
   activeStep,
   progressLabels = ["Scan QR Code", "Verify", "Complete"],
   onBack,
-  backHref = "/",
+  backHref = "/sign-in",
 }: MfaSecurityShellProps) {
   return (
     <main className="mfa-security-canvas min-h-svh">
@@ -62,7 +62,7 @@ export function MfaSecurityShell({
           <div className="relative z-10 flex min-h-full flex-col">
             <div className="flex items-center justify-between gap-4">
               <Link
-                href="/"
+                href="/sign-in"
                 aria-label="CabinGuard sign in"
                 className="rounded-xl focus-visible:ring-2 focus-visible:ring-[#25c8ff] focus-visible:outline-none"
               >

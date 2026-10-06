@@ -54,3 +54,7 @@ Thumbs.db
 
 # Scratch output (local previews, screenshots) — never part of the repo
 .tmp-*/
+
+# Local design explorations and marketing-video source/assets are not shipped
+/design/
+/marketing/

@@ -3,8 +3,10 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { authConfig, type AuthConfig } from '../../config';
 import { AuditModule } from '../audit/audit.module';
+import { AccountSessionsController } from './presentation/account-sessions.controller';
 import { MailModule } from '../mail/mail.module';
 import { MfaModule } from '../mfa/mfa.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { SecurityModule } from '../security/security.module';
 import { SessionsModule } from '../sessions/sessions.module';
 import { UsersModule } from '../users/users.module';
@@ -50,8 +52,13 @@ import { MobileAuthController } from './presentation/mobile-auth.controller';
     AuditModule,
     MailModule,
     MfaModule,
+    NotificationsModule,
   ],
-  controllers: [AuthController, MobileAuthController],
+  controllers: [
+    AuthController,
+    MobileAuthController,
+    AccountSessionsController,
+  ],
   providers: [
     AuthService,
     AccessTokenValidator,

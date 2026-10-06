@@ -9,6 +9,7 @@ import {
   NewRefreshSessionData,
   RefreshSessionRepository,
   RotationData,
+  SessionSummary,
 } from '../domain/refresh-session.repository';
 
 type SessionRow = Omit<RefreshSessionRecord, 'tokenHash' | 'previousTokenHash'>;
@@ -105,6 +106,44 @@ export class PrismaRefreshSessionRepository implements RefreshSessionRepository 
   ): Promise<number> {
     const { count } = await this.db.client.refreshSession.updateMany({
       where: { userId, revokedAt: null },
+      data: { revokedAt: now, revokedReason: reason },
+    });
+    return count;
+  }
+
+  async listActiveForUser(
+    userId: string,
+    now: Date,
+  ): Promise<SessionSummary[]> {
+    const rows = await this.db.client.refreshSession.findMany({
+      where: {
+        userId,
+        revokedAt: null,
+        expiresAt: { gt: now },
+        absoluteExpiresAt: { gt: now },
+      },
+      select: {
+        id: true,
+        channel: true,
+        ipAddress: true,
+        userAgent: true,
+        createdAt: true,
+        lastUsedAt: true,
+      },
+    });
+    const activity = (row: SessionSummary): number =>
+      (row.lastUsedAt ?? row.createdAt).getTime();
+    return rows.sort((a, b) => activity(b) - activity(a));
+  }
+
+  async revokeAllForUserExcept(
+    userId: string,
+    keepSessionId: string,
+    reason: SessionRevocationReason,
+    now: Date,
+  ): Promise<number> {
+    const { count } = await this.db.client.refreshSession.updateMany({
+      where: { userId, revokedAt: null, id: { not: keepSessionId } },
       data: { revokedAt: now, revokedReason: reason },
     });
     return count;

@@ -107,6 +107,18 @@ export class ListUsersQueryDto extends PaginationQueryDto {
   )
   @IsBoolean()
   includeDeleted = false;
+
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      'Return only soft-deleted accounts. Takes precedence over includeDeleted.',
+  })
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    value === 'true' ? true : value === 'false' ? false : value,
+  )
+  @IsBoolean()
+  onlyDeleted = false;
 }
 
 export class HardDeleteUserDto {

@@ -15,6 +15,7 @@ import { AuditService } from '../../audit/application/audit.service';
 import { AuditAction } from '../../audit/domain/audit-action';
 import { MailSender } from '../../mail/application/mail-sender';
 import { MfaMethod, MfaVerifier } from '../../mfa/application/mfa-verifier';
+import { NotificationsService } from '../../notifications/application/notifications.service';
 import {
   MfaChallengeInvalidError,
   MfaCodeRequiredError,
@@ -22,6 +23,7 @@ import {
 import { PasswordHasher } from '../../security/application/password-hasher';
 import { assertPasswordPolicy } from '../../security/domain/password-policy';
 import { SecureTokenService } from '../../security/infrastructure/secure-token.service';
+import { describeUserAgent } from '../../sessions/domain/device-description';
 import {
   OpenedSession,
   SessionsService,
@@ -48,7 +50,10 @@ import type { AuthenticatedUser } from '../domain/authenticated-user';
 import { channelForRole, WrongClientError } from '../domain/channel-policy';
 import { LoginPolicy, PasswordResetPolicy } from '../domain/login-policy';
 import { MfaChallengeRepository } from '../domain/mfa-challenge.repository';
-import { PasswordResetTokenRepository } from '../domain/password-reset-token.repository';
+import {
+  type PasswordResetTokenRecord,
+  PasswordResetTokenRepository,
+} from '../domain/password-reset-token.repository';
 import { AccessTokenIssuer } from '../infrastructure/access-token.issuer';
 
 export interface LoginCommand {
@@ -153,6 +158,7 @@ export class AuthService {
     private readonly unitOfWork: UnitOfWork,
     private readonly mfaChallenges: MfaChallengeRepository,
     private readonly mfaVerifier: MfaVerifier,
+    private readonly notifications: NotificationsService,
     @Inject(authConfig.KEY) private readonly auth: AuthConfig,
     @Inject(appConfig.KEY) private readonly app: AppConfig,
     @Inject(mfaConfig.KEY) private readonly mfa: MfaConfig,
@@ -454,6 +460,10 @@ export class AuthService {
         client,
         metadata: { wasTemporary: user.mustChangePassword },
       });
+      // Replacing the temporary password is part of onboarding, not news.
+      if (!user.mustChangePassword) {
+        await this.notifications.notify(user.id, { type: 'PASSWORD_CHANGED' });
+      }
       return { updated: updatedUser, opened: session };
     });
 
@@ -525,16 +535,10 @@ export class AuthService {
     client: ClientContext,
   ): Promise<void> {
     const now = new Date();
-    const record = await this.resetTokens.findByTokenHash(
-      this.tokens.hashToken(rawToken),
+    const { record, user } = await this.resolvePasswordResetToken(
+      rawToken,
+      now,
     );
-    if (!record || record.usedAt || record.expiresAt <= now) {
-      throw new InvalidPasswordResetTokenError();
-    }
-    const user = await this.users.findById(record.userId);
-    if (!user || !canAuthenticate(user.accountState)) {
-      throw new InvalidPasswordResetTokenError();
-    }
     assertPasswordPolicy(newPassword, { email: user.email.value });
     const newHash = await this.hasher.hash(newPassword);
 
@@ -556,7 +560,38 @@ export class AuthService {
         target: { type: 'USER', id: user.id },
         client,
       });
+      await this.notifications.notify(user.id, { type: 'PASSWORD_CHANGED' });
     });
+  }
+
+  /**
+   * Checks an emailed reset token without consuming it. The reset mutation still
+   * repeats this validation and consumes the token conditionally, so a preview
+   * cannot make a stale or concurrently used token valid.
+   */
+  async validatePasswordResetToken(rawToken: string): Promise<Date> {
+    const { record } = await this.resolvePasswordResetToken(
+      rawToken,
+      new Date(),
+    );
+    return record.expiresAt;
+  }
+
+  private async resolvePasswordResetToken(
+    rawToken: string,
+    now: Date,
+  ): Promise<{ record: PasswordResetTokenRecord; user: User }> {
+    const record = await this.resetTokens.findByTokenHash(
+      this.tokens.hashToken(rawToken),
+    );
+    if (!record || record.usedAt || record.expiresAt <= now) {
+      throw new InvalidPasswordResetTokenError();
+    }
+    const user = await this.users.findById(record.userId);
+    if (!user || !canAuthenticate(user.accountState)) {
+      throw new InvalidPasswordResetTokenError();
+    }
+    return { record, user };
   }
 
   private async findUserByEmail(raw: string): Promise<User | null> {
@@ -662,9 +697,30 @@ export class AuthService {
           ...(login.mfaMethod ? { mfa: login.mfaMethod } : {}),
         },
       });
+      await this.notifyNewSignIn(user.id, session.session.id, client, now);
       return session;
     });
     return this.issueTokens(user, opened, now);
+  }
+
+  /**
+   * Tells the account owner about a sign-in when another device is already
+   * signed in: that device is where an unexpected sign-in gets noticed. A
+   * first sign-in (nothing else signed in) is not news.
+   */
+  private async notifyNewSignIn(
+    userId: string,
+    sessionId: string,
+    client: ClientContext,
+    now: Date,
+  ): Promise<void> {
+    if (!(await this.sessions.countOtherActive(userId, sessionId, now))) {
+      return;
+    }
+    await this.notifications.notify(userId, {
+      type: 'NEW_SIGN_IN',
+      deviceLabel: describeUserAgent(client.userAgent).label,
+    });
   }
 
   private issueTokens(

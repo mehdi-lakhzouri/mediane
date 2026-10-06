@@ -4,6 +4,7 @@ import type { AuditService } from '../../audit/application/audit.service';
 import { SecureTokenService } from '../../security/infrastructure/secure-token.service';
 import {
   RefreshSession,
+  SessionChannel,
   SessionRevocationReason,
 } from '../domain/refresh-session';
 import {
@@ -11,7 +12,11 @@ import {
   RefreshSessionRepository,
   RotationData,
 } from '../domain/refresh-session.repository';
-import { InvalidRefreshTokenError } from '../domain/session.errors';
+import {
+  CurrentSessionRevocationError,
+  InvalidRefreshTokenError,
+  SessionNotFoundError,
+} from '../domain/session.errors';
 import { ROTATION_GRACE_MS, SessionsService } from './sessions.service';
 
 interface Row extends NewRefreshSessionData {
@@ -92,6 +97,43 @@ class InMemorySessions implements RefreshSessionRepository {
       Object.assign(r, { revokedAt: now, revokedReason: reason }),
     );
     return Promise.resolve(active.length);
+  }
+
+  listActiveForUser(userId: string, now: Date) {
+    return Promise.resolve(
+      this.rows
+        .filter(
+          (r) =>
+            r.userId === userId &&
+            r.revokedAt === null &&
+            r.expiresAt > now &&
+            r.absoluteExpiresAt > now,
+        )
+        .map((r) => ({
+          id: r.id,
+          channel: r.channel,
+          ipAddress: r.ipAddress,
+          userAgent: r.userAgent,
+          createdAt: r.createdAt,
+          lastUsedAt: r.lastUsedAt,
+        })),
+    );
+  }
+
+  revokeAllForUserExcept(
+    userId: string,
+    keepSessionId: string,
+    reason: SessionRevocationReason,
+    now: Date,
+  ) {
+    const others = this.rows.filter(
+      (r) =>
+        r.userId === userId && r.revokedAt === null && r.id !== keepSessionId,
+    );
+    others.forEach((r) =>
+      Object.assign(r, { revokedAt: now, revokedReason: reason }),
+    );
+    return Promise.resolve(others.length);
   }
 }
 
@@ -323,5 +365,107 @@ describe('SessionsService', () => {
     );
     expect(rotated.session.channel).toBe('MOBILE');
     expect(audit.record).not.toHaveBeenCalled();
+  });
+
+  describe('active devices', () => {
+    const open = (userAgent: string, now: Date) =>
+      service.open(
+        'user-1',
+        { ...client, userAgent },
+        { persistent: true, channel: SessionChannel.MOBILE },
+        now,
+      );
+
+    it('lists signed-in devices, marks this one, and hides ended sessions', async () => {
+      const phone = await open('CabinGuard/1.0.0 (Android 15; Pixel 8)', at(0));
+      const laptop = await open(
+        'Mozilla/5.0 (Windows NT 10.0) Chrome/140.0 Safari/537.36',
+        at(1000),
+      );
+      const old = await open('Dart/3.13 (dart:io)', at(2000));
+      await service.revoke(
+        old.session.id,
+        SessionRevocationReason.LOGOUT,
+        at(3000),
+      );
+
+      const list = await service.listActive(
+        'user-1',
+        phone.session.id,
+        at(4000),
+      );
+      expect(list.map((s) => [s.device.label, s.current])).toEqual(
+        expect.arrayContaining([
+          ['Pixel 8 · Android 15', true],
+          ['Chrome on Windows', false],
+        ]),
+      );
+      expect(list).toHaveLength(2);
+      expect(
+        await service.countOtherActive('user-1', laptop.session.id, at(4000)),
+      ).toBe(1);
+    });
+
+    it('signs out another device but never the current one or a stranger', async () => {
+      const phone = await open('CabinGuard/1.0.0 (Android 15; Pixel 8)', at(0));
+      const tablet = await open('CabinGuard/1.0.0 (Android 14; Tab S9)', at(0));
+      const stranger = await service.open(
+        'user-2',
+        client,
+        { persistent: true, channel: SessionChannel.MOBILE },
+        at(0),
+      );
+
+      await expect(
+        service.revokeOwn(
+          'user-1',
+          phone.session.id,
+          phone.session.id,
+          client,
+          at(10),
+        ),
+      ).rejects.toThrow(CurrentSessionRevocationError);
+      await expect(
+        service.revokeOwn(
+          'user-1',
+          stranger.session.id,
+          phone.session.id,
+          client,
+          at(10),
+        ),
+      ).rejects.toThrow(SessionNotFoundError);
+
+      await service.revokeOwn(
+        'user-1',
+        tablet.session.id,
+        phone.session.id,
+        client,
+        at(10),
+      );
+      expect(
+        await service.findActiveSession(tablet.session.id, at(20)),
+      ).toBeNull();
+      await expect(
+        service.revokeOwn(
+          'user-1',
+          tablet.session.id,
+          phone.session.id,
+          client,
+          at(30),
+        ),
+      ).rejects.toThrow(SessionNotFoundError);
+    });
+
+    it('signs out everywhere else, keeping this device', async () => {
+      const phone = await open('CabinGuard/1.0.0 (Android 15; Pixel 8)', at(0));
+      await open('a', at(0));
+      await open('b', at(0));
+
+      expect(
+        await service.revokeOthers('user-1', phone.session.id, client, at(10)),
+      ).toBe(2);
+      const list = await service.listActive('user-1', phone.session.id, at(20));
+      expect(list.map((s) => s.id)).toEqual([phone.session.id]);
+    });
   });
 });

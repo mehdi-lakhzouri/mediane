@@ -5,6 +5,7 @@ import {
   IsEnum,
   IsIn,
   IsInt,
+  IsISO8601,
   IsOptional,
   IsString,
   IsUrl,
@@ -99,6 +100,54 @@ export class EnvironmentVariables {
   @IsBoolean()
   SWAGGER_ENABLED = false;
 
+  @Matches(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/)
+  MOBILE_MINIMUM_SUPPORTED_VERSION = '1.0.0';
+
+  @Matches(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/)
+  MOBILE_LATEST_VERSION = '1.0.0';
+
+  @Transform(toBool)
+  @IsBoolean()
+  MOBILE_MAINTENANCE = false;
+
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  MOBILE_TERMS_VERSION = '2026-10-01';
+
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  MOBILE_PRIVACY_VERSION = '2026-10-01';
+
+  @IsOptional()
+  @IsUrl(HTTP_URL)
+  MOBILE_TERMS_URL?: string;
+
+  @IsOptional()
+  @IsUrl(HTTP_URL)
+  MOBILE_PRIVACY_URL?: string;
+
+  @IsOptional()
+  @IsUrl(HTTP_URL)
+  MOBILE_SUPPORT_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  MOBILE_MAINTENANCE_MESSAGE?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  MOBILE_MAINTENANCE_ENDS_AT?: string;
+
+  @Transform(toBool)
+  @IsBoolean()
+  MOBILE_SELF_REGISTRATION = false;
+
+  @Transform(toBool)
+  @IsBoolean()
+  MOBILE_BIOMETRIC_UNLOCK = true;
+
+  @Transform(toBool)
+  @IsBoolean()
+  MOBILE_FAMILY_JOIN = true;
+
   @Matches(/^postgres(ql)?:\/\/.+/, {
     message: 'DATABASE_URL must be a postgresql:// connection string',
   })
@@ -143,6 +192,69 @@ export class EnvironmentVariables {
     message: 'MFA_ENCRYPTION_KEY must be 32 random bytes encoded in base64',
   })
   MFA_ENCRYPTION_KEY!: string;
+
+  /**
+   * AES-256-GCM key for in-cabin unit secrets (32 bytes, base64). Optional:
+   * when absent, a separate key is derived from MFA_ENCRYPTION_KEY with HKDF.
+   */
+  @IsOptional()
+  @Matches(/^[A-Za-z0-9+/_-]{43}=?$/, {
+    message: 'DEVICE_ENCRYPTION_KEY must be 32 random bytes encoded in base64',
+  })
+  DEVICE_ENCRYPTION_KEY?: string;
+
+  /** Accepted clock difference for signed device requests. */
+  @Transform(toInt)
+  @IsInt()
+  @Min(30)
+  @Max(900)
+  DEVICE_SIGNATURE_WINDOW_SECONDS = 300;
+
+  /** Time a driver has to answer "I'm OK" before a critical event escalates. */
+  @Transform(toInt)
+  @IsInt()
+  @Min(10)
+  @Max(300)
+  SAFETY_CRITICAL_RESPONSE_SECONDS = 30;
+
+  /** Same, for urgent events (heart rhythm). */
+  @Transform(toInt)
+  @IsInt()
+  @Min(10)
+  @Max(600)
+  SAFETY_URGENT_RESPONSE_SECONDS = 60;
+
+  /** Runs escalation and retention in this process. Disable on extra replicas if needed. */
+  @Transform(toBool)
+  @IsBoolean()
+  SAFETY_WORKER_ENABLED = true;
+
+  @Transform(toInt)
+  @IsInt()
+  @Min(500)
+  @Max(60_000)
+  SAFETY_WORKER_INTERVAL_MS = 2_000;
+
+  /** Escalated incidents nobody resolved are closed after this many hours. */
+  @Transform(toInt)
+  @IsInt()
+  @Min(1)
+  @Max(168)
+  SAFETY_AUTO_CLOSE_HOURS = 24;
+
+  /** Event details (readings, location) are deleted after this many days. */
+  @Transform(toInt)
+  @IsInt()
+  @Min(1)
+  @Max(3650)
+  SAFETY_EVENT_RETENTION_DAYS = 90;
+
+  /** Incident summaries are deleted after this many days. */
+  @Transform(toInt)
+  @IsInt()
+  @Min(1)
+  @Max(3650)
+  SAFETY_INCIDENT_RETENTION_DAYS = 365;
 
   /**
    * Base of the shareable family invitation link (an https page that opens
@@ -260,6 +372,17 @@ function crossFieldErrors(env: EnvironmentVariables): string[] {
   }
   if (Buffer.from(env.MFA_ENCRYPTION_KEY, 'base64').length !== 32) {
     errors.push('MFA_ENCRYPTION_KEY must decode to exactly 32 bytes');
+  }
+  if (
+    env.DEVICE_ENCRYPTION_KEY !== undefined &&
+    Buffer.from(env.DEVICE_ENCRYPTION_KEY, 'base64').length !== 32
+  ) {
+    errors.push('DEVICE_ENCRYPTION_KEY must decode to exactly 32 bytes');
+  }
+  if (env.SAFETY_INCIDENT_RETENTION_DAYS < env.SAFETY_EVENT_RETENTION_DAYS) {
+    errors.push(
+      'SAFETY_INCIDENT_RETENTION_DAYS must be at least SAFETY_EVENT_RETENTION_DAYS',
+    );
   }
   if (
     env.MFA_ENCRYPTION_KEY === env.JWT_ACCESS_SECRET ||

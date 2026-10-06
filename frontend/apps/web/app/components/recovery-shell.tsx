@@ -44,7 +44,7 @@ export function RecoveryShell({
         className="absolute top-5 left-5 z-20 sm:top-8 sm:left-9"
       >
         <Link
-          href="/"
+          href="/sign-in"
           aria-label="Back to CabinGuard sign in"
           className="block rounded-2xl focus-visible:ring-2 focus-visible:ring-[#30b5ff] focus-visible:ring-offset-4 focus-visible:outline-none"
         >

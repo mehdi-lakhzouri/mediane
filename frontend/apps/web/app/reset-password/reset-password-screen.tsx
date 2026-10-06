@@ -137,7 +137,7 @@ export function ResetPasswordScreen() {
           Send a new recovery link
         </Link>
         <Link
-          href="/"
+          href="/sign-in"
           className="mt-5 flex items-center justify-center gap-2 text-sm font-bold text-[var(--sx-accent)]"
         >
           <ArrowLeft className="size-4" />
@@ -160,7 +160,7 @@ export function ResetPasswordScreen() {
           Your account is protected with the new password. Use it the next time
           you sign in.
         </div>
-        <Link href="/" className="recovery-primary mt-7">
+        <Link href="/sign-in" className="recovery-primary mt-7">
           <ArrowRight className="size-5" />
           Continue to sign in
         </Link>

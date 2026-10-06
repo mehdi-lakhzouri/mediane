@@ -281,7 +281,9 @@ export function UserSheet({
                           }
                         >
                           <Trash2 />
-                          {deleted ? "Delete permanently" : "Delete account"}
+                          {deleted
+                            ? "Delete permanently"
+                            : "Soft delete account"}
                         </DropdownMenuItem>
                       </>
                     )}
@@ -291,38 +293,56 @@ export function UserSheet({
             </section>
 
             {editing && (
-              <section className="mt-5 rounded-2xl border border-[#dfe6f2] bg-white p-5">
+              <section className="cg-form-reveal mt-5 rounded-2xl border border-[#dfe6f2] bg-white p-5">
                 <h3 className="text-[14px] font-semibold text-foreground">
                   Edit identity
                 </h3>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <div className="grid gap-2">
+                  <div className="cg-form-reveal cg-form-delay-1 grid gap-2">
                     <InfoFieldLabel
                       htmlFor="drawer-firstName"
                       label="First name"
                       description="The given name displayed throughout the administration console."
                     />
-                    <Input
-                      id="drawer-firstName"
-                      value={firstName}
-                      maxLength={100}
-                      disabled={saving}
-                      onChange={(event) => setFirstName(event.target.value)}
-                    />
+                    <div className="relative">
+                      <UserRound
+                        aria-hidden="true"
+                        className="pointer-events-none absolute top-1/2 left-3.5 z-10 size-[17px] -translate-y-1/2 text-[#7787a4]"
+                        strokeWidth={1.8}
+                      />
+                      <Input
+                        id="drawer-firstName"
+                        value={firstName}
+                        maxLength={100}
+                        placeholder="Enter first name"
+                        disabled={saving}
+                        className="pl-10"
+                        onChange={(event) => setFirstName(event.target.value)}
+                      />
+                    </div>
                   </div>
-                  <div className="grid gap-2">
+                  <div className="cg-form-reveal cg-form-delay-2 grid gap-2">
                     <InfoFieldLabel
                       htmlFor="drawer-lastName"
                       label="Last name"
                       description="The family name used to identify this account."
                     />
-                    <Input
-                      id="drawer-lastName"
-                      value={lastName}
-                      maxLength={100}
-                      disabled={saving}
-                      onChange={(event) => setLastName(event.target.value)}
-                    />
+                    <div className="relative">
+                      <UserRound
+                        aria-hidden="true"
+                        className="pointer-events-none absolute top-1/2 left-3.5 z-10 size-[17px] -translate-y-1/2 text-[#7787a4]"
+                        strokeWidth={1.8}
+                      />
+                      <Input
+                        id="drawer-lastName"
+                        value={lastName}
+                        maxLength={100}
+                        placeholder="Enter last name"
+                        disabled={saving}
+                        className="pl-10"
+                        onChange={(event) => setLastName(event.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
                 {error && (

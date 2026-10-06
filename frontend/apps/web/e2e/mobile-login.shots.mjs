@@ -44,7 +44,7 @@ const marketingTexts = [
 // --- Mobile (iPhone-ish width) ----------------------------------------------
 {
   const { ctx, p } = await page_for({ width: 390, height: 844 });
-  await p.goto(WEB, { waitUntil: "networkidle" });
+  await p.goto(`${WEB}/sign-in`, { waitUntil: "networkidle" });
   await p.waitForTimeout(800);
 
   check("the sign-in form is visible on mobile", await p.locator("#email").isVisible());
@@ -78,7 +78,7 @@ const marketingTexts = [
 // --- Tablet / just-below-xl (1279px) ----------------------------------------
 {
   const { ctx, p } = await page_for({ width: 1279, height: 900 });
-  await p.goto(WEB, { waitUntil: "networkidle" });
+  await p.goto(`${WEB}/sign-in`, { waitUntil: "networkidle" });
   await p.waitForTimeout(800);
   check(
     "marketing copy still not visible just below the xl breakpoint",
@@ -91,7 +91,7 @@ const marketingTexts = [
 // --- Desktop (xl, unchanged) -------------------------------------------------
 {
   const { ctx, p } = await page_for({ width: 1440, height: 900 });
-  await p.goto(WEB, { waitUntil: "networkidle" });
+  await p.goto(`${WEB}/sign-in`, { waitUntil: "networkidle" });
   await p.waitForTimeout(2200); // let the hero typewriter finish
   check(
     "the full hero headline is visible again at xl",

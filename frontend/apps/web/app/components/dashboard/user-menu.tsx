@@ -43,7 +43,7 @@ export function UserMenu({
     } catch {
       // The session is gone either way; always return to sign in.
     } finally {
-      router.replace("/");
+      router.replace("/sign-in");
     }
   }
 

@@ -23,17 +23,21 @@ import {
 } from './decorators/auth.decorators';
 import {
   ChangePasswordDto,
+  ForgotPasswordDto,
   LoginDto,
   MfaChallengeDto,
+  ResetPasswordDto,
 } from './dto/auth-request.dto';
 import { MfaChallengeResponse } from './dto/auth-response.dto';
 import {
   MobileRefreshDto,
   MobileSessionLoginResponse,
   MobileSessionResponse,
+  PasswordResetValidationResponse,
 } from './dto/mobile-auth.dto';
 
 class MobileLoginDto extends PickType(LoginDto, ['email', 'password']) {}
+class ValidatePasswordResetDto extends PickType(ResetPasswordDto, ['token']) {}
 
 function toMobileSession(tokens: IssuedTokens): MobileSessionResponse {
   return {
@@ -142,6 +146,55 @@ export class MobileAuthController {
     @ClientInfo() client: ClientContext,
   ): Promise<null> {
     await this.auth.logout(dto.refreshToken, SessionChannel.MOBILE, client);
+    return null;
+  }
+
+  @Public()
+  @Post('password/forgot')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @RateLimit(RateLimitPolicies.FORGOT_PASSWORD)
+  @ApiOperation({
+    summary:
+      'Request mobile password-recovery instructions without revealing whether the account exists',
+  })
+  @ApiEnvelopeResponse(null, { status: HttpStatus.ACCEPTED })
+  async forgotPassword(
+    @Body() dto: ForgotPasswordDto,
+    @ClientInfo() client: ClientContext,
+  ): Promise<null> {
+    await this.auth.requestPasswordReset(dto.email, client);
+    return null;
+  }
+
+  @Public()
+  @Post('password/validate')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit(RateLimitPolicies.RESET_PASSWORD)
+  @ApiOperation({ summary: 'Validate a mobile password-reset link' })
+  @ApiEnvelopeResponse(PasswordResetValidationResponse)
+  @ApiErrorResponses(HttpStatus.UNPROCESSABLE_ENTITY)
+  async validatePasswordReset(
+    @Body() dto: ValidatePasswordResetDto,
+  ): Promise<PasswordResetValidationResponse> {
+    return {
+      expiresAt: await this.auth.validatePasswordResetToken(dto.token),
+    };
+  }
+
+  @Public()
+  @Post('password/reset')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit(RateLimitPolicies.RESET_PASSWORD)
+  @ApiOperation({
+    summary: 'Reset a password from the mobile app with a single-use link',
+  })
+  @ApiEnvelopeResponse(null)
+  @ApiErrorResponses(HttpStatus.UNPROCESSABLE_ENTITY)
+  async resetPassword(
+    @Body() dto: ResetPasswordDto,
+    @ClientInfo() client: ClientContext,
+  ): Promise<null> {
+    await this.auth.resetPassword(dto.token, dto.newPassword, client);
     return null;
   }
 

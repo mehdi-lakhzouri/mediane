@@ -16,6 +16,7 @@ import { PrismaModule } from './infrastructure/prisma/prisma.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { DevicesModule } from './modules/devices/devices.module';
 import { FamiliesModule } from './modules/families/families.module';
 import { AccountStateGuard } from './modules/auth/presentation/guards/account-state.guard';
 import { JwtAuthGuard } from './modules/auth/presentation/guards/jwt-auth.guard';
@@ -24,8 +25,11 @@ import { HealthModule } from './modules/health/health.module';
 import { InvitationsModule } from './modules/invitations/invitations.module';
 import { MailModule } from './modules/mail/mail.module';
 import { MfaModule } from './modules/mfa/mfa.module';
+import { MobileModule } from './modules/mobile/mobile.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { CsrfGuard } from './modules/security/presentation/csrf.guard';
+import { SafetyModule } from './modules/safety/safety.module';
 import { SecurityModule } from './modules/security/security.module';
 import { SessionsModule } from './modules/sessions/sessions.module';
 import { UsersModule } from './modules/users/users.module';
@@ -55,14 +59,18 @@ import { UsersModule } from './modules/users/users.module';
     PrismaModule,
     SecurityModule,
     AuditModule,
+    NotificationsModule,
     MailModule,
     UsersModule,
     SessionsModule,
     AuthModule,
     MfaModule,
+    MobileModule,
     InvitationsModule,
     ProfilesModule,
     FamiliesModule,
+    DevicesModule,
+    SafetyModule,
     AdminModule,
     HealthModule,
   ],

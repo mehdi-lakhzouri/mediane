@@ -33,6 +33,16 @@ export interface FamiliesPage {
   totalItems: number;
 }
 
+export interface AdminFamilyStats {
+  totalFamilies: number;
+  totalMembers: number;
+  fullFamilies: number;
+  pendingRequests: number;
+  maxMembersPerFamily: number;
+  availableSeats: number;
+  averageMembers: number;
+}
+
 /** Same limit as the API (FamilyPolicy.MAX_MEMBERS). */
 export const FAMILY_MAX_MEMBERS = 10;
 
@@ -57,6 +67,10 @@ export async function listFamilies(params: {
 
 export function getFamily(familyId: string): Promise<AdminFamily> {
   return api.get<AdminFamily>(`/admin/families/${familyId}`);
+}
+
+export function getFamilyStats(): Promise<AdminFamilyStats> {
+  return api.get<AdminFamilyStats>("/admin/families/stats");
 }
 
 export function addFamilyMember(

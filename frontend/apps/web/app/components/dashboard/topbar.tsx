@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Bell, ChevronDown, Command, House, Menu, Search } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
@@ -9,6 +10,7 @@ import {
   TooltipTrigger,
 } from "@repo/ui/components/ui/tooltip";
 import { fullName, initials, type CurrentUser } from "../../../lib/api/auth";
+import { getUnreadNotificationCount } from "../../../lib/api/notifications";
 
 interface TopbarProps {
   section: string;
@@ -26,6 +28,17 @@ export function Topbar({
   onOpenMobile,
 }: TopbarProps) {
   const collapseLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
+  const [unread, setUnread] = useState<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getUnreadNotificationCount()
+      .then((count) => active && setUnread(count))
+      .catch(() => active && setUnread(null));
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <header className="cg-topbar sticky top-0 z-20 flex h-[50px] shrink-0 items-center gap-2 border-b border-border bg-card px-4 transition-[padding] duration-200 sm:px-7">
@@ -94,11 +107,17 @@ export function Topbar({
           type="button"
           variant="ghost"
           size="icon"
-          aria-label="Notifications"
+          aria-label={
+            unread === null
+              ? "Notifications"
+              : `${unread} unread notification${unread === 1 ? "" : "s"}`
+          }
           className="relative size-8 text-[#526180]"
         >
           <Bell className="size-[18px]" />
-          <span className="absolute top-2 right-2 size-1.5 rounded-full bg-[#f04438] ring-2 ring-white" />
+          {unread !== null && unread > 0 ? (
+            <span className="absolute top-2 right-2 size-1.5 rounded-full bg-[#f04438] ring-2 ring-white" />
+          ) : null}
         </Button>
         <span className="h-6 w-px bg-[#e7ebf2]" />
         <button

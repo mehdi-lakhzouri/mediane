@@ -9,6 +9,9 @@ import { SecurityModule } from '../security/security.module';
 import { SessionsModule } from '../sessions/sessions.module';
 import { UsersModule } from '../users/users.module';
 import { AdminUserManagementService } from './application/admin-user-management.service';
+import { AdminAuditQueryService } from './application/admin-audit-query.service';
+import { AdminAuditController } from './presentation/admin-audit.controller';
+import { AdminInvitationWorkspaceController } from './presentation/admin-invitation-workspace.controller';
 import { AdminInvitationsController } from './presentation/admin-invitations.controller';
 import { AdminUsersController } from './presentation/admin-users.controller';
 
@@ -28,7 +31,12 @@ import { AdminUsersController } from './presentation/admin-users.controller';
     MfaModule,
     FamiliesModule,
   ],
-  controllers: [AdminUsersController, AdminInvitationsController],
-  providers: [AdminUserManagementService],
+  controllers: [
+    AdminUsersController,
+    AdminInvitationsController,
+    AdminInvitationWorkspaceController,
+    AdminAuditController,
+  ],
+  providers: [AdminUserManagementService, AdminAuditQueryService],
 })
 export class AdminModule {}

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuditModule } from '../audit/audit.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { ProfilesModule } from '../profiles/profiles.module';
 import { UsersModule } from '../users/users.module';
 import { FamiliesService } from './application/families.service';
@@ -14,7 +15,7 @@ import { FamiliesController } from './presentation/families.controller';
  * driver from their family.
  */
 @Module({
-  imports: [UsersModule, ProfilesModule, AuditModule],
+  imports: [UsersModule, ProfilesModule, AuditModule, NotificationsModule],
   controllers: [FamiliesController, AdminFamiliesController],
   providers: [
     FamiliesService,

@@ -201,3 +201,14 @@ export class AdminFamilyResponse {
   @ApiPropertyOptional({ description: 'Detail view only' })
   pendingRequestCount?: number;
 }
+
+export class AdminFamilyStatsResponse {
+  @ApiProperty() totalFamilies!: number;
+  @ApiProperty() totalMembers!: number;
+  @ApiProperty() fullFamilies!: number;
+  @ApiProperty() pendingRequests!: number;
+  @ApiProperty({ example: FamilyPolicy.MAX_MEMBERS })
+  maxMembersPerFamily!: number;
+  @ApiProperty() availableSeats!: number;
+  @ApiProperty({ example: 3.4 }) averageMembers!: number;
+}

@@ -28,12 +28,14 @@ import {
 } from '../../auth/presentation/decorators/auth.decorators';
 import { Role } from '../../users/domain/role';
 import {
+  AdminFamilyStatsView,
   AdminFamilyView,
   FamiliesService,
 } from '../application/families.service';
 import {
   AddFamilyMemberDto,
   AdminFamilyResponse,
+  AdminFamilyStatsResponse,
   ListFamiliesQueryDto,
   TransferOwnershipDto,
 } from './dto/family.dto';
@@ -66,6 +68,13 @@ export class AdminFamiliesController {
       pageSize: query.pageSize,
       totalItems,
     });
+  }
+
+  @Get('stats')
+  @ApiOperation({ summary: 'Global family workspace statistics' })
+  @ApiEnvelopeResponse(AdminFamilyStatsResponse)
+  stats(): Promise<AdminFamilyStatsView> {
+    return this.families.adminStats();
   }
 
   @Get(':familyId')

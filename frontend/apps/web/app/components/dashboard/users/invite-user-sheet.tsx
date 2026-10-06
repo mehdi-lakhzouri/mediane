@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { LoaderCircle, Mail, UserRoundPlus } from "lucide-react";
+import {
+  LoaderCircle,
+  Mail,
+  ShieldCheck,
+  UserRound,
+  UserRoundPlus,
+} from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Dialog,
@@ -103,70 +109,100 @@ export function InviteUserSheet({
           </DialogHeader>
 
           <div className="flex flex-col gap-5 px-7 pt-1 pb-[34px]">
-            <div className="flex flex-col gap-2">
+            <div className="cg-form-reveal cg-form-delay-1 flex flex-col gap-2">
               <Label htmlFor="invite-email">Email address</Label>
-              <Input
-                id="invite-email"
-                name="email"
-                type="email"
-                required
-                maxLength={254}
-                autoComplete="off"
-                placeholder="driver@company.com"
-                disabled={submitting}
-                className="h-12 rounded-[9px] px-4 text-[16px] focus-visible:ring-[3px]"
-              />
+              <div className="relative">
+                <Mail
+                  aria-hidden="true"
+                  className="pointer-events-none absolute top-1/2 left-4 z-10 size-[18px] -translate-y-1/2 text-[#7787a4]"
+                  strokeWidth={1.8}
+                />
+                <Input
+                  id="invite-email"
+                  name="email"
+                  type="email"
+                  required
+                  maxLength={254}
+                  autoComplete="off"
+                  placeholder="driver@company.com"
+                  disabled={submitting}
+                  className="h-12 rounded-[9px] pr-4 pl-11 text-[16px] focus-visible:ring-[3px]"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="flex flex-col gap-2">
+              <div className="cg-form-reveal cg-form-delay-2 flex flex-col gap-2">
                 <Label htmlFor="invite-first">First name</Label>
-                <Input
-                  id="invite-first"
-                  name="firstName"
-                  required
-                  maxLength={100}
-                  disabled={submitting}
-                  className="h-11 rounded-[9px]"
-                />
+                <div className="relative">
+                  <UserRound
+                    aria-hidden="true"
+                    className="pointer-events-none absolute top-1/2 left-3.5 z-10 size-[17px] -translate-y-1/2 text-[#7787a4]"
+                    strokeWidth={1.8}
+                  />
+                  <Input
+                    id="invite-first"
+                    name="firstName"
+                    required
+                    maxLength={100}
+                    placeholder="e.g. Amara"
+                    disabled={submitting}
+                    className="h-11 rounded-[9px] pr-3 pl-10"
+                  />
+                </div>
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="cg-form-reveal cg-form-delay-3 flex flex-col gap-2">
                 <Label htmlFor="invite-last">Last name</Label>
-                <Input
-                  id="invite-last"
-                  name="lastName"
-                  required
-                  maxLength={100}
-                  disabled={submitting}
-                  className="h-11 rounded-[9px]"
-                />
+                <div className="relative">
+                  <UserRound
+                    aria-hidden="true"
+                    className="pointer-events-none absolute top-1/2 left-3.5 z-10 size-[17px] -translate-y-1/2 text-[#7787a4]"
+                    strokeWidth={1.8}
+                  />
+                  <Input
+                    id="invite-last"
+                    name="lastName"
+                    required
+                    maxLength={100}
+                    placeholder="e.g. Okafor"
+                    disabled={submitting}
+                    className="h-11 rounded-[9px] pr-3 pl-10"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="cg-form-reveal cg-form-delay-4 flex flex-col gap-2">
               <Label htmlFor="invite-role">Role</Label>
-              <Select
-                value={role}
-                onValueChange={(value) => setRole(value as Role)}
-                disabled={submitting}
-              >
-                <SelectTrigger
-                  id="invite-role"
-                  className="h-11 w-full rounded-[9px] px-4 text-[15px]"
+              <div className="relative">
+                <ShieldCheck
+                  aria-hidden="true"
+                  className="pointer-events-none absolute top-1/2 left-3.5 z-10 size-[17px] -translate-y-1/2 text-[#7787a4]"
+                  strokeWidth={1.8}
+                />
+                <Select
+                  value={role}
+                  onValueChange={(value) => setRole(value as Role)}
+                  disabled={submitting}
                 >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="DRIVER">Driver</SelectItem>
-                  <SelectItem value="ADMIN">Administrator</SelectItem>
-                </SelectContent>
-              </Select>
+                  <SelectTrigger
+                    id="invite-role"
+                    className="h-11 w-full rounded-[9px] pr-4 pl-10 text-[15px]"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DRIVER">Driver</SelectItem>
+                    <SelectItem value="ADMIN">Administrator</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <p className="text-[12px] text-muted-foreground">
                 Administrators can manage every account, including this one.
               </p>
             </div>
 
-            <p className="flex items-start gap-4 rounded-[10px] border border-[#cfdaed] bg-[#f7f9fd] px-5 py-5 text-[14px] leading-[21px] text-[#526180]">
+            <p className="cg-form-reveal cg-form-delay-5 flex items-start gap-4 rounded-[10px] border border-[#cfdaed] bg-[#f7f9fd] px-5 py-5 text-[14px] leading-[21px] text-[#526180]">
               <Mail
                 className="mt-0.5 size-6 shrink-0 text-[#2947e8]"
                 strokeWidth={1.8}
