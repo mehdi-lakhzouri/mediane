@@ -1,0 +1,20 @@
+# Secrets never enter the build context (.env.local would also override build args)
+**/.env
+**/.env.*
+!**/.env.example
+
+# Rebuilt inside the image
+**/node_modules
+**/.next
+**/.turbo
+**/*.tsbuildinfo
+
+# Tests and local output
+**/e2e
+**/playwright-report
+**/test-results
+**/coverage
+**/shots
+**/*.log
+**/Dockerfile
+**/.dockerignore

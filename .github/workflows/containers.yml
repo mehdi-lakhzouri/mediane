@@ -1,0 +1,260 @@
+name: Containers
+
+# Builds the images, scans them, and (outside pull requests) publishes them to
+# GHCR with BuildKit SBOM + provenance. On a public repository it also signs
+# them with Cosign keyless and adds GitHub attestations; both write the
+# repository identity to public transparency logs, so they stay off while the
+# repository is private and switch on by themselves once it is public.
+#
+# Verify a published image:
+#   cosign verify ghcr.io/hejerayadi/cabinguard-backend@sha256:<digest> \
+#     --certificate-identity-regexp '^https://github.com/hejerayadi/EMBs-x-VTS-CabinGuard-ADI/' \
+#     --certificate-oidc-issuer https://token.actions.githubusercontent.com
+#   gh attestation verify oci://ghcr.io/hejerayadi/cabinguard-backend@sha256:<digest> \
+#     -R hejerayadi/EMBs-x-VTS-CabinGuard-ADI
+
+on:
+  pull_request:
+    paths: &paths
+      - backend/**
+      - frontend/**
+      - .github/workflows/containers.yml
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths: *paths
+  schedule:
+    - cron: "41 4 * * *" # daily: re-scan published images against new advisories
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  PUBLISH: ${{ github.event_name != 'pull_request' }}
+  ENFORCE: ${{ vars.SECURITY_GATE_MODE == 'enforce' }}
+  TRIVY_VERSION: v0.76.0
+
+jobs:
+  repo:
+    name: Repository features
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      public: ${{ steps.features.outputs.public }}
+      code-scanning: ${{ steps.features.outputs.code-scanning }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/actions
+      - id: features
+        uses: ./.github/actions/repo-features
+        with:
+          ghas-enabled: ${{ vars.GHAS_ENABLED }}
+
+  image:
+    name: Image ${{ matrix.name }}
+    needs: repo
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write # push to GHCR
+      id-token: write # keyless signing (Sigstore) and attestations
+      attestations: write
+      artifact-metadata: write
+      security-events: write # Trivy SARIF
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: backend
+            context: backend
+            file: backend/Dockerfile
+            target: runtime
+          - name: migrate
+            context: backend
+            file: backend/Dockerfile
+            target: migrate
+          - name: web
+            context: frontend
+            file: frontend/apps/web/Dockerfile
+            target: runtime
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/cabinguard-${{ matrix.name }}
+      SIGN: ${{ github.event_name != 'pull_request' && needs.repo.outputs.public == 'true' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        id: meta
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=sha
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+          labels: |
+            org.opencontainers.image.title=cabinguard-${{ matrix.name }}
+
+      # 1. Build into the local daemon so the exact bytes can be scanned first.
+      - name: Build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          target: ${{ matrix.target }}
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=${{ vars.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1' }}
+          load: true
+          tags: ${{ env.IMAGE }}:scan
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,scope=${{ matrix.name }},mode=max
+
+      # 2. Scan: OS packages and application dependencies inside the image.
+      - name: Scan image (Trivy)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: ${{ env.TRIVY_VERSION }}
+          image-ref: ${{ env.IMAGE }}:scan
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          format: sarif
+          output: trivy-image.sarif
+          exit-code: ${{ env.ENFORCE == 'true' && '1' || '0' }}
+      - uses: ./.github/actions/publish-sarif
+        if: always()
+        with:
+          sarif-file: trivy-image.sarif
+          category: trivy-image-${{ matrix.name }}
+          code-scanning: ${{ needs.repo.outputs.code-scanning }}
+
+      # 3. Publish (main and tags only): same cache, so the layers are identical.
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        if: env.PUBLISH == 'true'
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push
+        id: push
+        if: env.PUBLISH == 'true'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          target: ${{ matrix.target }}
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=${{ vars.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1' }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          # BuildKit attestations, stored next to the image in the registry.
+          provenance: mode=max
+          sbom: true
+
+      # 4. Supply chain evidence for the pushed digest.
+      - name: SBOM (SPDX)
+        if: env.PUBLISH == 'true'
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: ${{ env.IMAGE }}@${{ steps.push.outputs.digest }}
+          format: spdx-json
+          output-file: sbom-${{ matrix.name }}.spdx.json
+          artifact-name: sbom-${{ matrix.name }}.spdx.json
+          upload-release-assets: false
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        if: env.SIGN == 'true'
+      - name: Sign (Cosign keyless)
+        if: env.SIGN == 'true'
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: cosign sign --yes "${IMAGE}@${DIGEST}"
+
+      - name: Attest build provenance (SLSA)
+        if: env.SIGN == 'true'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+      - name: Attest SBOM
+        if: env.SIGN == 'true'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          sbom-path: sbom-${{ matrix.name }}.spdx.json
+          push-to-registry: true
+
+  rescan:
+    # A CVE disclosed after the build is invisible to the build-time scan:
+    # re-scan what is actually published, every day.
+    name: Re-scan published ${{ matrix.name }}
+    needs: repo
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [backend, migrate, web]
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/cabinguard-${{ matrix.name }}:main
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check the image is published
+        id: exists
+        run: |
+          if docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::$IMAGE is not published yet; nothing to re-scan"
+          fi
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        if: steps.exists.outputs.found == 'true'
+        with:
+          version: ${{ env.TRIVY_VERSION }}
+          image-ref: ${{ env.IMAGE }}
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          format: sarif
+          output: trivy-published.sarif
+          exit-code: ${{ env.ENFORCE == 'true' && '1' || '0' }}
+      - uses: ./.github/actions/publish-sarif
+        if: always()
+        with:
+          sarif-file: trivy-published.sarif
+          category: trivy-published-${{ matrix.name }}
+          code-scanning: ${{ needs.repo.outputs.code-scanning }}
