@@ -239,7 +239,7 @@ export function MfaVerifyScreen() {
           {method === "app" ? t.appCopy : t.recoveryCopy}
         </p>
       </div>
-      <form className="mt-8" onSubmit={handleSubmit} aria-busy={verifying}>
+      <form method="post" className="mt-8" onSubmit={handleSubmit} aria-busy={verifying}>
         <AnimatePresence mode="wait" initial={false}>
           {method === "app" ? (
             <motion.div

@@ -246,7 +246,7 @@ export function ChangePasswordScreen() {
       visual="password-reset"
       footnote={t.footnote}
     >
-      <form onSubmit={handleSubmit} aria-busy={submitting} noValidate>
+      <form method="post" onSubmit={handleSubmit} aria-busy={submitting} noValidate>
         <PasswordField
           id="current-password"
           label={t.temporary}

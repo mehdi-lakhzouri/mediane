@@ -562,7 +562,7 @@ export function ProfileScreen() {
                 </span>
               </CardHeader>
               <CardContent className="pt-5">
-                <form onSubmit={handleSave} noValidate>
+                <form method="post" onSubmit={handleSave} noValidate>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field label={t.identity.firstName} htmlFor="profile-first-name">
                       <Input

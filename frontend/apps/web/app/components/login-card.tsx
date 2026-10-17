@@ -227,7 +227,7 @@ export function LoginCard() {
         </p>
       </div>
 
-      <form className="mt-7" onSubmit={handleSubmit} aria-busy={submitting}>
+      <form method="post" className="mt-7" onSubmit={handleSubmit} aria-busy={submitting}>
         <label
           htmlFor="email"
           className="text-sm font-semibold"

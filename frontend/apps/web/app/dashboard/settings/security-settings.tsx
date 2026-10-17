@@ -527,7 +527,7 @@ function EditProfileDialog({
           <DialogTitle>{t.title}</DialogTitle>
           <DialogDescription>{t.description}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={submit} className="space-y-4 p-6">
+        <form method="post" onSubmit={submit} className="space-y-4 p-6">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="profile-first-name">{t.firstName}</Label>
@@ -821,7 +821,7 @@ function PasswordCard() {
           title={t.title}
           description={t.description}
         />
-        <form onSubmit={submit} className="mt-3 grid gap-[7px]">
+        <form method="post" onSubmit={submit} className="mt-3 grid gap-[7px]">
           {fields.map(([id, label, value, setter, placeholder]) => (
             <div key={id} className="contents">
               <label className="grid gap-1 text-[11px] font-semibold leading-3 text-[#14213d]">
@@ -922,7 +922,7 @@ function PasswordCard() {
             <DialogTitle>{t.verifyTitle}</DialogTitle>
             <DialogDescription>{t.verifyDescription}</DialogDescription>
           </DialogHeader>
-          <form
+          <form method="post"
             className="space-y-4 p-6"
             onSubmit={(event) => {
               event.preventDefault();
@@ -1289,7 +1289,7 @@ function PreferencesTab() {
         description={t.description}
       />
       </div>
-      <form onSubmit={savePreferences} className="grid gap-6 p-5">
+      <form method="post" onSubmit={savePreferences} className="grid gap-6 p-5">
         <fieldset>
           <legend className="text-[13px] font-bold text-foreground">
             {t.language}
@@ -1870,7 +1870,7 @@ function RegenerateCodesDialog({
           {codes ? (
             <RecoveryCodesPanel codes={codes} onDone={onClose} />
           ) : (
-            <form onSubmit={submit} className="space-y-4">
+            <form method="post" onSubmit={submit} className="space-y-4">
               <CodeField
                 id="regen-code"
                 label={t.label}
@@ -1988,7 +1988,7 @@ function ReplaceAuthenticatorDialog({
         </DialogHeader>
         <div className="space-y-4 p-6">
           {step === "verify" && (
-            <form onSubmit={verify} className="space-y-4">
+            <form method="post" onSubmit={verify} className="space-y-4">
               <CodeField
                 id="replace-proof"
                 label={t.proofLabel}
@@ -2010,7 +2010,7 @@ function ReplaceAuthenticatorDialog({
             </form>
           )}
           {step === "scan" && setup && (
-            <form onSubmit={confirm} className="space-y-4">
+            <form method="post" onSubmit={confirm} className="space-y-4">
               <div className="mx-auto w-fit rounded-xl border border-border bg-white p-2">
                 {qr ? (
                   <Image

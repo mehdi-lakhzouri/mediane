@@ -143,7 +143,7 @@ export function InviteUserSheet({
         className="max-h-[calc(100dvh-2rem)] max-w-[586px] overflow-y-auto rounded-[16px] border-[#dce3ee] shadow-[0_24px_70px_rgba(16,24,40,.24)]"
         onOpenAutoFocus={(event) => event.preventDefault()}
       >
-        <form onSubmit={handleSubmit}>
+        <form method="post" onSubmit={handleSubmit}>
           <DialogHeader className="flex-row items-start gap-5 px-7 pt-8 pb-5 text-left">
             <span className="grid size-16 shrink-0 place-items-center rounded-[14px] bg-[#eaf0ff] text-[#2947e8]">
               <UserRoundPlus className="size-8" strokeWidth={1.8} />

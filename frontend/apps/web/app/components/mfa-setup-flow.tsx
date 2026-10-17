@@ -275,7 +275,7 @@ function VerifyStep({
         <h1 className="mfa-screen-title mt-2">{t.title}</h1>
         <p className="mfa-screen-copy mx-auto mt-2 max-w-[470px]">{t.copy}</p>
       </div>
-      <form className="mt-8" onSubmit={onSubmit} aria-busy={verifying}>
+      <form method="post" className="mt-8" onSubmit={onSubmit} aria-busy={verifying}>
         <MfaCodeInput
           value={code}
           onChange={onCodeChange}

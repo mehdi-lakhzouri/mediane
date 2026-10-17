@@ -274,7 +274,7 @@ export function ResetPasswordScreen() {
       description={t.description}
       visual="password-reset"
     >
-      <form onSubmit={handleSubmit} aria-busy={submitting}>
+      <form method="post" onSubmit={handleSubmit} aria-busy={submitting}>
         <label
           htmlFor="new-password"
           className="text-sm font-bold text-[var(--sx-label)]"
