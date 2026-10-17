@@ -2,53 +2,87 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import { HeartPulse, CircleGauge, ShieldCheck } from "lucide-react";
+import { Lines } from "../../lib/i18n/lines";
+import { useMessages } from "../../lib/i18n/locale-provider";
+import { defineMessages } from "../../lib/i18n/messages";
 import { BrandLogo } from "./brand-logo";
 import { FeatureCard } from "./feature-card";
 
-const features = [
-  {
-    title: "Health",
-    description: (
-      <>
-        Monitor wellbeing
-        <br />
-        and see incident history
-        <br />
-        in one place.
-      </>
-    ),
-    icon: HeartPulse,
-    accent: "#31baff",
+const messages = defineMessages({
+  en: {
+    eyebrow: "Safer drivers. Brighter tomorrows.",
+    // The headline types itself out in three runs; the last one is accented.
+    headline: ["Health awareness,", "built into ", "every journey."],
+    intro: [
+      "Secure access to your medical incident history,",
+      "emergency contacts, and trusted family support —",
+      "so you’re never alone on the road.",
+    ],
+    features: [
+      {
+        title: "Health",
+        description: [
+          "Monitor wellbeing",
+          "and see incident history",
+          "in one place.",
+        ],
+      },
+      {
+        title: "Mobility",
+        description: [
+          "Smarter, safer journeys",
+          "with real-time driver",
+          "intelligence.",
+        ],
+      },
+      {
+        title: "Security",
+        description: [
+          "Your data, your family,",
+          "and your journey",
+          "always protected.",
+        ],
+      },
+    ],
+    values: ["People", "Technology", "Safer roads", "Stronger tomorrows"],
   },
-  {
-    title: "Mobility",
-    description: (
-      <>
-        Smarter, safer journeys
-        <br />
-        with real-time driver
-        <br />
-        intelligence.
-      </>
-    ),
-    icon: CircleGauge,
-    accent: "#21e1df",
+  fr: {
+    eyebrow: "Des conducteurs protégés. Un avenir plus serein.",
+    headline: ["La santé en éveil,", "à chaque ", "trajet."],
+    intro: [
+      "Un accès sécurisé à votre historique d’incidents médicaux,",
+      "à vos contacts d’urgence et au soutien de vos proches —",
+      "pour ne jamais être seul sur la route.",
+    ],
+    features: [
+      {
+        title: "Santé",
+        description: [
+          "Suivez votre bien-être et l’historique des incidents au même endroit.",
+        ],
+      },
+      {
+        title: "Mobilité",
+        description: [
+          "Des trajets plus sûrs et plus intelligents grâce au suivi en temps réel.",
+        ],
+      },
+      {
+        title: "Sécurité",
+        description: [
+          "Vos données, votre famille et votre trajet, toujours protégés.",
+        ],
+      },
+    ],
+    values: ["Humain", "Technologie", "Routes plus sûres", "Avenir plus fort"],
   },
-  {
-    title: "Security",
-    description: (
-      <>
-        Your data, your family,
-        <br />
-        and your journey
-        <br />
-        always protected.
-      </>
-    ),
-    icon: ShieldCheck,
-    accent: "#6e83ff",
-  },
-];
+});
+
+const FEATURE_LOOK = [
+  { icon: HeartPulse, accent: "#31baff" },
+  { icon: CircleGauge, accent: "#21e1df" },
+  { icon: ShieldCheck, accent: "#6e83ff" },
+] as const;
 
 const TYPEWRITER_STEP = 0.03;
 
@@ -85,6 +119,13 @@ function AnimatedCharacters({
 
 export function HeroPanel() {
   const reduceMotion = useReducedMotion();
+  const t = useMessages(messages);
+  const [lead = "", middle = "", accent = ""] = t.headline;
+  const features = t.features.map((feature, index) => ({
+    title: feature.title,
+    description: <Lines lines={feature.description} />,
+    ...FEATURE_LOOK[index % FEATURE_LOOK.length]!,
+  }));
 
   return (
     <motion.section
@@ -100,7 +141,7 @@ export function HeroPanel() {
         className="mt-4 text-[10px] font-semibold uppercase tracking-[0.46em] sm:text-[11px] xl:ml-5"
         style={{ color: "var(--sx-eyebrow)" }}
       >
-        Safer drivers. Brighter tomorrows.
+        {t.eyebrow}
       </p>
 
       <div className="mt-9 max-w-[590px] sm:mt-10 xl:ml-4 xl:mt-9">
@@ -108,29 +149,27 @@ export function HeroPanel() {
           className="text-[clamp(38px,3.25vw,56px)] font-extrabold leading-[1.05] tracking-[-0.045em] [text-shadow:0_2px_20px_rgba(255,255,255,.72)]"
           style={{ color: "var(--sx-ink)" }}
         >
-          <span className="sr-only">
-            Health awareness, built into every journey.
-          </span>
+          <span className="sr-only">{`${lead} ${middle}${accent}`}</span>
           {reduceMotion ? (
-            <>
-              Health awareness,
+            <span aria-hidden="true">
+              {lead}
               <br />
-              built into{" "}
+              {middle}
               <span
                 className="block sm:inline"
                 style={{ color: "var(--sx-accent)" }}
               >
-                every journey.
+                {accent}
               </span>
-            </>
+            </span>
           ) : (
             <>
-              <AnimatedCharacters text="Health awareness," startIndex={0} />
+              <AnimatedCharacters text={lead} startIndex={0} />
               <br />
-              <AnimatedCharacters text="built into " startIndex={17} />
+              <AnimatedCharacters text={middle} startIndex={lead.length} />
               <AnimatedCharacters
-                text="every journey."
-                startIndex={28}
+                text={accent}
+                startIndex={lead.length + middle.length}
                 className="block sm:inline"
                 style={{ color: "var(--sx-accent)" }}
               />
@@ -157,10 +196,7 @@ export function HeroPanel() {
           className="mt-5 max-w-[520px] text-[clamp(16px,1.15vw,19px)] leading-[1.52] [text-shadow:0_1px_10px_rgba(255,255,255,.8)]"
           style={{ color: "var(--sx-body)" }}
         >
-          Secure access to your medical incident history,
-          <br className="hidden sm:block" /> emergency contacts, and trusted
-          family support —
-          <br className="hidden sm:block" /> so you’re never alone on the road.
+          <Lines lines={t.intro} breakClassName="hidden sm:block" />
         </motion.p>
       </div>
 
@@ -186,20 +222,18 @@ export function HeroPanel() {
         className="mt-7 flex max-w-[840px] flex-wrap items-center gap-x-6 gap-y-2 px-1 text-[9px] font-semibold uppercase tracking-[0.34em] sm:gap-x-7 xl:mt-8 xl:translate-y-8"
         style={{ color: "var(--sx-eyebrow)" }}
       >
-        {["People", "Technology", "Safer roads", "Stronger tomorrows"].map(
-          (value, index) => (
-            <div key={value} className="flex items-center gap-6 sm:gap-7">
-              {index > 0 && (
-                <span
-                  className="h-4 w-px"
-                  style={{ background: "var(--sx-divider-soft)" }}
-                  aria-hidden="true"
-                />
-              )}
-              <span>{value}</span>
-            </div>
-          ),
-        )}
+        {t.values.map((value, index) => (
+          <div key={value} className="flex items-center gap-6 sm:gap-7">
+            {index > 0 && (
+              <span
+                className="h-4 w-px"
+                style={{ background: "var(--sx-divider-soft)" }}
+                aria-hidden="true"
+              />
+            )}
+            <span>{value}</span>
+          </div>
+        ))}
       </div>
     </motion.section>
   );

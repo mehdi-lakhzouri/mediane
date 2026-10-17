@@ -39,16 +39,18 @@ import {
 } from "../../../../lib/api/admin-families";
 import { listUsers, type AdminUser } from "../../../../lib/api/admin-users";
 import { ApiError } from "../../../../lib/api/client";
+import { useErrorText } from "../../../../lib/i18n/api-errors";
+import {
+  useFormatters,
+  useMessages,
+} from "../../../../lib/i18n/locale-provider";
 import { ConfirmDialog, type ConfirmRequest } from "../confirm-dialog";
 import { useToast } from "../toast-provider";
-import { formatDate, fullName } from "../users/format";
+import { fullName } from "../users/format";
+import { familiesMessages } from "./families.messages";
 
 function letters(person: { firstName: string; lastName: string }): string {
   return `${person.firstName.at(0) ?? ""}${person.lastName.at(0) ?? ""}`.toUpperCase();
-}
-
-function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? error.message : fallback;
 }
 
 interface FamilySheetProps {
@@ -70,6 +72,11 @@ export function FamilySheet({
   onOpenChange,
   onChanged,
 }: FamilySheetProps) {
+  const t = useMessages(familiesMessages).sheet;
+  const format = useFormatters();
+  const errorText = useErrorText();
+  const errorMessage = (error: unknown, fallback: string) =>
+    error instanceof ApiError ? errorText.message(error) : fallback;
   const toast = useToast();
   const [details, setDetails] = useState<AdminFamily | null>(null);
   const [loading, setLoading] = useState(false);
@@ -84,13 +91,13 @@ export function FamilySheet({
       setDetails(await getFamily(familyId));
     } catch (error) {
       toast.error(
-        "Could not load the family.",
-        errorMessage(error, "Please try again."),
+        t.loadFailed,
+        error instanceof ApiError ? errorText.message(error) : t.retry,
       );
     } finally {
       setLoading(false);
     }
-  }, [familyId, toast]);
+  }, [errorText, familyId, t, toast]);
 
   useEffect(() => {
     if (open) {
@@ -114,73 +121,54 @@ export function FamilySheet({
       const updated = await action();
       onChanged();
       if (!updated) {
-        toast.success(
-          success,
-          "The family no longer has members and was dissolved.",
-        );
+        toast.success(success, t.dissolvedEmpty);
         onOpenChange(false);
         return;
       }
       setDetails(updated);
       toast.success(success);
     } catch (error) {
-      toast.error(
-        "That didn't work.",
-        errorMessage(error, "Please try again."),
-      );
+      toast.error(t.failed, errorMessage(error, t.retry));
     }
   }
 
   function askMakeOwner(member: AdminFamilyMember) {
     setConfirm({
-      title: `Make ${fullName(member)} the owner?`,
-      description:
-        "The owner approves join requests, shares the family code and manages members. The current owner becomes a regular member.",
-      actionLabel: "Make owner",
+      title: t.ownerTitle(fullName(member)),
+      description: t.ownerDescription,
+      actionLabel: t.ownerAction,
       run: () =>
-        run(
-          () => setFamilyOwner(current!.id, member.userId),
-          "Ownership transferred.",
-        ),
+        run(() => setFamilyOwner(current!.id, member.userId), t.ownerDone),
     });
   }
 
   function askRemove(member: AdminFamilyMember) {
     const isOwner = member.role === "OWNER";
     setConfirm({
-      title: `Remove ${fullName(member)}?`,
-      description: isOwner
-        ? "The longest-standing member becomes owner. If nobody else is in the family, it is dissolved."
-        : "They leave the family and stop seeing what its members share.",
-      actionLabel: "Remove",
+      title: t.removeTitle(fullName(member)),
+      description: isOwner ? t.removeOwnerDescription : t.removeDescription,
+      actionLabel: t.removeAction,
       destructive: true,
       run: () =>
-        run(
-          () => removeFamilyMember(current!.id, member.userId),
-          "Member removed.",
-        ),
+        run(() => removeFamilyMember(current!.id, member.userId), t.removeDone),
     });
   }
 
   function askDissolve() {
     setConfirm({
-      title: `Dissolve “${current!.name}”?`,
-      description:
-        "Every member leaves the family and pending requests are dropped. Members can create or join another family afterwards. Type the family name to confirm.",
-      actionLabel: "Dissolve",
+      title: t.dissolveConfirmTitle(current!.name),
+      description: t.dissolveDescription,
+      actionLabel: t.dissolveAction,
       destructive: true,
       confirmText: current!.name,
       run: async () => {
         try {
           await dissolveFamily(current!.id);
-          toast.success("Family dissolved.");
+          toast.success(t.dissolved);
           onChanged();
           onOpenChange(false);
         } catch (error) {
-          toast.error(
-            "That didn't work.",
-            errorMessage(error, "Please try again."),
-          );
+          toast.error(t.failed, errorMessage(error, t.retry));
         }
       },
     });
@@ -198,16 +186,13 @@ export function FamilySheet({
           <SheetHeader className="sticky top-0 z-10 gap-1 border-0 bg-white/95 px-7 pt-7 pb-5 pr-16 backdrop-blur-xl">
             <div className="flex items-center gap-3">
               <SheetTitle className="text-[26px] leading-8 tracking-[-0.035em]">
-                Family details
+                {t.title}
               </SheetTitle>
               {loading && (
                 <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
               )}
             </div>
-            <p className="text-[14px] leading-5 text-[#536489]">
-              Who belongs to this family. What members share with each other
-              stays private.
-            </p>
+            <p className="text-[14px] leading-5 text-[#536489]">{t.subtitle}</p>
           </SheetHeader>
 
           <SheetBody className="px-7 pt-0 pb-7">
@@ -221,16 +206,18 @@ export function FamilySheet({
                     {current.name}
                   </h2>
                   <p className="mt-1 text-[13px] text-[#536489]">
-                    Created {formatDate(current.createdAt)}
+                    {t.created(format.date(current.createdAt))}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Badge variant={full ? "warning" : "secondary"}>
-                      {details?.memberCount ?? current.memberCount} /{" "}
-                      {FAMILY_MAX_MEMBERS} members
+                      {t.capacity(
+                        details?.memberCount ?? current.memberCount,
+                        FAMILY_MAX_MEMBERS,
+                      )}
                     </Badge>
                     {details?.pendingRequestCount ? (
                       <Badge variant="outline">
-                        {details.pendingRequestCount} waiting to join
+                        {t.waiting(details.pendingRequestCount)}
                       </Badge>
                     ) : null}
                   </div>
@@ -240,27 +227,28 @@ export function FamilySheet({
 
             <div className="mt-7 flex items-center justify-between">
               <h3 className="text-[16px] font-semibold text-foreground">
-                Members
+                {t.members}
               </h3>
               <Button
                 variant="outline"
                 size="sm"
                 disabled={full}
-                title={full ? "This family is full" : undefined}
+                title={full ? t.full : undefined}
                 onClick={() => setAdding((value) => !value)}
                 className="rounded-[9px]"
               >
                 <UserPlus />
-                Add a driver
+                {t.addDriver}
               </Button>
             </div>
 
             {adding && (
               <AddDriverPanel
+                t={t}
                 onAdd={async (driver) => {
                   await run(
                     () => addFamilyMember(current.id, driver.id),
-                    `${fullName(driver)} added.`,
+                    t.added(fullName(driver)),
                   );
                   setAdding(false);
                 }}
@@ -270,7 +258,7 @@ export function FamilySheet({
             <ul className="mt-3 divide-y divide-[#e6ecf6] rounded-[12px] border border-[#e1e8f4]">
               {members.length === 0 && (
                 <li className="px-4 py-6 text-center text-[13px] text-muted-foreground">
-                  {loading ? "Loading members…" : "No members."}
+                  {loading ? t.loadingMembers : t.noMembers}
                 </li>
               )}
               {members.map((member) => (
@@ -286,17 +274,17 @@ export function FamilySheet({
                       {fullName(member)}
                       {member.role === "OWNER" && (
                         <Badge variant="default" className="h-6 gap-1 px-2">
-                          <Crown className="size-3" /> Owner
+                          <Crown className="size-3" /> {t.owner}
                         </Badge>
                       )}
                     </p>
                     <p className="text-[12px] text-muted-foreground">
-                      Joined {formatDate(member.joinedAt)}
+                      {t.joined(format.date(member.joinedAt))}
                     </p>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger
-                      aria-label={`Actions for ${fullName(member)}`}
+                      aria-label={t.actionsFor(fullName(member))}
                       className="grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                     >
                       <MoreVertical className="size-4" />
@@ -304,14 +292,14 @@ export function FamilySheet({
                     <DropdownMenuContent align="end" className="w-[200px]">
                       {member.role !== "OWNER" && (
                         <DropdownMenuItem onSelect={() => askMakeOwner(member)}>
-                          <Crown /> Make owner
+                          <Crown /> {t.makeOwner}
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
                         variant="destructive"
                         onSelect={() => askRemove(member)}
                       >
-                        <UserMinus /> Remove from family
+                        <UserMinus /> {t.remove}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -321,11 +309,10 @@ export function FamilySheet({
 
             <div className="mt-8 rounded-[12px] border border-danger/20 bg-danger/[0.03] px-5 py-4">
               <p className="text-[14px] font-semibold text-foreground">
-                Dissolve this family
+                {t.dissolveTitle}
               </p>
               <p className="mt-1 text-[13px] text-muted-foreground">
-                For abuse or at the members&apos; request. Everyone leaves the
-                family.
+                {t.dissolveHint}
               </p>
               <Button
                 variant="destructive"
@@ -333,7 +320,7 @@ export function FamilySheet({
                 className="mt-3 rounded-[9px]"
                 onClick={askDissolve}
               >
-                <Trash2 /> Dissolve family
+                <Trash2 /> {t.dissolve}
               </Button>
             </div>
           </SheetBody>
@@ -347,8 +334,10 @@ export function FamilySheet({
 
 /** Finds an active driver by name or email; drivers already in a family are refused by the API. */
 function AddDriverPanel({
+  t,
   onAdd,
 }: {
+  t: (typeof familiesMessages)["en"]["sheet"];
   onAdd: (driver: AdminUser) => Promise<void>;
 }) {
   const [term, setTerm] = useState("");
@@ -396,20 +385,20 @@ function AddDriverPanel({
           autoFocus
           value={term}
           onChange={(event) => setTerm(event.target.value)}
-          placeholder="Search an active driver by name or email…"
-          aria-label="Search a driver"
+          placeholder={t.search}
+          aria-label={t.searchLabel}
           className="h-10 rounded-[9px] bg-white pl-10"
         />
       </div>
       <ul className="mt-2 space-y-1">
         {searching && (
           <li className="px-2 py-2 text-[13px] text-muted-foreground">
-            Searching…
+            {t.searching}
           </li>
         )}
         {!searching && term.trim().length >= 2 && results.length === 0 && (
           <li className="px-2 py-2 text-[13px] text-muted-foreground">
-            No active driver matches.
+            {t.noDriver}
           </li>
         )}
         {results.map((driver) => (
@@ -443,7 +432,7 @@ function AddDriverPanel({
               ) : (
                 <UserPlus />
               )}
-              Add
+              {t.add}
             </Button>
           </li>
         ))}

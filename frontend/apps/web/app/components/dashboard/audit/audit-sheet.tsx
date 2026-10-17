@@ -22,14 +22,69 @@ import type {
   AdminAuditEntry,
   AuditJson,
 } from "../../../../lib/api/admin-audit";
-import { useToast } from "../toast-provider";
-import { formatDateTime, fullName } from "../users/format";
 import {
-  actorTypeLabel,
-  AuditCategoryBadge,
-  AuditOutcomeBadge,
-  formatAuditAction,
-} from "./audit-badges";
+  useFormatters,
+  useMessages,
+} from "../../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../../lib/i18n/messages";
+import { auditActionLabel, labelMessages } from "../labels";
+import { useToast } from "../toast-provider";
+import { fullName } from "../users/format";
+import { AuditCategoryBadge, AuditOutcomeBadge } from "./audit-badges";
+
+const messages = defineMessages({
+  en: {
+    title: "Audit event",
+    subtitle: "Immutable request context and sanitized event metadata.",
+    recordedAt: "Recorded at",
+    actor: "Actor",
+    target: "Target",
+    noTarget: "No target",
+    source: "Source address",
+    notCaptured: "Not captured",
+    trace: "Request trace",
+    copyRequestId: "Copy request ID",
+    eventId: "Event ID",
+    requestId: "Request ID",
+    actorType: "Actor type",
+    targetId: "Target identifier",
+    client: "Client context",
+    userAgent: "User agent",
+    metadata: "Sanitized metadata",
+    noMetadata: "No metadata was recorded for this event.",
+    immutable:
+      "Audit entries cannot be edited or deleted. Secret-looking metadata keys are removed before an entry is stored.",
+    copied: (label: string) => `${label} copied.`,
+    copyFailed: (label: string) => `Could not copy ${label.toLowerCase()}.`,
+    copy: (label: string) => `Copy ${label}`,
+  },
+  fr: {
+    title: "Événement d’audit",
+    subtitle:
+      "Contexte de requête immuable et métadonnées d’événement assainies.",
+    recordedAt: "Enregistré le",
+    actor: "Acteur",
+    target: "Cible",
+    noTarget: "Aucune cible",
+    source: "Adresse source",
+    notCaptured: "Non capturée",
+    trace: "Trace de la requête",
+    copyRequestId: "Copier l’ID de requête",
+    eventId: "ID d’événement",
+    requestId: "ID de requête",
+    actorType: "Type d’acteur",
+    targetId: "Identifiant de la cible",
+    client: "Contexte client",
+    userAgent: "Agent utilisateur",
+    metadata: "Métadonnées assainies",
+    noMetadata: "Aucune métadonnée n’a été enregistrée pour cet événement.",
+    immutable:
+      "Les entrées d’audit ne peuvent être ni modifiées ni supprimées. Les clés de métadonnées ressemblant à des secrets sont retirées avant l’enregistrement.",
+    copied: (label: string) => `${label} copié.`,
+    copyFailed: (label: string) => `Impossible de copier : ${label}.`,
+    copy: (label: string) => `Copier : ${label}`,
+  },
+});
 
 export function AuditSheet({
   entry,
@@ -41,14 +96,17 @@ export function AuditSheet({
   onOpenChange: (open: boolean) => void;
 }) {
   const toast = useToast();
+  const t = useMessages(messages);
+  const labels = useMessages(labelMessages);
+  const format = useFormatters();
   if (!entry) return null;
 
   async function copy(value: string, label: string) {
     try {
       await navigator.clipboard.writeText(value);
-      toast.success(`${label} copied.`);
+      toast.success(t.copied(label));
     } catch {
-      toast.error(`Could not copy ${label.toLowerCase()}.`);
+      toast.error(t.copyFailed(label));
     }
   }
 
@@ -62,11 +120,9 @@ export function AuditSheet({
       >
         <SheetHeader className="sticky top-0 z-10 gap-1 border-0 bg-white/95 px-7 pt-7 pb-5 pr-16 backdrop-blur-xl">
           <SheetTitle className="text-[26px] leading-8 tracking-[-0.035em]">
-            Audit event
+            {t.title}
           </SheetTitle>
-          <p className="text-[14px] leading-5 text-[#536489]">
-            Immutable request context and sanitized event metadata.
-          </p>
+          <p className="text-[14px] leading-5 text-[#536489]">{t.subtitle}</p>
         </SheetHeader>
 
         <SheetBody className="px-7 pt-0 pb-7">
@@ -80,7 +136,7 @@ export function AuditSheet({
                   {entry.action}
                 </p>
                 <h2 className="mt-1 text-[22px] font-bold tracking-[-0.025em] text-foreground">
-                  {formatAuditAction(entry.action)}
+                  {auditActionLabel(labels, entry.action)}
                 </h2>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <AuditCategoryBadge category={entry.category} />
@@ -93,81 +149,84 @@ export function AuditSheet({
           <section className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <InfoCard
               icon={Clock3}
-              label="Recorded at"
-              value={formatDateTime(entry.createdAt)}
+              label={t.recordedAt}
+              value={format.dateTime(entry.createdAt)}
             />
             <InfoCard
               icon={UserRound}
-              label="Actor"
+              label={t.actor}
               value={
                 entry.actor
                   ? fullName(entry.actor)
-                  : actorTypeLabel(entry.actorType)
+                  : labels.actorType[entry.actorType]
               }
               detail={entry.actor?.email ?? entry.actorUserId ?? undefined}
             />
             <InfoCard
               icon={Fingerprint}
-              label="Target"
-              value={entry.targetType ?? "No target"}
+              label={t.target}
+              value={
+                entry.targetType
+                  ? labels.targetType[entry.targetType]
+                  : t.noTarget
+              }
               detail={entry.targetId ?? undefined}
             />
             <InfoCard
               icon={Globe2}
-              label="Source address"
-              value={entry.ipAddress ?? "Not captured"}
+              label={t.source}
+              value={entry.ipAddress ?? t.notCaptured}
             />
           </section>
 
           <section className="mt-7">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-[16px] font-semibold text-foreground">
-                Request trace
+                {t.trace}
               </h3>
               {entry.requestId ? (
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => void copy(entry.requestId!, "Request ID")}
+                  onClick={() => void copy(entry.requestId!, t.requestId)}
                   className="text-primary"
                 >
-                  <Copy /> Copy request ID
+                  <Copy /> {t.copyRequestId}
                 </Button>
               ) : null}
             </div>
             <div className="mt-3 divide-y divide-[#e6ecf6] rounded-[12px] border border-[#e1e8f4]">
               <TraceRow
-                label="Event ID"
+                label={t.eventId}
                 value={entry.id}
-                onCopy={() => void copy(entry.id, "Event ID")}
+                copyLabel={t.copy(t.eventId)}
+                onCopy={() => void copy(entry.id, t.eventId)}
               />
-              <TraceRow label="Request ID" value={entry.requestId ?? "—"} />
-              <TraceRow label="Actor type" value={entry.actorType} />
-              <TraceRow
-                label="Target identifier"
-                value={entry.targetId ?? "—"}
-              />
+              <TraceRow label={t.requestId} value={entry.requestId ?? "—"} />
+              <TraceRow label={t.actorType} value={entry.actorType} />
+              <TraceRow label={t.targetId} value={entry.targetId ?? "—"} />
             </div>
           </section>
 
           <section className="mt-7">
             <h3 className="text-[16px] font-semibold text-foreground">
-              Client context
+              {t.client}
             </h3>
             <div className="mt-3 rounded-[12px] border border-[#e1e8f4] px-4 py-4">
               <p className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
-                <MonitorSmartphone className="size-4 text-primary" /> User agent
+                <MonitorSmartphone className="size-4 text-primary" />{" "}
+                {t.userAgent}
               </p>
               <p className="mt-2 break-words font-mono text-[11px] leading-5 text-muted-foreground">
-                {entry.userAgent ?? "Not captured"}
+                {entry.userAgent ?? t.notCaptured}
               </p>
             </div>
           </section>
 
           <section className="mt-7">
             <h3 className="text-[16px] font-semibold text-foreground">
-              Sanitized metadata
+              {t.metadata}
             </h3>
             {entry.metadata && Object.keys(entry.metadata).length ? (
               <dl className="mt-3 divide-y divide-[#e6ecf6] overflow-hidden rounded-[12px] border border-[#e1e8f4]">
@@ -187,15 +246,14 @@ export function AuditSheet({
               </dl>
             ) : (
               <p className="mt-3 rounded-[12px] border border-dashed border-[#d7e1f2] px-4 py-5 text-center text-[12px] text-muted-foreground">
-                No metadata was recorded for this event.
+                {t.noMetadata}
               </p>
             )}
           </section>
 
           <p className="mt-7 flex items-start gap-3 rounded-[12px] border border-[#d7e1f2] bg-[#f8faff] px-4 py-4 text-[12px] leading-5 text-muted-foreground">
             <LockKeyhole className="mt-0.5 size-4 shrink-0 text-primary" />
-            Audit entries cannot be edited or deleted. Secret-looking metadata
-            keys are removed before an entry is stored.
+            {t.immutable}
           </p>
         </SheetBody>
       </SheetContent>
@@ -235,10 +293,12 @@ function TraceRow({
   label,
   value,
   onCopy,
+  copyLabel,
 }: {
   label: string;
   value: string;
   onCopy?: () => void;
+  copyLabel?: string;
 }) {
   return (
     <div className="grid grid-cols-[130px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
@@ -251,7 +311,7 @@ function TraceRow({
           type="button"
           variant="ghost"
           size="icon-xs"
-          aria-label={`Copy ${label}`}
+          aria-label={copyLabel}
           onClick={onCopy}
         >
           <Copy />

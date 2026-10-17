@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import { localizedMetadata } from "../../../lib/i18n/server";
 import { InvitationsScreen } from "./invitations-screen";
 
-export const metadata: Metadata = {
-  title: "Invitations | CabinGuard",
-};
+export const generateMetadata = localizedMetadata({
+  en: { title: "Invitations | CabinGuard" },
+  fr: { title: "Invitations | CabinGuard" },
+});
 
 export default function InvitationsPage() {
   return <InvitationsScreen />;

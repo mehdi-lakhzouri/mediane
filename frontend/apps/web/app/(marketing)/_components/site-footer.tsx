@@ -3,11 +3,46 @@
 import { motion } from "framer-motion";
 import { ArrowUpRight, Mail, Siren } from "lucide-react";
 import Link from "next/link";
-import { CONTACT, demoHref, FOOTER_COLUMNS } from "../_lib/content";
+import { useMessages } from "../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../lib/i18n/messages";
+import { CONTACT } from "../_lib/content";
+import { useContent } from "../_lib/use-content";
 import { Wordmark } from "./icons";
 import { PopIn, useSeen } from "./motion";
 
+const messages = defineMessages({
+  en: {
+    home: "CabinGuard home",
+    tagline:
+      "Driver health monitoring, family alerts and emergency response — so every journey ends the way it should.",
+    emergencyStrong:
+      "CabinGuard supports emergency services — it never replaces them.",
+    emergency: "If someone is in danger, call your local emergency number.",
+    demoTitle: "See CabinGuard on your own fleet",
+    demoBody:
+      "A 30-minute walkthrough of the console, the app and the cabin unit.",
+    demo: "Request a demo",
+    rights: (year: number) => `© ${year} CabinGuard. All rights reserved.`,
+  },
+  fr: {
+    home: "Accueil CabinGuard",
+    tagline:
+      "Surveillance de la santé du conducteur, alertes familiales et intervention d’urgence — pour que chaque trajet se termine comme il se doit.",
+    emergencyStrong:
+      "CabinGuard soutient les services d’urgence — il ne les remplace jamais.",
+    emergency:
+      "Si quelqu’un est en danger, appelez le numéro d’urgence local.",
+    demoTitle: "Découvrez CabinGuard sur votre propre flotte",
+    demoBody:
+      "Une présentation de 30 minutes de la console, de l’application et du boîtier embarqué.",
+    demo: "Demander une démo",
+    rights: (year: number) => `© ${year} CabinGuard. Tous droits réservés.`,
+  },
+});
+
 export function SiteFooter() {
+  const t = useMessages(messages);
+  const { FOOTER_COLUMNS, demoHref } = useContent();
   const year = new Date().getFullYear();
   return (
     <footer className="relative overflow-hidden bg-[var(--lp-footer)] text-white" aria-labelledby="footer-title">
@@ -23,12 +58,11 @@ export function SiteFooter() {
       <div className="lp-container relative">
         <div className="grid gap-12 pb-14 pt-[clamp(56px,5vw,84px)] lg:grid-cols-[minmax(0,1.25fr)_minmax(0,2fr)] lg:gap-[clamp(40px,5vw,96px)]">
           <div>
-            <Link href="/" aria-label="CabinGuard home" className="inline-block">
+            <Link href="/" aria-label={t.home} className="inline-block">
               <Wordmark size={26} light />
             </Link>
             <p className="mt-6 max-w-[400px] text-[16px] leading-relaxed text-white/70">
-              Driver health monitoring, family alerts and emergency response — so every journey ends the way it
-              should.
+              {t.tagline}
             </p>
             <div className="mt-7 space-y-3">
               <a
@@ -53,8 +87,8 @@ export function SiteFooter() {
             <div className="mt-8 flex max-w-[440px] gap-3 rounded-[16px] border border-[#ff5a64]/25 bg-[#ff5a64]/[0.07] p-4">
               <Siren size={20} className="mt-0.5 flex-none text-[#ff8a92]" />
               <p className="text-[14px] leading-relaxed text-white/75">
-                <span className="font-semibold text-white">CabinGuard supports emergency services — it never replaces them.</span>{" "}
-                If someone is in danger, call your local emergency number.
+                <span className="font-semibold text-white">{t.emergencyStrong}</span>{" "}
+                {t.emergency}
               </p>
             </div>
           </div>
@@ -65,7 +99,7 @@ export function SiteFooter() {
                 <p className="text-[13px] font-semibold uppercase tracking-[0.22em] text-white/45">{column.title}</p>
                 <ul className="mt-5 space-y-3.5">
                   {column.links.map((link) => (
-                    <li key={link.label}>
+                    <li key={`${link.label}-${link.href}`}>
                       <a
                         href={link.href}
                         className="group inline-flex items-center gap-1 text-[15.5px] text-white/80 transition-colors hover:text-white"
@@ -83,12 +117,12 @@ export function SiteFooter() {
             ))}
             <div className="col-span-2 rounded-[20px] border border-white/10 bg-[linear-gradient(135deg,rgba(47,107,255,0.22),rgba(47,107,255,0.06))] p-6 sm:col-span-4 sm:flex sm:items-center sm:justify-between sm:gap-6">
               <div>
-                <p className="text-[19px] font-bold tracking-[-0.02em]">See CabinGuard on your own fleet</p>
-                <p className="mt-1 text-[14.5px] text-white/65">A 30-minute walkthrough of the console, the app and the cabin unit.</p>
+                <p className="text-[19px] font-bold tracking-[-0.02em]">{t.demoTitle}</p>
+                <p className="mt-1 text-[14.5px] text-white/65">{t.demoBody}</p>
               </div>
               <PopIn delay={0.1} className="mt-5 inline-flex shrink-0 sm:mt-0">
                 <a href={demoHref} className="lp-btn-primary h-12 px-6 text-[15.5px]">
-                  Request a demo <ArrowUpRight size={17} />
+                  {t.demo} <ArrowUpRight size={17} />
                 </a>
               </PopIn>
             </div>
@@ -96,7 +130,7 @@ export function SiteFooter() {
         </div>
 
         <div className="border-t border-white/10 py-7 text-[14px] text-white/55">
-          <p suppressHydrationWarning>© {year} CabinGuard. All rights reserved.</p>
+          <p suppressHydrationWarning>{t.rights(year)}</p>
         </div>
       </div>
 

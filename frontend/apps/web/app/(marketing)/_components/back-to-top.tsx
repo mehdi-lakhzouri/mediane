@@ -3,7 +3,14 @@
 import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "framer-motion";
 import { ArrowUp } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useMessages } from "../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../lib/i18n/messages";
 import { EASE, usePrefersReducedMotion } from "./motion";
+
+const messages = defineMessages({
+  en: { label: "Back to top" },
+  fr: { label: "Retour en haut" },
+});
 
 const SHOW_AFTER = 480;
 
@@ -13,6 +20,7 @@ const SHOW_AFTER = 480;
  * moves down the page.
  */
 export function BackToTop() {
+  const t = useMessages(messages);
   const reduced = usePrefersReducedMotion();
   const [visible, setVisible] = useState(false);
   const { scrollY, scrollYProgress } = useScroll();
@@ -32,8 +40,8 @@ export function BackToTop() {
         >
           <button
             type="button"
-            aria-label="Back to top"
-            title="Back to top"
+            aria-label={t.label}
+            title={t.label}
             onClick={() => window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" })}
             className="lp-btn-primary group relative size-12 rounded-full ring-4 ring-white/70 sm:size-14"
           >

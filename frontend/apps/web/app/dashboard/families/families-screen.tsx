@@ -43,7 +43,8 @@ import {
   sectionMotion,
   stagger,
 } from "../../components/dashboard/motion";
-import { formatDate, fullName } from "../../components/dashboard/users/format";
+import { familiesMessages } from "../../components/dashboard/families/families.messages";
+import { fullName } from "../../components/dashboard/users/format";
 import {
   FAMILY_MAX_MEMBERS,
   getFamily,
@@ -53,10 +54,8 @@ import {
   type AdminFamilyStats,
 } from "../../../lib/api/admin-families";
 import { ApiError } from "../../../lib/api/client";
-
-function apiError(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? error.message : fallback;
-}
+import { useErrorText } from "../../../lib/i18n/api-errors";
+import { useFormatters, useMessages } from "../../../lib/i18n/locale-provider";
 
 /**
  * Administrative family workspace. The list is server-paginated, while an
@@ -64,11 +63,15 @@ function apiError(error: unknown, fallback: string): string {
  * for them. Membership actions remain centralized in FamilySheet.
  */
 export function FamiliesScreen() {
+  const t = useMessages(familiesMessages).screen;
+  const format = useFormatters();
+  const errorText = useErrorText();
   const [rows, setRows] = useState<AdminFamily[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [stats, setStats] = useState<AdminFamilyStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  // The failure, not its text: the message follows a language switch.
+  const [loadError, setLoadError] = useState<{ error: unknown } | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [pagination, setPagination] = useState<PaginationState>({
@@ -119,9 +122,7 @@ export function FamiliesScreen() {
       setLoadError(null);
     } catch (error) {
       if (id !== requestId.current) return;
-      setLoadError(
-        apiError(error, "Could not load families. Please try again."),
-      );
+      setLoadError({ error });
       setRows([]);
       setTotalItems(0);
     } finally {
@@ -163,7 +164,7 @@ export function FamiliesScreen() {
         storeDetails(familyId, {
           data: null,
           loading: false,
-          error: apiError(error, "Could not load this family's members."),
+          error: { cause: error },
         });
       } finally {
         detailRequests.current.delete(familyId);
@@ -186,13 +187,16 @@ export function FamiliesScreen() {
         id: "expand",
         size: 48,
         enableSorting: false,
-        header: () => <span className="sr-only">Show members</span>,
+        header: () => <span className="sr-only">{t.columns.expand}</span>,
         cell: ({ row }) => (
           <Button
             type="button"
             variant="ghost"
             size="icon-sm"
-            aria-label={`${row.getIsExpanded() ? "Hide" : "Show"} members of ${row.original.name}`}
+            aria-label={t.columns.toggle(
+              row.getIsExpanded(),
+              row.original.name,
+            )}
             aria-expanded={row.getIsExpanded()}
             className="rounded-lg text-[#536489] hover:bg-[#e9efff] hover:text-primary"
             onClick={() => {
@@ -215,7 +219,7 @@ export function FamiliesScreen() {
       {
         id: "name",
         size: 280,
-        header: "Family",
+        header: t.columns.family,
         enableSorting: false,
         cell: ({ row }) => (
           <div className="flex items-center gap-3">
@@ -227,7 +231,7 @@ export function FamiliesScreen() {
                 {row.original.name}
               </p>
               <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Expand to inspect members
+                {t.columns.expandHint}
               </p>
             </div>
           </div>
@@ -236,7 +240,7 @@ export function FamiliesScreen() {
       {
         id: "owner",
         size: 220,
-        header: "Owner",
+        header: t.columns.owner,
         enableSorting: false,
         cell: ({ row }) =>
           row.original.owner ? (
@@ -247,13 +251,13 @@ export function FamiliesScreen() {
               </span>
             </div>
           ) : (
-            <Badge variant="danger">Owner missing</Badge>
+            <Badge variant="danger">{t.columns.ownerMissing}</Badge>
           ),
       },
       {
         id: "members",
         size: 170,
-        header: "Capacity",
+        header: t.columns.capacity,
         enableSorting: false,
         cell: ({ row }) => {
           const percentage = Math.min(
@@ -267,7 +271,10 @@ export function FamiliesScreen() {
                   {row.original.memberCount} / {FAMILY_MAX_MEMBERS}
                 </span>
                 <span className="text-muted-foreground">
-                  {Math.round(percentage)}%
+                  {format.number(percentage / 100, {
+                    style: "percent",
+                    maximumFractionDigits: 0,
+                  })}
                 </span>
               </div>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#e7ecf5]">
@@ -285,7 +292,7 @@ export function FamiliesScreen() {
       {
         id: "availability",
         size: 150,
-        header: "Availability",
+        header: t.columns.availability,
         enableSorting: false,
         cell: ({ row }) => {
           const places = Math.max(
@@ -293,22 +300,20 @@ export function FamiliesScreen() {
             FAMILY_MAX_MEMBERS - row.original.memberCount,
           );
           return places === 0 ? (
-            <Badge variant="warning">At capacity</Badge>
+            <Badge variant="warning">{t.columns.full}</Badge>
           ) : (
-            <Badge variant="success">
-              {places} open {places === 1 ? "place" : "places"}
-            </Badge>
+            <Badge variant="success">{t.columns.openPlaces(places)}</Badge>
           );
         },
       },
       {
         id: "createdAt",
         size: 140,
-        header: "Created",
+        header: t.columns.created,
         enableSorting: false,
         cell: ({ row }) => (
           <span className="whitespace-nowrap text-muted-foreground tabular-nums">
-            {formatDate(row.original.createdAt)}
+            {format.date(row.original.createdAt)}
           </span>
         ),
       },
@@ -316,7 +321,7 @@ export function FamiliesScreen() {
         id: "actions",
         size: 56,
         enableSorting: false,
-        header: () => <span className="sr-only">Actions</span>,
+        header: () => <span className="sr-only">{t.columns.actions}</span>,
         cell: ({ row }) => (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -324,21 +329,21 @@ export function FamiliesScreen() {
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                aria-label={`Actions for ${row.original.name}`}
+                aria-label={t.columns.actionsFor(row.original.name)}
               >
                 <MoreVertical />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[190px]">
               <DropdownMenuItem onSelect={() => setSelected(row.original)}>
-                <PanelRightOpen /> View and manage
+                <PanelRightOpen /> {t.columns.manage}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ),
       },
     ],
-    [loadFamilyDetails],
+    [format, loadFamilyDetails, t],
   );
 
   const refreshWorkspace = useCallback(() => {
@@ -359,12 +364,9 @@ export function FamiliesScreen() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <motion.div variants={headerMotion.families.title}>
           <h1 className="text-[32px] font-bold leading-tight tracking-[-0.035em] text-foreground">
-            Families
+            {t.title}
           </h1>
-          <p className="mt-1 text-[14px] text-muted-foreground">
-            Monitor family capacity, inspect membership and resolve account
-            access issues.
-          </p>
+          <p className="mt-1 text-[14px] text-muted-foreground">{t.subtitle}</p>
         </motion.div>
         <motion.div
           variants={headerMotion.families.actions}
@@ -380,7 +382,7 @@ export function FamiliesScreen() {
               className="h-[46px] rounded-[9px] bg-white px-5"
             >
               <RefreshCcw className={loading ? "animate-spin" : undefined} />
-              Refresh workspace
+              {t.refresh}
             </Button>
           </motion.div>
         </motion.div>
@@ -411,6 +413,10 @@ export function FamiliesScreen() {
             <FamilyMembersRow
               family={row.original}
               state={detailsById[row.original.id]}
+              errorMessage={errorText.message(
+                detailsById[row.original.id]?.error?.cause,
+                t.membersFailed,
+              )}
               onRetry={() => void loadFamilyDetails(row.original.id, true)}
               onManage={() => setSelected(row.original)}
             />
@@ -422,14 +428,14 @@ export function FamiliesScreen() {
                 <Input
                   value={searchInput}
                   onChange={(event) => setSearchInput(event.target.value)}
-                  placeholder="Search family, member name or email..."
-                  aria-label="Search families"
+                  placeholder={t.search}
+                  aria-label={t.searchLabel}
                   className="h-11 rounded-[9px] bg-white pl-11"
                 />
               </div>
               <div className="flex h-11 items-center gap-2 rounded-[9px] border border-border bg-white px-3 text-[12px] text-muted-foreground">
                 <ChevronRight className="size-4 text-primary" />
-                Expand a row to see members and roles
+                {t.expandTip}
               </div>
             </div>
           }
@@ -440,15 +446,16 @@ export function FamiliesScreen() {
                   <UsersRound className="size-5 text-primary" />
                 </span>
                 <p className="mt-3 text-[14px] font-semibold text-foreground">
-                  {loadError ??
-                    (search
-                      ? "No family matches this search"
-                      : "No families yet")}
+                  {loadError
+                    ? loadError.error instanceof ApiError
+                      ? errorText.message(loadError.error)
+                      : t.loadFailed
+                    : search
+                      ? t.noMatch
+                      : t.none}
                 </p>
                 <p className="mt-1 text-[13px] text-muted-foreground">
-                  {loadError
-                    ? "Check that the API is reachable, then refresh the workspace."
-                    : "Families appear here when drivers create them in the mobile app."}
+                  {loadError ? t.errorHint : t.emptyHint}
                 </p>
               </div>
             </div>

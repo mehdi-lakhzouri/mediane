@@ -2,6 +2,13 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import { OTPInput, REGEXP_ONLY_DIGITS, type SlotProps } from "input-otp";
+import { useMessages } from "../../lib/i18n/locale-provider";
+import { defineMessages } from "../../lib/i18n/messages";
+
+const messages = defineMessages({
+  en: { label: "Six-digit authentication code" },
+  fr: { label: "Code d’authentification à six chiffres" },
+});
 
 interface MfaCodeInputProps {
   value: string;
@@ -46,6 +53,7 @@ export function MfaCodeInput({
   autoFocus = false,
   variant = "security",
 }: MfaCodeInputProps) {
+  const t = useMessages(messages);
   return (
     <OTPInput
       name="verification-code"
@@ -58,7 +66,7 @@ export function MfaCodeInput({
       autoFocus={autoFocus}
       disabled={disabled}
       required
-      aria-label="Six-digit authentication code"
+      aria-label={t.label}
       aria-invalid={hasError}
       containerClassName={`mfa-code-group ${variant === "settings" ? "settings-code-group" : ""}`}
       render={({ slots }) => (

@@ -18,6 +18,8 @@ import {
   Users,
 } from "lucide-react";
 import Image from "next/image";
+import { useMessages } from "../../../lib/i18n/locale-provider";
+import { consoleMessages } from "../_lib/console.messages";
 import { type ConsoleNavItem, ConsoleSidebar } from "./console-chrome";
 import { ShieldMark } from "./icons";
 import { CountUp, EASE, usePrefersReducedMotion, useSeen } from "./motion";
@@ -26,16 +28,18 @@ import { CountUp, EASE, usePrefersReducedMotion, useSeen } from "./motion";
 export const INCIDENT_SIZE = { width: 520, height: 664 } as const;
 
 export const INCIDENT_NAV: ConsoleNavItem[] = [
-  { label: "Overview", icon: LayoutGrid },
-  { label: "Drivers", icon: UserRound },
-  { label: "Families", icon: Users },
-  { label: "Incidents", icon: Mail },
-  { label: "Health", icon: HeartPulse },
-  { label: "Analytics", icon: ChartColumn },
-  { label: "Settings", icon: Settings },
+  { key: "overview", icon: LayoutGrid },
+  { key: "drivers", icon: UserRound },
+  { key: "families", icon: Users },
+  { key: "incidents", icon: Mail },
+  { key: "health", icon: HeartPulse },
+  { key: "analytics", icon: ChartColumn },
+  { key: "settings", icon: Settings },
 ];
 
+/** `active` is the key of the highlighted sidebar item (e.g. "families"). */
 export function ConsoleIncident({ active }: { active?: string }) {
+  const t = useMessages(consoleMessages);
   return (
     <div className="lp-console relative h-full w-full">
       <div className="flex h-[88px] items-center gap-5 pl-6 pr-0">
@@ -44,7 +48,7 @@ export function ConsoleIncident({ active }: { active?: string }) {
           <span className="text-[21px] font-extrabold tracking-[-0.035em] text-[#0f1a3a]">CabinGuard</span>
         </span>
         <span className="ml-auto flex h-[38px] w-[260px] items-center gap-2 rounded-l-full border border-r-0 border-[#e6edf8] bg-white px-4 text-[12px] text-[#8b98b1]">
-          <Search size={15} className="text-[#56647f]" /> Search drivers, families, incidents...
+          <Search size={15} className="text-[#56647f]" /> {t.searchShort}
         </span>
       </div>
       <ConsoleSidebar
@@ -57,14 +61,14 @@ export function ConsoleIncident({ active }: { active?: string }) {
       />
       <div className="absolute bottom-0 left-[140px] right-0 top-[88px] px-4 pt-5">
         <h3 className="text-[20px] font-extrabold leading-tight tracking-[-0.03em] text-[#0b1533]">
-          Live incident response
+          {t.incident.title}
         </h3>
-        <p className="text-[11px] text-[#7a87a3]">Real-time monitoring and family notifications</p>
+        <p className="text-[11px] text-[#7a87a3]">{t.incident.subtitle}</p>
         <IncidentMap />
         <DriverCard />
         <FamilyCard />
         <span className="mt-3 flex h-[44px] items-center justify-center gap-2 rounded-[12px] bg-gradient-to-b from-[#2f6bff] to-[#1253fd] text-[13px] font-semibold text-white shadow-[0_12px_24px_-12px_rgba(18,83,253,0.8)]">
-          Manage incident <ArrowRight size={15} />
+          {t.incident.manage} <ArrowRight size={15} />
         </span>
       </div>
     </div>
@@ -74,6 +78,7 @@ export function ConsoleIncident({ active }: { active?: string }) {
 const TRIP = "M6 196 C 40 180, 52 150, 72 140 S 100 118, 122 112";
 
 function IncidentMap() {
+  const t = useMessages(consoleMessages).incident;
   const reduced = usePrefersReducedMotion();
   const { ref, seen } = useSeen<HTMLDivElement>(0.3);
   const show = seen;
@@ -127,12 +132,12 @@ function IncidentMap() {
         transition={{ duration: 0.6, delay: 1.6, ease: EASE }}
       >
         <p className="flex items-center gap-1.5 text-[11px] font-bold text-[#14203f]">
-          <Siren size={14} className="text-[#ef2d35]" /> Incident detected
+          <Siren size={14} className="text-[#ef2d35]" /> {t.detected}
         </p>
         <p className="mt-0.5 pl-5 text-[9.5px] leading-snug text-[#55627e]">
-          I-80, New York, USA
+          {t.where}
           <br />
-          <span className="text-[#8592ab]">2 minutes ago</span>
+          <span className="text-[#8592ab]">{t.when}</span>
         </p>
       </motion.div>
     </div>
@@ -140,15 +145,16 @@ function IncidentMap() {
 }
 
 function DriverCard() {
+  const t = useMessages(consoleMessages).incident;
   return (
     <div className="lp-panel mt-3 p-3.5">
       <div className="flex items-center gap-3">
         <Image src="/landing/avatar-mike.webp" alt="" width={46} height={46} className="size-[46px] rounded-full object-cover" />
         <div className="leading-tight">
-          <p className="text-[11px] text-[#55627e]">Driver</p>
+          <p className="text-[11px] text-[#55627e]">{t.driver}</p>
           <p className="flex items-center gap-2 text-[15px] font-bold text-[#14203f]">
             Mike Taylor
-            <span className="lp-pill lp-pill-green text-[9.5px] font-semibold">● Active</span>
+            <span className="lp-pill lp-pill-green text-[9.5px] font-semibold">{t.active}</span>
           </p>
         </div>
       </div>
@@ -177,6 +183,7 @@ function DriverCard() {
 }
 
 function FamilyCard() {
+  const t = useMessages(consoleMessages).incident;
   return (
     <div className="lp-panel mt-3 flex items-center gap-3 p-3.5">
       <span className="flex -space-x-2">
@@ -187,9 +194,9 @@ function FamilyCard() {
         <Image src="/landing/avatar-emma.webp" alt="" width={30} height={30} className="size-[30px] rounded-full border-2 border-white object-cover" />
       </span>
       <span className="leading-tight">
-        <span className="block text-[13px] font-bold text-[#14203f]">Family notified</span>
-        <span className="block text-[10.5px] text-[#55627e]">3 family members alerted</span>
-        <span className="block text-[10px] text-[#8592ab]">2 minutes ago</span>
+        <span className="block text-[13px] font-bold text-[#14203f]">{t.familyNotified}</span>
+        <span className="block text-[10.5px] text-[#55627e]">{t.familyAlerted}</span>
+        <span className="block text-[10px] text-[#8592ab]">{t.when}</span>
       </span>
     </div>
   );

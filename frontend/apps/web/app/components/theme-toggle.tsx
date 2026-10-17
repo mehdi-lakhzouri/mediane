@@ -3,6 +3,13 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { MoonStar, SunMedium } from "lucide-react";
+import { useMessages } from "../../lib/i18n/locale-provider";
+import { defineMessages } from "../../lib/i18n/messages";
+
+const messages = defineMessages({
+  en: { toLight: "Switch to light mode", toDark: "Switch to dark mode" },
+  fr: { toLight: "Passer en mode clair", toDark: "Passer en mode sombre" },
+});
 
 export const THEME_STORAGE_KEY = "cg.signin.theme";
 type Theme = "light" | "dark";
@@ -42,6 +49,7 @@ const iconVariants = {
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("light");
   const reduceMotion = useReducedMotion();
+  const t = useMessages(messages);
 
   useIsoLayoutEffect(() => {
     let stored: string | null = null;
@@ -73,8 +81,8 @@ export function ThemeToggle() {
       type="button"
       onClick={toggle}
       aria-pressed={isDark}
-      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      aria-label={isDark ? t.toLight : t.toDark}
+      title={isDark ? t.toLight : t.toDark}
       className="fixed top-4 right-4 z-30 grid size-11 shrink-0 place-items-center rounded-full border transition-colors duration-300 hover:bg-[var(--sx-icon-hover-bg)] focus-visible:ring-2 focus-visible:ring-[#30b5ff] focus-visible:ring-offset-2 focus-visible:outline-none sm:top-6 sm:right-6"
       style={{
         borderColor: "var(--sx-border)",

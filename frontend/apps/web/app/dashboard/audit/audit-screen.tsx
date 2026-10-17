@@ -36,18 +36,17 @@ import {
 } from "@repo/ui/components/ui/select";
 import { DataTable } from "../../components/data-table/data-table";
 import {
-  actorTypeLabel,
   AuditCategoryBadge,
   AuditOutcomeBadge,
-  formatAuditAction,
 } from "../../components/dashboard/audit/audit-badges";
 import { AuditSheet } from "../../components/dashboard/audit/audit-sheet";
 import { AuditStats } from "../../components/dashboard/audit/audit-stats";
 import {
-  formatDateTime,
-  fullName,
-  initials,
-} from "../../components/dashboard/users/format";
+  auditActionLabel,
+  labelMessages,
+  type Labels,
+} from "../../components/dashboard/labels";
+import { fullName, initials } from "../../components/dashboard/users/format";
 import {
   getAdminAuditStats,
   listAdminAudit,
@@ -58,6 +57,96 @@ import {
   type AuditOutcome,
 } from "../../../lib/api/admin-audit";
 import { ApiError } from "../../../lib/api/client";
+import { useErrorText } from "../../../lib/i18n/api-errors";
+import { useFormatters, useMessages } from "../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../lib/i18n/messages";
+
+const messages = defineMessages({
+  en: {
+    title: "Audit log",
+    subtitle:
+      "Investigate security, access and administrative activity across CabinGuard.",
+    export: "Export page",
+    refresh: "Refresh",
+    columns: {
+      timestamp: "Timestamp",
+      event: "Event",
+      category: "Category",
+      actor: "Actor",
+      target: "Target",
+      outcome: "Outcome",
+      source: "Source",
+      actions: "Actions",
+    },
+    noTarget: "No target",
+    view: (action: string) => `View ${action}`,
+    viewDetails: "View event details",
+    deletedAccount: "Deleted account",
+    search: "Search action, request ID, IP or exact UUID...",
+    searchLabel: "Search audit events",
+    filters: {
+      category: "Filter by category",
+      allCategories: "All categories",
+      outcome: "Filter by outcome",
+      anyOutcome: "Any outcome",
+      actor: "Filter by actor",
+      allActors: "All actors",
+      users: "Users",
+      devices: "Devices",
+      range: "Filter by time range",
+      last24h: "Last 24 hours",
+      last7d: "Last 7 days",
+      last30d: "Last 30 days",
+      allTime: "All time",
+    },
+    loadFailed: "Could not load the audit log. Please try again.",
+    empty: "No audit event matches these filters",
+    emptyHint: "Try a longer time range or clear one of the filters.",
+    errorHint: "Check that the API is reachable, then refresh the log.",
+  },
+  fr: {
+    title: "Journal d’audit",
+    subtitle:
+      "Analysez l’activité de sécurité, d’accès et d’administration sur CabinGuard.",
+    export: "Exporter la page",
+    refresh: "Actualiser",
+    columns: {
+      timestamp: "Horodatage",
+      event: "Événement",
+      category: "Catégorie",
+      actor: "Acteur",
+      target: "Cible",
+      outcome: "Résultat",
+      source: "Source",
+      actions: "Actions",
+    },
+    noTarget: "Aucune cible",
+    view: (action: string) => `Voir ${action}`,
+    viewDetails: "Voir le détail de l’événement",
+    deletedAccount: "Compte supprimé",
+    search: "Action, ID de requête, IP ou UUID…",
+    searchLabel: "Rechercher des événements d’audit",
+    filters: {
+      category: "Filtrer par catégorie",
+      allCategories: "Toutes les catégories",
+      outcome: "Filtrer par résultat",
+      anyOutcome: "Tous les résultats",
+      actor: "Filtrer par acteur",
+      allActors: "Tous les acteurs",
+      users: "Utilisateurs",
+      devices: "Appareils",
+      range: "Filtrer par période",
+      last24h: "Dernières 24 heures",
+      last7d: "7 derniers jours",
+      last30d: "30 derniers jours",
+      allTime: "Depuis le début",
+    },
+    loadFailed: "Impossible de charger le journal d’audit. Veuillez réessayer.",
+    empty: "Aucun événement d’audit ne correspond à ces filtres",
+    emptyHint: "Essayez une période plus longue ou retirez un filtre.",
+    errorHint: "Vérifiez que l’API est joignable, puis actualisez le journal.",
+  },
+});
 
 type CategoryFilter = AuditCategory | "ALL";
 type OutcomeFilter = AuditOutcome | "ALL";
@@ -65,11 +154,16 @@ type ActorFilter = AuditActorType | "ALL";
 type RangeFilter = "ALL" | "24H" | "7D" | "30D";
 
 export function AuditScreen() {
+  const t = useMessages(messages);
+  const labels = useMessages(labelMessages);
+  const format = useFormatters();
+  const errorText = useErrorText();
   const [rows, setRows] = useState<AdminAuditEntry[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [stats, setStats] = useState<AdminAuditStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  // The failure, not its text: the message follows a language switch.
+  const [loadError, setLoadError] = useState<{ error: unknown } | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("ALL");
@@ -119,11 +213,7 @@ export function AuditScreen() {
       if (id !== requestId.current) return;
       setRows([]);
       setTotalItems(0);
-      setLoadError(
-        error instanceof ApiError
-          ? error.message
-          : "Could not load the audit log. Please try again.",
-      );
+      setLoadError({ error });
     } finally {
       if (id === requestId.current) setLoading(false);
     }
@@ -159,23 +249,23 @@ export function AuditScreen() {
       {
         id: "createdAt",
         size: 185,
-        header: "Timestamp",
+        header: t.columns.timestamp,
         enableSorting: true,
         cell: ({ row }) => (
           <span className="whitespace-nowrap text-muted-foreground tabular-nums">
-            {formatDateTime(row.original.createdAt)}
+            {format.dateTime(row.original.createdAt)}
           </span>
         ),
       },
       {
         id: "action",
         size: 300,
-        header: "Event",
+        header: t.columns.event,
         enableSorting: false,
         cell: ({ row }) => (
           <div className="min-w-0">
             <p className="truncate font-semibold text-foreground">
-              {formatAuditAction(row.original.action)}
+              {auditActionLabel(labels, row.original.action)}
             </p>
             <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
               {row.original.action}
@@ -186,7 +276,7 @@ export function AuditScreen() {
       {
         id: "category",
         size: 125,
-        header: "Category",
+        header: t.columns.category,
         enableSorting: false,
         cell: ({ row }) => (
           <AuditCategoryBadge category={row.original.category} />
@@ -195,22 +285,30 @@ export function AuditScreen() {
       {
         id: "actor",
         size: 230,
-        header: "Actor",
+        header: t.columns.actor,
         enableSorting: false,
-        cell: ({ row }) => <ActorCell entry={row.original} />,
+        cell: ({ row }) => (
+          <ActorCell
+            entry={row.original}
+            labels={labels}
+            deletedAccount={t.deletedAccount}
+          />
+        ),
       },
       {
         id: "target",
         size: 150,
-        header: "Target",
+        header: t.columns.target,
         enableSorting: false,
         cell: ({ row }) => (
           <div className="min-w-0">
             <p className="text-[12px] font-medium text-foreground">
-              {row.original.targetType ?? "—"}
+              {row.original.targetType
+                ? labels.targetType[row.original.targetType]
+                : "—"}
             </p>
             <p className="mt-0.5 max-w-[130px] truncate font-mono text-[10px] text-muted-foreground">
-              {row.original.targetId ?? "No target"}
+              {row.original.targetId ?? t.noTarget}
             </p>
           </div>
         ),
@@ -218,14 +316,14 @@ export function AuditScreen() {
       {
         id: "outcome",
         size: 110,
-        header: "Outcome",
+        header: t.columns.outcome,
         enableSorting: false,
         cell: ({ row }) => <AuditOutcomeBadge outcome={row.original.outcome} />,
       },
       {
         id: "ipAddress",
         size: 135,
-        header: "Source",
+        header: t.columns.source,
         enableSorting: false,
         cell: ({ row }) => (
           <span className="font-mono text-[11px] text-muted-foreground">
@@ -237,7 +335,7 @@ export function AuditScreen() {
         id: "actions",
         size: 56,
         enableSorting: false,
-        header: () => <span className="sr-only">Actions</span>,
+        header: () => <span className="sr-only">{t.columns.actions}</span>,
         cell: ({ row }) => (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -245,21 +343,23 @@ export function AuditScreen() {
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                aria-label={`View ${formatAuditAction(row.original.action)}`}
+                aria-label={t.view(
+                  auditActionLabel(labels, row.original.action),
+                )}
               >
                 <MoreVertical />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[190px]">
               <DropdownMenuItem onSelect={() => setSelected(row.original)}>
-                <Eye /> View event details
+                <Eye /> {t.viewDetails}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ),
       },
     ],
-    [],
+    [format, labels, t],
   );
 
   function resetPage() {
@@ -271,12 +371,9 @@ export function AuditScreen() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[32px] font-bold leading-tight tracking-[-0.035em] text-foreground">
-            Audit log
+            {t.title}
           </h1>
-          <p className="mt-1 text-[14px] text-muted-foreground">
-            Investigate security, access and administrative activity across
-            CabinGuard.
-          </p>
+          <p className="mt-1 text-[14px] text-muted-foreground">{t.subtitle}</p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -287,7 +384,7 @@ export function AuditScreen() {
             onClick={() => exportAuditRows(rows)}
             className="h-[46px] rounded-[9px] bg-white px-4"
           >
-            <Download /> Export page
+            <Download /> {t.export}
           </Button>
           <Button
             type="button"
@@ -301,7 +398,7 @@ export function AuditScreen() {
             className="h-[46px] rounded-[9px] bg-white px-4"
           >
             <RefreshCcw className={loading ? "animate-spin" : undefined} />
-            Refresh
+            {t.refresh}
           </Button>
         </div>
       </div>
@@ -329,8 +426,8 @@ export function AuditScreen() {
               <Input
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search action, request ID, IP or exact UUID..."
-                aria-label="Search audit events"
+                placeholder={t.search}
+                aria-label={t.searchLabel}
                 className="h-11 rounded-[9px] bg-white pl-11"
               />
             </div>
@@ -342,20 +439,18 @@ export function AuditScreen() {
               }}
             >
               <SelectTrigger
-                aria-label="Filter by category"
+                aria-label={t.filters.category}
                 className="h-11 w-[160px] rounded-[9px]"
               >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All categories</SelectItem>
-                <SelectItem value="ACCOUNT">Account</SelectItem>
-                <SelectItem value="ACCESS">Access</SelectItem>
-                <SelectItem value="SECURITY">Security</SelectItem>
-                <SelectItem value="FAMILY">Family</SelectItem>
-                <SelectItem value="DEVICE">Device</SelectItem>
-                <SelectItem value="SAFETY">Safety</SelectItem>
-                <SelectItem value="SYSTEM">System</SelectItem>
+                <SelectItem value="ALL">{t.filters.allCategories}</SelectItem>
+                {CATEGORIES.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {labels.auditCategory[category]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select
@@ -366,15 +461,19 @@ export function AuditScreen() {
               }}
             >
               <SelectTrigger
-                aria-label="Filter by outcome"
+                aria-label={t.filters.outcome}
                 className="h-11 w-[145px] rounded-[9px]"
               >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">Any outcome</SelectItem>
-                <SelectItem value="SUCCESS">Success</SelectItem>
-                <SelectItem value="FAILURE">Failure</SelectItem>
+                <SelectItem value="ALL">{t.filters.anyOutcome}</SelectItem>
+                <SelectItem value="SUCCESS">
+                  {labels.auditOutcome.SUCCESS}
+                </SelectItem>
+                <SelectItem value="FAILURE">
+                  {labels.auditOutcome.FAILURE}
+                </SelectItem>
               </SelectContent>
             </Select>
             <Select
@@ -385,17 +484,19 @@ export function AuditScreen() {
               }}
             >
               <SelectTrigger
-                aria-label="Filter by actor"
+                aria-label={t.filters.actor}
                 className="h-11 w-[145px] rounded-[9px]"
               >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All actors</SelectItem>
-                <SelectItem value="USER">Users</SelectItem>
-                <SelectItem value="SYSTEM">System</SelectItem>
-                <SelectItem value="CLI">Command line</SelectItem>
-                <SelectItem value="DEVICE">Devices</SelectItem>
+                <SelectItem value="ALL">{t.filters.allActors}</SelectItem>
+                <SelectItem value="USER">{t.filters.users}</SelectItem>
+                <SelectItem value="SYSTEM">
+                  {labels.actorType.SYSTEM}
+                </SelectItem>
+                <SelectItem value="CLI">{labels.actorType.CLI}</SelectItem>
+                <SelectItem value="DEVICE">{t.filters.devices}</SelectItem>
               </SelectContent>
             </Select>
             <Select
@@ -406,16 +507,16 @@ export function AuditScreen() {
               }}
             >
               <SelectTrigger
-                aria-label="Filter by time range"
+                aria-label={t.filters.range}
                 className="h-11 w-[145px] rounded-[9px]"
               >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="24H">Last 24 hours</SelectItem>
-                <SelectItem value="7D">Last 7 days</SelectItem>
-                <SelectItem value="30D">Last 30 days</SelectItem>
-                <SelectItem value="ALL">All time</SelectItem>
+                <SelectItem value="24H">{t.filters.last24h}</SelectItem>
+                <SelectItem value="7D">{t.filters.last7d}</SelectItem>
+                <SelectItem value="30D">{t.filters.last30d}</SelectItem>
+                <SelectItem value="ALL">{t.filters.allTime}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -427,12 +528,14 @@ export function AuditScreen() {
                 <ClipboardList className="size-5 text-primary" />
               </span>
               <p className="mt-3 text-[14px] font-semibold text-foreground">
-                {loadError ?? "No audit event matches these filters"}
+                {loadError
+                  ? loadError.error instanceof ApiError
+                    ? errorText.message(loadError.error)
+                    : t.loadFailed
+                  : t.empty}
               </p>
               <p className="mt-1 text-[13px] text-muted-foreground">
-                {loadError
-                  ? "Check that the API is reachable, then refresh the log."
-                  : "Try a longer time range or clear one of the filters."}
+                {loadError ? t.errorHint : t.emptyHint}
               </p>
             </div>
           </div>
@@ -448,7 +551,25 @@ export function AuditScreen() {
   );
 }
 
-function ActorCell({ entry }: { entry: AdminAuditEntry }) {
+const CATEGORIES: AuditCategory[] = [
+  "ACCOUNT",
+  "ACCESS",
+  "SECURITY",
+  "FAMILY",
+  "DEVICE",
+  "SAFETY",
+  "SYSTEM",
+];
+
+function ActorCell({
+  entry,
+  labels,
+  deletedAccount,
+}: {
+  entry: AdminAuditEntry;
+  labels: Labels;
+  deletedAccount: string;
+}) {
   if (entry.actor) {
     return (
       <div className="flex min-w-0 items-center gap-3">
@@ -480,11 +601,11 @@ function ActorCell({ entry }: { entry: AdminAuditEntry }) {
       </span>
       <div>
         <p className="text-[12px] font-medium text-foreground">
-          {actorTypeLabel(entry.actorType)}
+          {labels.actorType[entry.actorType]}
         </p>
         {entry.actorUserId ? (
           <p className="max-w-[130px] truncate font-mono text-[9px] text-muted-foreground">
-            Deleted account · {entry.actorUserId}
+            {deletedAccount} · {entry.actorUserId}
           </p>
         ) : null}
       </div>

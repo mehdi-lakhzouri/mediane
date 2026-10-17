@@ -18,6 +18,104 @@ import {
 import { RecoveryShell } from "../components/recovery-shell";
 import { ApiError } from "../../lib/api/client";
 import { resetPassword } from "../../lib/api/auth";
+import { useErrorText, type ErrorText } from "../../lib/i18n/api-errors";
+import { useMessages } from "../../lib/i18n/locale-provider";
+import { defineMessages } from "../../lib/i18n/messages";
+
+const messages = defineMessages({
+  en: {
+    errors: {
+      weak: "Choose a stronger password.",
+      weakDetail: (detail: string) => `Password ${detail}.`,
+      rateLimited: "Too many attempts. Wait a moment, then try again.",
+      failed: "We couldn't update your password. Please try again.",
+      tooShort: "Password must be at least 12 characters.",
+      mismatch: "The passwords do not match.",
+    },
+    reading: {
+      eyebrow: "Secure verification",
+      title: "Checking your link",
+      description: "One moment while we verify your single-use recovery link.",
+    },
+    invalid: {
+      eyebrow: "Link unavailable",
+      title: "Request a fresh link",
+      description:
+        "This reset link is invalid, expired, or has already been used. Your current password has not changed.",
+      resend: "Send a new recovery link",
+      back: "Back to sign in",
+    },
+    success: {
+      eyebrow: "Password updated",
+      title: "You’re ready to sign in",
+      description:
+        "Your new password is active and previous sessions have been securely signed out.",
+      body: "Your account is protected with the new password. Use it the next time you sign in.",
+      next: "Continue to sign in",
+    },
+    eyebrow: "Secure recovery",
+    title: "Choose a new password",
+    description:
+      "Use a memorable passphrase with at least 12 characters. All existing sessions will be signed out.",
+    newPassword: "New password",
+    newPlaceholder: "At least 12 characters",
+    confirm: "Confirm password",
+    confirmPlaceholder: "Repeat your new password",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
+    checkLength: "12 characters minimum",
+    checkMatch: "Passwords match",
+    submit: "Set new password",
+    submitting: "Updating password…",
+  },
+  fr: {
+    errors: {
+      weak: "Choisissez un mot de passe plus robuste.",
+      weakDetail: (detail: string) => `Le mot de passe ${detail}.`,
+      rateLimited: "Trop de tentatives. Patientez un instant puis réessayez.",
+      failed:
+        "Nous n’avons pas pu mettre à jour votre mot de passe. Veuillez réessayer.",
+      tooShort: "Le mot de passe doit contenir au moins 12 caractères.",
+      mismatch: "Les mots de passe ne correspondent pas.",
+    },
+    reading: {
+      eyebrow: "Vérification sécurisée",
+      title: "Vérification de votre lien",
+      description:
+        "Un instant, nous vérifions votre lien de récupération à usage unique.",
+    },
+    invalid: {
+      eyebrow: "Lien indisponible",
+      title: "Demandez un nouveau lien",
+      description:
+        "Ce lien de réinitialisation est invalide, a expiré ou a déjà été utilisé. Votre mot de passe actuel n’a pas changé.",
+      resend: "Envoyer un nouveau lien de récupération",
+      back: "Retour à la connexion",
+    },
+    success: {
+      eyebrow: "Mot de passe mis à jour",
+      title: "Vous pouvez vous connecter",
+      description:
+        "Votre nouveau mot de passe est actif et les sessions précédentes ont été fermées en toute sécurité.",
+      body: "Votre compte est protégé par le nouveau mot de passe. Utilisez-le lors de votre prochaine connexion.",
+      next: "Continuer vers la connexion",
+    },
+    eyebrow: "Récupération sécurisée",
+    title: "Choisissez un nouveau mot de passe",
+    description:
+      "Utilisez une phrase de passe facile à retenir d’au moins 12 caractères. Toutes les sessions ouvertes seront fermées.",
+    newPassword: "Nouveau mot de passe",
+    newPlaceholder: "Au moins 12 caractères",
+    confirm: "Confirmer le mot de passe",
+    confirmPlaceholder: "Répétez votre nouveau mot de passe",
+    showPassword: "Afficher le mot de passe",
+    hidePassword: "Masquer le mot de passe",
+    checkLength: "12 caractères minimum",
+    checkMatch: "Les mots de passe correspondent",
+    submit: "Définir le nouveau mot de passe",
+    submitting: "Mise à jour du mot de passe…",
+  },
+});
 
 type ResetState =
   | { kind: "reading" }
@@ -27,22 +125,23 @@ type ResetState =
   | { kind: "invalid" }
   | { kind: "success" };
 
-function resetErrorMessage(error: unknown): string {
-  if (!(error instanceof ApiError)) {
-    return "Something went wrong. Please try again.";
-  }
+function resetErrorMessage(
+  error: unknown,
+  t: (typeof messages)["en"]["errors"],
+  errorText: ErrorText,
+): string {
+  if (!(error instanceof ApiError)) return errorText.message(error);
   if (error.code === "WEAK_PASSWORD") {
-    return error.details[0]?.message ?? "Choose a stronger password.";
+    const detail = errorText.detail(error);
+    return detail ? t.weakDetail(detail) : t.weak;
   }
-  if (error.code === "RATE_LIMITED") {
-    return "Too many attempts. Wait a moment, then try again.";
-  }
-  return error.code === "NETWORK_ERROR"
-    ? error.message
-    : "We couldn't update your password. Please try again.";
+  if (error.code === "RATE_LIMITED") return t.rateLimited;
+  return error.code === "NETWORK_ERROR" ? errorText.message(error) : t.failed;
 }
 
 export function ResetPasswordScreen() {
+  const t = useMessages(messages);
+  const errorText = useErrorText();
   const [state, setState] = useState<ResetState>({ kind: "reading" });
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -73,7 +172,7 @@ export function ResetPasswordScreen() {
       setState({
         kind: "error",
         token: state.token,
-        message: "Password must be at least 12 characters.",
+        message: t.errors.tooShort,
       });
       return;
     }
@@ -81,7 +180,7 @@ export function ResetPasswordScreen() {
       setState({
         kind: "error",
         token: state.token,
-        message: "The passwords do not match.",
+        message: t.errors.mismatch,
       });
       return;
     }
@@ -103,7 +202,7 @@ export function ResetPasswordScreen() {
         setState({
           kind: "error",
           token,
-          message: resetErrorMessage(error),
+          message: resetErrorMessage(error, t.errors, errorText),
         });
       }
     }
@@ -113,9 +212,9 @@ export function ResetPasswordScreen() {
     return (
       <RecoveryShell
         icon={LoaderCircle}
-        eyebrow="Secure verification"
-        title="Checking your link"
-        description="One moment while we verify your single-use recovery link."
+        eyebrow={t.reading.eyebrow}
+        title={t.reading.title}
+        description={t.reading.description}
         visual="password-reset"
       >
         <LoaderCircle className="mx-auto size-6 animate-spin text-[var(--sx-accent)]" />
@@ -127,21 +226,21 @@ export function ResetPasswordScreen() {
     return (
       <RecoveryShell
         icon={RefreshCw}
-        eyebrow="Link unavailable"
-        title="Request a fresh link"
-        description="This reset link is invalid, expired, or has already been used. Your current password has not changed."
+        eyebrow={t.invalid.eyebrow}
+        title={t.invalid.title}
+        description={t.invalid.description}
         visual="password-reset"
       >
         <Link href="/forgot-password" className="recovery-primary">
           <RefreshCw className="size-5" />
-          Send a new recovery link
+          {t.invalid.resend}
         </Link>
         <Link
           href="/sign-in"
           className="mt-5 flex items-center justify-center gap-2 text-sm font-bold text-[var(--sx-accent)]"
         >
           <ArrowLeft className="size-4" />
-          Back to sign in
+          {t.invalid.back}
         </Link>
       </RecoveryShell>
     );
@@ -151,18 +250,17 @@ export function ResetPasswordScreen() {
     return (
       <RecoveryShell
         icon={CheckCircle2}
-        eyebrow="Password updated"
-        title="You’re ready to sign in"
-        description="Your new password is active and previous sessions have been securely signed out."
+        eyebrow={t.success.eyebrow}
+        title={t.success.title}
+        description={t.success.description}
         visual="password-reset"
       >
         <div className="rounded-2xl border border-[var(--sx-success-border)] bg-[var(--sx-success-bg)] px-5 py-4 text-center text-sm leading-6 text-[var(--sx-success-text)]">
-          Your account is protected with the new password. Use it the next time
-          you sign in.
+          {t.success.body}
         </div>
         <Link href="/sign-in" className="recovery-primary mt-7">
           <ArrowRight className="size-5" />
-          Continue to sign in
+          {t.success.next}
         </Link>
       </RecoveryShell>
     );
@@ -171,9 +269,9 @@ export function ResetPasswordScreen() {
   return (
     <RecoveryShell
       icon={LockKeyhole}
-      eyebrow="Secure recovery"
-      title="Choose a new password"
-      description="Use a memorable passphrase with at least 12 characters. All existing sessions will be signed out."
+      eyebrow={t.eyebrow}
+      title={t.title}
+      description={t.description}
       visual="password-reset"
     >
       <form onSubmit={handleSubmit} aria-busy={submitting}>
@@ -181,7 +279,7 @@ export function ResetPasswordScreen() {
           htmlFor="new-password"
           className="text-sm font-bold text-[var(--sx-label)]"
         >
-          New password
+          {t.newPassword}
         </label>
         <div className="recovery-input-shell mt-2 flex h-14 items-center rounded-xl border px-4">
           <LockKeyhole className="size-5 shrink-0 text-[var(--sx-icon-muted)]" />
@@ -197,14 +295,14 @@ export function ResetPasswordScreen() {
             disabled={submitting}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            placeholder="At least 12 characters"
+            placeholder={t.newPlaceholder}
             className="h-full min-w-0 flex-1 bg-transparent px-4 text-[15px] text-[var(--sx-ink)] outline-none placeholder:text-[var(--sx-placeholder)]"
           />
           <button
             type="button"
             onClick={() => setShowPassword((value) => !value)}
             className="grid size-9 place-items-center rounded-lg text-[var(--sx-icon-muted)] transition hover:bg-[var(--sx-icon-hover-bg)]"
-            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-label={showPassword ? t.hidePassword : t.showPassword}
           >
             {showPassword ? (
               <EyeOff className="size-5" />
@@ -218,7 +316,7 @@ export function ResetPasswordScreen() {
           htmlFor="confirm-password"
           className="mt-5 block text-sm font-bold text-[var(--sx-label)]"
         >
-          Confirm password
+          {t.confirm}
         </label>
         <div className="recovery-input-shell mt-2 flex h-14 items-center rounded-xl border px-4">
           <Check className="size-5 shrink-0 text-[var(--sx-icon-muted)]" />
@@ -233,14 +331,14 @@ export function ResetPasswordScreen() {
             disabled={submitting}
             value={confirmation}
             onChange={(event) => setConfirmation(event.target.value)}
-            placeholder="Repeat your new password"
+            placeholder={t.confirmPlaceholder}
             className="h-full min-w-0 flex-1 bg-transparent px-4 text-[15px] text-[var(--sx-ink)] outline-none placeholder:text-[var(--sx-placeholder)]"
           />
         </div>
 
         <div className="mt-4 grid gap-2 text-xs sm:grid-cols-2">
-          <PasswordCheck valid={longEnough} label="12 characters minimum" />
-          <PasswordCheck valid={passwordsMatch} label="Passwords match" />
+          <PasswordCheck valid={longEnough} label={t.checkLength} />
+          <PasswordCheck valid={passwordsMatch} label={t.checkMatch} />
         </div>
 
         <AnimatePresence initial={false}>
@@ -270,7 +368,7 @@ export function ResetPasswordScreen() {
           ) : (
             <ArrowRight className="size-5" />
           )}
-          {submitting ? "Updating password…" : "Set new password"}
+          {submitting ? t.submitting : t.submit}
         </motion.button>
       </form>
     </RecoveryShell>

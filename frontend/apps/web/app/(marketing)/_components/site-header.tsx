@@ -4,11 +4,54 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, ChevronDown, Menu, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { demoHref, FAQ, NAV } from "../_lib/content";
+import { useMessages } from "../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../lib/i18n/messages";
+import { LanguageSwitch, LanguageToggle } from "../../components/language-switch";
+import { useContent } from "../_lib/use-content";
 import { Wordmark } from "./icons";
 import { EASE, PopIn } from "./motion";
 
+const messages = defineMessages({
+  en: {
+    home: "CabinGuard home",
+    main: "Main",
+    search: "Search the site",
+    signIn: "Sign in",
+    demo: "Request demo",
+    // Narrow desktop widths (below 2xl) where the full label does not fit.
+    demoShort: "Request demo",
+    openMenu: "Open menu",
+    closeMenu: "Close menu",
+    section: "Page section",
+    faq: "FAQ",
+    placeholder: "Search features, safety, FAQ…",
+    searchLabel: "Search",
+    results: "Results",
+    none: (query: string) =>
+      `Nothing matches “${query}”. Try “alerts” or “privacy”.`,
+  },
+  fr: {
+    home: "Accueil CabinGuard",
+    main: "Principal",
+    search: "Rechercher sur le site",
+    signIn: "Connexion",
+    demo: "Demander une démo",
+    demoShort: "Démo",
+    openMenu: "Ouvrir le menu",
+    closeMenu: "Fermer le menu",
+    section: "Section de la page",
+    faq: "FAQ",
+    placeholder: "Rechercher des fonctionnalités, la sécurité, la FAQ…",
+    searchLabel: "Rechercher",
+    results: "Résultats",
+    none: (query: string) =>
+      `Aucun résultat pour « ${query} ». Essayez « alertes » ou « confidentialité ».`,
+  },
+});
+
 export function SiteHeader() {
+  const t = useMessages(messages);
+  const { NAV, demoHref } = useContent();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -62,13 +105,13 @@ export function SiteHeader() {
       }`}
     >
       <div className="lp-container flex h-[70px] items-center gap-6">
-        <Link href="/" aria-label="CabinGuard home" className="shrink-0">
+        <Link href="/" aria-label={t.home} className="shrink-0">
           <Wordmark size={24} />
         </Link>
 
         <nav
           ref={navRef}
-          aria-label="Main"
+          aria-label={t.main}
           className="mx-auto hidden items-center gap-[clamp(14px,2.3vw,56px)] lg:flex"
         >
           {NAV.map((group) =>
@@ -138,29 +181,33 @@ export function SiteHeader() {
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
-            aria-label="Search the site"
-            className="hidden size-[44px] place-items-center rounded-full border border-[var(--lp-line-strong)] bg-white/80 text-[var(--lp-ink-soft)] transition-colors hover:border-[var(--lp-blue-line)] hover:text-[var(--lp-blue)] sm:grid lg:hidden xl:grid"
+            aria-label={t.search}
+            className="hidden size-[44px] place-items-center rounded-full border border-[var(--lp-line-strong)] bg-white/80 text-[var(--lp-ink-soft)] transition-colors hover:border-[var(--lp-blue-line)] hover:text-[var(--lp-blue)] sm:grid lg:hidden 2xl:grid"
           >
             <Search size={19} strokeWidth={2} />
           </button>
+          <PopIn delay={0.05} className="hidden sm:inline-flex">
+            <LanguageToggle />
+          </PopIn>
           <PopIn delay={0.1} className="hidden sm:inline-flex">
             <Link
               href="/sign-in"
               className="inline-flex h-[44px] items-center whitespace-nowrap rounded-[10px] border border-[var(--lp-line-strong)] bg-white/80 px-5 text-[15px] font-medium text-[var(--lp-ink)] transition-colors hover:border-[var(--lp-blue-line)]"
             >
-              Sign in
+              {t.signIn}
             </Link>
           </PopIn>
           <PopIn delay={0.2} className="hidden md:inline-flex">
             <a href={demoHref} className="lp-btn-primary h-[44px] whitespace-nowrap rounded-[10px] px-6 text-[15px]">
-              Request demo
+              <span className="hidden 2xl:inline">{t.demo}</span>
+              <span className="2xl:hidden">{t.demoShort}</span>
               <ArrowRight size={17} strokeWidth={2.2} />
             </a>
           </PopIn>
           <button
             type="button"
             className="grid size-[44px] place-items-center rounded-full border border-[var(--lp-line-strong)] bg-white lg:hidden"
-            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            aria-label={mobileOpen ? t.closeMenu : t.openMenu}
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen((value) => !value)}
           >
@@ -180,6 +227,8 @@ export function SiteHeader() {
 }
 
 function MobileMenu({ onClose }: { onClose: () => void }) {
+  const t = useMessages(messages);
+  const { NAV, demoHref } = useContent();
   return (
     <motion.div
       initial={{ opacity: 0, height: 0 }}
@@ -211,12 +260,13 @@ function MobileMenu({ onClose }: { onClose: () => void }) {
             )}
           </div>
         ))}
+        <LanguageSwitch variant="marketing" className="w-fit" />
         <div className="grid gap-3 sm:grid-cols-2">
           <Link href="/sign-in" className="lp-btn-secondary h-12">
-            Sign in
+            {t.signIn}
           </Link>
           <a href={demoHref} className="lp-btn-primary h-12">
-            Request demo <ArrowRight size={17} />
+            {t.demo} <ArrowRight size={17} />
           </a>
         </div>
       </div>
@@ -227,6 +277,8 @@ function MobileMenu({ onClose }: { onClose: () => void }) {
 type Destination = { label: string; hint: string; href: string };
 
 function SearchPalette({ onClose }: { onClose: () => void }) {
+  const t = useMessages(messages);
+  const { NAV, FAQ } = useContent();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const input = useRef<HTMLInputElement>(null);
@@ -235,11 +287,11 @@ function SearchPalette({ onClose }: { onClose: () => void }) {
     const pages = NAV.flatMap((group) =>
       group.links
         ? group.links.map((link) => ({ label: link.label, hint: group.label, href: link.href }))
-        : [{ label: group.label, hint: "Page section", href: group.href ?? "#" }],
+        : [{ label: group.label, hint: t.section, href: group.href ?? "#" }],
     );
-    const questions = FAQ.map((item) => ({ label: item.question, hint: "FAQ", href: "#faq" }));
+    const questions = FAQ.map((item) => ({ label: item.question, hint: t.faq, href: "#faq" }));
     return [...pages, ...questions];
-  }, []);
+  }, [FAQ, NAV, t]);
 
   const results = destinations
     .filter((d) => `${d.label} ${d.hint}`.toLowerCase().includes(query.trim().toLowerCase()))
@@ -268,7 +320,7 @@ function SearchPalette({ onClose }: { onClose: () => void }) {
       <motion.div
         role="dialog"
         aria-modal="true"
-        aria-label="Search the site"
+        aria-label={t.search}
         initial={{ y: -12, scale: 0.98 }}
         animate={{ y: 0, scale: 1 }}
         transition={{ duration: 0.25, ease: EASE }}
@@ -289,16 +341,16 @@ function SearchPalette({ onClose }: { onClose: () => void }) {
               if (event.key === "Enter") go(results[active]);
               if (event.key === "Escape") onClose();
             }}
-            placeholder="Search features, safety, FAQ…"
-            aria-label="Search"
+            placeholder={t.placeholder}
+            aria-label={t.searchLabel}
             className="h-14 w-full bg-transparent text-[16px] outline-none placeholder:text-[var(--lp-faint)]"
           />
           <kbd className="rounded-md border border-[var(--lp-line)] px-2 py-0.5 text-[11px] text-[var(--lp-muted)]">Esc</kbd>
         </div>
-        <ul className="max-h-[360px] overflow-y-auto p-2" role="listbox" aria-label="Results">
+        <ul className="max-h-[360px] overflow-y-auto p-2" role="listbox" aria-label={t.results}>
           {results.length === 0 ? (
             <li className="px-4 py-6 text-center text-[14px] text-[var(--lp-muted)]">
-              Nothing matches “{query}”. Try “alerts” or “privacy”.
+              {t.none(query)}
             </li>
           ) : (
             results.map((result, index) => (

@@ -9,6 +9,13 @@ import {
   useState,
 } from "react";
 import { AlertCircle, CheckCircle2, Info, X } from "lucide-react";
+import { useMessages } from "../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../lib/i18n/messages";
+
+const messages = defineMessages({
+  en: { dismiss: "Dismiss notification" },
+  fr: { dismiss: "Fermer la notification" },
+});
 
 type ToastTone = "success" | "error" | "info";
 
@@ -40,6 +47,7 @@ const toneIcons = {
 } as const;
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const t = useMessages(messages);
   const [items, setItems] = useState<ToastItem[]>([]);
   const sequence = useRef(0);
 
@@ -100,7 +108,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={() => dismiss(item.id)}
-                aria-label="Dismiss notification"
+                aria-label={t.dismiss}
                 className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <X className="size-4" />

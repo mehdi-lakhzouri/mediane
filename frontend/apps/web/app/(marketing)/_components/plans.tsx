@@ -1,24 +1,44 @@
 import { ArrowRight, Check } from "lucide-react";
-import { demoHref, PLANS, salesHref } from "../_lib/content";
+import { defineMessages } from "../../../lib/i18n/messages";
+import { getMessages } from "../../../lib/i18n/server";
+import { marketingContent } from "../_lib/content";
 import { PopIn, Reveal } from "./motion";
 
-export function Plans() {
+const messages = defineMessages({
+  en: {
+    eyebrow: "Plans",
+    title: "One platform, ",
+    accent: "sized to you.",
+    lead: "From one family car to a national fleet. Pricing depends on vehicles and units, so we quote it with you.",
+    recommended: "Recommended",
+  },
+  fr: {
+    eyebrow: "Forfaits",
+    title: "Une plateforme, ",
+    accent: "à votre mesure.",
+    lead: "D’une voiture familiale à une flotte nationale. Le prix dépend du nombre de véhicules et de boîtiers : nous établissons le devis avec vous.",
+    recommended: "Recommandé",
+  },
+});
+
+export async function Plans() {
+  const t = await getMessages(messages);
+  const { PLANS, demoHref, salesHref } = await getMessages(marketingContent);
   return (
     <section id="pricing" className="relative scroll-mt-20 overflow-hidden lp-section-wash" aria-labelledby="pricing-title">
       <div className="lp-container py-[clamp(72px,6.4vw,112px)]">
         <Reveal className="mx-auto max-w-[920px] text-center">
-          <p className="lp-eyebrow">Plans</p>
+          <p className="lp-eyebrow">{t.eyebrow}</p>
           <h2 id="pricing-title" className="lp-title mt-[clamp(16px,1.6vw,26px)]">
-            One platform, <span className="lp-accent">sized to you.</span>
+            {t.title}
+            <span className="lp-accent">{t.accent}</span>
           </h2>
-          <p className="lp-lead mx-auto mt-[clamp(14px,1.2vw,20px)] max-w-[620px]">
-            From one family car to a national fleet. Pricing depends on vehicles and units, so we quote it with you.
-          </p>
+          <p className="lp-lead mx-auto mt-[clamp(14px,1.2vw,20px)] max-w-[620px]">{t.lead}</p>
         </Reveal>
 
         <ul className="mx-auto mt-[clamp(40px,3.6vw,60px)] grid max-w-[1240px] items-stretch gap-5 lg:grid-cols-3">
           {PLANS.map((plan, index) => (
-            <li key={plan.name}>
+            <li key={index}>
               <Reveal delay={index * 0.08} className="h-full">
                 <article
                   className={`relative flex h-full flex-col rounded-[24px] p-[clamp(24px,2vw,34px)] transition-transform duration-300 hover:-translate-y-1 ${
@@ -29,7 +49,7 @@ export function Plans() {
                 >
                   {plan.featured ? (
                     <span className="absolute right-6 top-6 rounded-full bg-white/15 px-3 py-1 text-[12px] font-semibold">
-                      Recommended
+                      {t.recommended}
                     </span>
                   ) : null}
                   <h3 className={`text-[26px] font-extrabold tracking-[-0.03em] ${plan.featured ? "" : "text-[var(--lp-ink)]"}`}>
@@ -54,7 +74,7 @@ export function Plans() {
                   </ul>
                   <PopIn delay={0.15 + index * 0.08} className="mt-auto flex pt-9">
                     <a
-                      href={plan.cta === "Request a demo" ? demoHref : salesHref}
+                      href={plan.action === "demo" ? demoHref : salesHref}
                       className={`flex h-[52px] w-full items-center justify-center gap-2 rounded-[12px] text-[16px] font-semibold transition-[background,border-color,color] duration-300 ${
                         plan.featured
                           ? "bg-white text-[var(--lp-blue-strong)] hover:bg-[#eef3ff]"

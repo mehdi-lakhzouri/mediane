@@ -23,28 +23,125 @@ import {
   logout,
   type CurrentUser,
 } from "../../lib/api/auth";
+import { useErrorText, type ErrorText } from "../../lib/i18n/api-errors";
+import { useMessages } from "../../lib/i18n/locale-provider";
+import { defineMessages } from "../../lib/i18n/messages";
 
 const MIN_LENGTH = 12;
 
-function changeErrorMessage(error: unknown): string {
-  if (!(error instanceof ApiError)) {
-    return "Something went wrong. Please try again.";
-  }
+const messages = defineMessages({
+  en: {
+    errors: {
+      wrongTemporary:
+        "The temporary password is incorrect. Use the one from your invitation email.",
+      weak: "Choose a stronger password.",
+      weakDetail: (detail: string) => `Your new password ${detail}.`,
+      unchanged: "Your new password must be different from the temporary one.",
+      rateLimited: "Too many attempts. Wait a few minutes, then try again.",
+      failed: "We couldn't update your password. Please try again.",
+      requirements: "Check the requirements below the password fields.",
+    },
+    loading: {
+      eyebrow: "Secure sign-in",
+      title: "One moment",
+      description: "Checking your session.",
+      footnote: "Your temporary password only works once and expires soon.",
+    },
+    welcome: (name: string) => `Welcome, ${name}`,
+    title: "Choose your own password",
+    description:
+      "Replace the temporary password from your invitation email. You'll set up two-step verification right after.",
+    footnote:
+      "Your temporary password stops working as soon as you choose your own.",
+    temporary: "Temporary password",
+    temporaryPlaceholder: "From your invitation email",
+    newPassword: "New password",
+    newPlaceholder: (min: number) => `At least ${min} characters`,
+    confirm: "Confirm new password",
+    confirmPlaceholder: "Repeat your new password",
+    showPasswords: "Show passwords",
+    hidePasswords: "Hide passwords",
+    requirements: "Password requirements",
+    checks: {
+      length: (min: number) => `${min} characters minimum`,
+      different: "Different from the temporary one",
+      noEmail: "Doesn't contain your email",
+      match: "Passwords match",
+    },
+    submit: "Save and continue",
+    submitting: "Saving your password…",
+    notYou: (email: string) => `Not ${email}? Sign out`,
+  },
+  fr: {
+    errors: {
+      wrongTemporary:
+        "Le mot de passe temporaire est incorrect. Utilisez celui de votre e-mail d’invitation.",
+      weak: "Choisissez un mot de passe plus robuste.",
+      weakDetail: (detail: string) => `Votre nouveau mot de passe ${detail}.`,
+      unchanged:
+        "Votre nouveau mot de passe doit être différent du mot de passe temporaire.",
+      rateLimited:
+        "Trop de tentatives. Patientez quelques minutes puis réessayez.",
+      failed:
+        "Nous n’avons pas pu mettre à jour votre mot de passe. Veuillez réessayer.",
+      requirements:
+        "Vérifiez les exigences indiquées sous les champs de mot de passe.",
+    },
+    loading: {
+      eyebrow: "Connexion sécurisée",
+      title: "Un instant",
+      description: "Vérification de votre session.",
+      footnote:
+        "Votre mot de passe temporaire ne fonctionne qu’une fois et expire bientôt.",
+    },
+    welcome: (name: string) => `Bienvenue, ${name}`,
+    title: "Choisissez votre propre mot de passe",
+    description:
+      "Remplacez le mot de passe temporaire reçu dans votre e-mail d’invitation. Vous configurerez ensuite la vérification en deux étapes.",
+    footnote:
+      "Votre mot de passe temporaire cesse de fonctionner dès que vous choisissez le vôtre.",
+    temporary: "Mot de passe temporaire",
+    temporaryPlaceholder: "Celui de votre e-mail d’invitation",
+    newPassword: "Nouveau mot de passe",
+    newPlaceholder: (min: number) => `Au moins ${min} caractères`,
+    confirm: "Confirmer le nouveau mot de passe",
+    confirmPlaceholder: "Répétez votre nouveau mot de passe",
+    showPasswords: "Afficher les mots de passe",
+    hidePasswords: "Masquer les mots de passe",
+    requirements: "Exigences du mot de passe",
+    checks: {
+      length: (min: number) => `${min} caractères minimum`,
+      different: "Différent du mot de passe temporaire",
+      noEmail: "Ne contient pas votre adresse e-mail",
+      match: "Les mots de passe correspondent",
+    },
+    submit: "Enregistrer et continuer",
+    submitting: "Enregistrement du mot de passe…",
+    notYou: (email: string) => `Vous n’êtes pas ${email} ? Se déconnecter`,
+  },
+});
+
+function changeErrorMessage(
+  error: unknown,
+  t: (typeof messages)["en"]["errors"],
+  errorText: ErrorText,
+): string {
+  if (!(error instanceof ApiError)) return errorText.message(error);
   switch (error.code) {
     case "INVALID_CURRENT_PASSWORD":
-      return "The temporary password is incorrect. Use the one from your invitation email.";
-    case "WEAK_PASSWORD":
-      return error.details[0]?.message
-        ? `Your new password ${error.details[0].message}.`
-        : "Choose a stronger password.";
+      return t.wrongTemporary;
+    case "WEAK_PASSWORD": {
+      const detail = errorText.detail(error);
+      return detail ? t.weakDetail(detail) : t.weak;
+    }
     case "PASSWORD_UNCHANGED":
-      return "Your new password must be different from the temporary one.";
+      return t.unchanged;
     case "RATE_LIMITED":
-      return "Too many attempts. Wait a few minutes, then try again.";
+      return t.rateLimited;
     case "NETWORK_ERROR":
-      return error.message;
+      return errorText.message(error);
     default:
-      return "We couldn't update your password. Please try again.";
+      return t.failed;
   }
 }
 
@@ -54,6 +151,8 @@ function changeErrorMessage(error: unknown): string {
  * it (PASSWORD_CHANGE_REQUIRED); this screen is the way through.
  */
 export function ChangePasswordScreen() {
+  const t = useMessages(messages);
+  const errorText = useErrorText();
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const [user, setUser] = useState<CurrentUser | null>(null);
@@ -98,7 +197,7 @@ export function ChangePasswordScreen() {
     event.preventDefault();
     if (submitting) return;
     if (!ready) {
-      setError("Check the requirements below the password fields.");
+      setError(t.errors.requirements);
       return;
     }
     setSubmitting(true);
@@ -110,7 +209,7 @@ export function ChangePasswordScreen() {
       });
       router.replace(destinationFor(principal.accountState));
     } catch (failure) {
-      setError(changeErrorMessage(failure));
+      setError(changeErrorMessage(failure, t.errors, errorText));
       setSubmitting(false);
     }
   }
@@ -127,11 +226,11 @@ export function ChangePasswordScreen() {
     return (
       <RecoveryShell
         icon={LoaderCircle}
-        eyebrow="Secure sign-in"
-        title="One moment"
-        description="Checking your session."
+        eyebrow={t.loading.eyebrow}
+        title={t.loading.title}
+        description={t.loading.description}
         visual="password-reset"
-        footnote="Your temporary password only works once and expires soon."
+        footnote={t.loading.footnote}
       >
         <LoaderCircle className="mx-auto size-6 animate-spin text-[var(--sx-accent)]" />
       </RecoveryShell>
@@ -141,65 +240,60 @@ export function ChangePasswordScreen() {
   return (
     <RecoveryShell
       icon={KeyRound}
-      eyebrow={`Welcome, ${user.firstName}`}
-      title="Choose your own password"
-      description="Replace the temporary password from your invitation email. You'll set up two-step verification right after."
+      eyebrow={t.welcome(user.firstName)}
+      title={t.title}
+      description={t.description}
       visual="password-reset"
-      footnote="Your temporary password stops working as soon as you choose your own."
+      footnote={t.footnote}
     >
       <form onSubmit={handleSubmit} aria-busy={submitting} noValidate>
         <PasswordField
           id="current-password"
-          label="Temporary password"
+          label={t.temporary}
           autoComplete="current-password"
           value={current}
           onChange={setCurrent}
           show={show}
           disabled={submitting}
-          placeholder="From your invitation email"
+          placeholder={t.temporaryPlaceholder}
           autoFocus
         />
         <PasswordField
           id="new-password"
-          label="New password"
+          label={t.newPassword}
           autoComplete="new-password"
           value={password}
           onChange={setPassword}
           show={show}
           disabled={submitting}
-          placeholder={`At least ${MIN_LENGTH} characters`}
+          placeholder={t.newPlaceholder(MIN_LENGTH)}
           onToggleShow={() => setShow((value) => !value)}
+          toggleLabel={show ? t.hidePasswords : t.showPasswords}
           className="mt-5"
         />
         <PasswordField
           id="confirm-password"
-          label="Confirm new password"
+          label={t.confirm}
           autoComplete="new-password"
           value={confirmation}
           onChange={setConfirmation}
           show={show}
           disabled={submitting}
-          placeholder="Repeat your new password"
+          placeholder={t.confirmPlaceholder}
           className="mt-5"
         />
 
         <ul
           className="mt-4 grid gap-2 text-xs sm:grid-cols-2"
-          aria-label="Password requirements"
+          aria-label={t.requirements}
         >
           <Requirement
             valid={checks.length}
-            label={`${MIN_LENGTH} characters minimum`}
+            label={t.checks.length(MIN_LENGTH)}
           />
-          <Requirement
-            valid={checks.different}
-            label="Different from the temporary one"
-          />
-          <Requirement
-            valid={checks.noEmail}
-            label="Doesn't contain your email"
-          />
-          <Requirement valid={checks.match} label="Passwords match" />
+          <Requirement valid={checks.different} label={t.checks.different} />
+          <Requirement valid={checks.noEmail} label={t.checks.noEmail} />
+          <Requirement valid={checks.match} label={t.checks.match} />
         </ul>
 
         <AnimatePresence initial={false}>
@@ -229,7 +323,7 @@ export function ChangePasswordScreen() {
           ) : (
             <ArrowRight className="size-5" />
           )}
-          {submitting ? "Saving your password…" : "Save and continue"}
+          {submitting ? t.submitting : t.submit}
         </motion.button>
       </form>
 
@@ -239,7 +333,7 @@ export function ChangePasswordScreen() {
         className="mx-auto mt-5 flex items-center gap-2 text-sm font-bold text-[var(--sx-muted)] transition hover:text-[var(--sx-accent)]"
       >
         <LogOut className="size-4" />
-        Not {user.email}? Sign out
+        {t.notYou(user.email)}
       </button>
     </RecoveryShell>
   );
@@ -255,6 +349,7 @@ interface PasswordFieldProps {
   disabled: boolean;
   placeholder: string;
   onToggleShow?: () => void;
+  toggleLabel?: string;
   autoFocus?: boolean;
   className?: string;
 }
@@ -288,7 +383,7 @@ function PasswordField(props: PasswordFieldProps) {
             type="button"
             onClick={props.onToggleShow}
             className="grid size-9 place-items-center rounded-lg text-[var(--sx-icon-muted)] transition hover:bg-[var(--sx-icon-hover-bg)]"
-            aria-label={props.show ? "Hide passwords" : "Show passwords"}
+            aria-label={props.toggleLabel}
           >
             {props.show ? (
               <EyeOff className="size-5" />

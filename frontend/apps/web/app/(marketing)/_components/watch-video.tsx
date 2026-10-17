@@ -4,7 +4,28 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Play, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { useMessages } from "../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../lib/i18n/messages";
 import { EASE } from "./motion";
+
+const messages = defineMessages({
+  en: {
+    watch: "Watch video",
+    dialog: "CabinGuard product video",
+    close: "Close video",
+    eyebrow: "Product film",
+    soon: "The walkthrough video is in production.",
+    walkthrough: "See how CabinGuard works",
+  },
+  fr: {
+    watch: "Voir la vidéo",
+    dialog: "Vidéo de présentation CabinGuard",
+    close: "Fermer la vidéo",
+    eyebrow: "Film produit",
+    soon: "La vidéo de présentation est en cours de production.",
+    walkthrough: "Découvrir le fonctionnement de CabinGuard",
+  },
+});
 
 /**
  * "Watch video" opens the walkthrough. Until the film is produced, the
@@ -13,6 +34,7 @@ import { EASE } from "./motion";
 const VIDEO_URL: string | null = null;
 
 export function WatchVideoButton({ className }: { className?: string }) {
+  const t = useMessages(messages);
   const [open, setOpen] = useState(false);
   const close = useRef<HTMLButtonElement>(null);
 
@@ -30,7 +52,7 @@ export function WatchVideoButton({ className }: { className?: string }) {
         <span className="grid size-[34px] place-items-center rounded-full border-2 border-[#c9d8fb] text-[var(--lp-blue)]">
           <Play size={15} fill="currentColor" strokeWidth={0} className="translate-x-px" />
         </span>
-        Watch video
+        {t.watch}
       </button>
       <AnimatePresence>
         {open ? (
@@ -44,7 +66,7 @@ export function WatchVideoButton({ className }: { className?: string }) {
             <motion.div
               role="dialog"
               aria-modal="true"
-              aria-label="CabinGuard product video"
+              aria-label={t.dialog}
               initial={{ y: 18, scale: 0.97, opacity: 0 }}
               animate={{ y: 0, scale: 1, opacity: 1 }}
               exit={{ y: 12, opacity: 0 }}
@@ -55,7 +77,7 @@ export function WatchVideoButton({ className }: { className?: string }) {
                 ref={close}
                 type="button"
                 onClick={() => setOpen(false)}
-                aria-label="Close video"
+                aria-label={t.close}
                 className="absolute right-4 top-4 z-10 grid size-10 place-items-center rounded-full bg-white/90 text-[var(--lp-ink)] shadow"
               >
                 <X size={18} />
@@ -74,17 +96,17 @@ export function WatchVideoButton({ className }: { className?: string }) {
                   <div className="absolute inset-0 bg-gradient-to-t from-[rgba(6,22,49,0.85)] via-[rgba(6,22,49,0.25)] to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 p-8 text-white">
                     <p className="text-[13px] font-semibold uppercase tracking-[0.24em] text-white/70">
-                      Product film
+                      {t.eyebrow}
                     </p>
                     <p className="mt-2 max-w-[520px] text-[24px] font-bold leading-snug tracking-[-0.02em]">
-                      The walkthrough video is in production.
+                      {t.soon}
                     </p>
                     <a
                       href="#how-it-works"
                       onClick={() => setOpen(false)}
                       className="lp-btn-primary mt-5 h-12 px-6 text-[16px]"
                     >
-                      See how CabinGuard works <ArrowRight size={17} />
+                      {t.walkthrough} <ArrowRight size={17} />
                     </a>
                   </div>
                 </div>

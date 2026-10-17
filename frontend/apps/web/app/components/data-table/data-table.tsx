@@ -28,6 +28,44 @@ import {
   Table2,
 } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
+import { useFormatters, useMessages } from "../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../lib/i18n/messages";
+
+const messages = defineMessages({
+  en: {
+    view: "Choose data view",
+    table: "Table view",
+    cards: "Cards view",
+    rowsPerPage: "Rows per page",
+    page: (current: string, total: string) => `Page ${current} of ${total}`,
+    first: "First page",
+    previous: "Previous page",
+    next: "Next page",
+    last: "Last page",
+    selected: (count: string, total: string) => `${count} of ${total} selected`,
+    noRows: "No rows",
+    noResults: "No results.",
+    range: (first: string, last: string, total: string) =>
+      `${first}–${last} of ${total}`,
+  },
+  fr: {
+    view: "Choisir l’affichage",
+    table: "Vue tableau",
+    cards: "Vue cartes",
+    rowsPerPage: "Lignes par page",
+    page: (current: string, total: string) => `Page ${current} sur ${total}`,
+    first: "Première page",
+    previous: "Page précédente",
+    next: "Page suivante",
+    last: "Dernière page",
+    selected: (count: string, total: string) =>
+      `${count} sur ${total} sélectionné${Number(count) > 1 ? "s" : ""}`,
+    noRows: "Aucune ligne",
+    noResults: "Aucun résultat.",
+    range: (first: string, last: string, total: string) =>
+      `${first}–${last} sur ${total}`,
+  },
+});
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Select,
@@ -113,6 +151,8 @@ export function DataTable<T>({
   renderSubComponent,
   rowVariants,
 }: DataTableProps<T>) {
+  const t = useMessages(messages);
+  const format = useFormatters();
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const table = useReactTable({
     data,
@@ -149,16 +189,16 @@ export function DataTable<T>({
           <div
             className="flex h-11 shrink-0 items-center rounded-[9px] border border-border bg-card p-1 shadow-[0_1px_2px_rgba(16,24,40,.03)]"
             role="group"
-            aria-label="Choose data view"
+            aria-label={t.view}
           >
             <ViewButton
-              label="Table view"
+              label={t.table}
               icon={Table2}
               active={viewMode === "table"}
               onClick={() => setViewMode("table")}
             />
             <ViewButton
-              label="Cards view"
+              label={t.cards}
               icon={LayoutGrid}
               active={viewMode === "cards"}
               onClick={() => setViewMode("cards")}
@@ -342,7 +382,7 @@ export function DataTable<T>({
                       <EmptyReveal>
                         {emptyState ?? (
                           <p className="grid h-52 place-items-center text-[13px] text-muted-foreground">
-                            No results.
+                            {t.noResults}
                           </p>
                         )}
                       </EmptyReveal>
@@ -378,7 +418,7 @@ export function DataTable<T>({
       <div className="grid min-h-[68px] items-center gap-4 rounded-[12px] border border-border bg-card px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,.02)] sm:grid-cols-[1fr_auto_1fr]">
         <div className="flex items-center justify-center gap-2 sm:justify-start">
           <span className="text-[12px] text-muted-foreground">
-            Rows per page
+            {t.rowsPerPage}
           </span>
           <Select
             value={String(pagination.pageSize)}
@@ -391,7 +431,7 @@ export function DataTable<T>({
           >
             <SelectTrigger
               size="sm"
-              aria-label="Rows per page"
+              aria-label={t.rowsPerPage}
               className="w-[72px]"
             >
               <SelectValue />
@@ -408,29 +448,29 @@ export function DataTable<T>({
 
         <div className="flex flex-wrap items-center justify-center gap-3">
           <span className="text-[12px] font-semibold text-foreground tabular-nums">
-            Page {currentPage} of {pageCount}
+            {t.page(format.number(currentPage), format.number(pageCount))}
           </span>
           <div className="flex items-center gap-1">
             <PageButton
-              label="First page"
+              label={t.first}
               icon={ChevronsLeft}
               disabled={currentPage === 1}
               onClick={() => table.setPageIndex(0)}
             />
             <PageButton
-              label="Previous page"
+              label={t.previous}
               icon={ChevronLeft}
               disabled={currentPage === 1}
               onClick={() => table.previousPage()}
             />
             <PageButton
-              label="Next page"
+              label={t.next}
               icon={ChevronRight}
               disabled={currentPage >= pageCount}
               onClick={() => table.nextPage()}
             />
             <PageButton
-              label="Last page"
+              label={t.last}
               icon={ChevronsRight}
               disabled={currentPage >= pageCount}
               onClick={() => table.setPageIndex(pageCount - 1)}
@@ -440,10 +480,14 @@ export function DataTable<T>({
 
         <p className="text-center text-[12px] text-muted-foreground sm:text-right">
           {selectedCount > 0
-            ? `${selectedCount} of ${rowCount} selected`
+            ? t.selected(format.number(selectedCount), format.number(rowCount))
             : rowCount === 0
-              ? "No rows"
-              : `${firstRow}–${lastRow} of ${rowCount}`}
+              ? t.noRows
+              : t.range(
+                  format.number(firstRow),
+                  format.number(lastRow),
+                  format.number(rowCount),
+                )}
         </p>
       </div>
     </div>
@@ -471,6 +515,7 @@ function CardGrid<T>({
   pageSize: number;
   rowVariants?: Variants;
 }) {
+  const t = useMessages(messages);
   if (loading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -507,7 +552,7 @@ function CardGrid<T>({
         <EmptyReveal>
           {emptyState ?? (
             <p className="grid h-52 place-items-center text-[13px] text-muted-foreground">
-              No results.
+              {t.noResults}
             </p>
           )}
         </EmptyReveal>

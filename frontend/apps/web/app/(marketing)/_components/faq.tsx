@@ -4,30 +4,77 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, ChartColumn, ChevronDown, MessageSquare, ShieldCheck, UsersRound } from "lucide-react";
 import Image from "next/image";
 import { useId, useState } from "react";
-import { demoHref, FAQ, salesHref } from "../_lib/content";
+import { Lines } from "../../../lib/i18n/lines";
+import { useMessages } from "../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../lib/i18n/messages";
+import { useContent } from "../_lib/use-content";
 import { Icon } from "./icons";
 import { EASE, PopIn, Reveal, usePrefersReducedMotion } from "./motion";
 
-const PROMISES = [
-  { icon: <ShieldCheck size={24} />, title: ["Real-time", "protection"], caption: "On every journey" },
-  { icon: <UsersRound size={24} />, title: ["Families stay", "informed"], caption: "When it matters" },
-  { icon: <ChartColumn size={24} />, title: ["Safer roads", "together"], caption: "For a brighter tomorrow" },
+const PROMISE_ICONS = [
+  <ShieldCheck key="shield" size={24} />,
+  <UsersRound key="users" size={24} />,
+  <ChartColumn key="chart" size={24} />,
 ];
 
+const messages = defineMessages({
+  en: {
+    eyebrow: "Answers for a safer tomorrow",
+    title: "Frequently asked ",
+    accent: "questions",
+    lead: "Everything you need to know about how CabinGuard helps keep drivers, families, and organizations safer on the road.",
+    promises: [
+      { title: ["Real-time", "protection"], caption: "On every journey" },
+      { title: ["Families stay", "informed"], caption: "When it matters" },
+      { title: ["Safer roads", "together"], caption: "For a brighter tomorrow" },
+    ],
+    cta: {
+      eyebrow: "Safer drivers. Stronger families.",
+      title: "Ready to make",
+      accent: "every trip safer?",
+      body: "See how CabinGuard can help your organization protect drivers, support families, and prevent emergencies before they happen.",
+      demo: "Request demo",
+      sales: "Talk to sales",
+    },
+  },
+  fr: {
+    eyebrow: "Des réponses pour un avenir plus sûr",
+    title: "Questions ",
+    accent: "fréquentes",
+    lead: "Tout ce qu’il faut savoir sur la façon dont CabinGuard aide conducteurs, familles et organisations à rester plus en sécurité sur la route.",
+    promises: [
+      { title: ["Protection", "en temps réel"], caption: "À chaque trajet" },
+      { title: ["Des familles", "informées"], caption: "Quand ça compte" },
+      { title: ["Des routes plus sûres", "ensemble"], caption: "Pour un avenir serein" },
+    ],
+    cta: {
+      eyebrow: "Des conducteurs protégés. Des familles rassurées.",
+      title: "Prêt à sécuriser",
+      accent: "chaque trajet ?",
+      body: "Découvrez comment CabinGuard peut aider votre organisation à protéger ses conducteurs, soutenir les familles et prévenir les urgences avant qu’elles n’arrivent.",
+      demo: "Demander une démo",
+      sales: "Contacter les ventes",
+    },
+  },
+});
+
 export function Faq() {
+  const t = useMessages(messages);
+  const promises = t.promises.map((promise, index) => ({
+    ...promise,
+    icon: PROMISE_ICONS[index],
+  }));
   return (
     <section id="faq" className="relative scroll-mt-20 overflow-hidden bg-[linear-gradient(180deg,#fafcff_0%,#f3f7fe_100%)]" aria-labelledby="faq-title">
       <div className="lp-container relative grid gap-12 py-[clamp(48px,4vw,64px)] xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] xl:gap-[clamp(24px,2.6vw,44px)]">
         <div>
           <Reveal>
-            <p className="lp-eyebrow">Answers for a safer tomorrow</p>
+            <p className="lp-eyebrow">{t.eyebrow}</p>
             <h2 id="faq-title" className="lp-title mt-[clamp(18px,1.9vw,30px)]">
-              Frequently asked <span className="lp-accent">questions</span>
+              {t.title}
+              <span className="lp-accent">{t.accent}</span>
             </h2>
-            <p className="lp-lead mt-[clamp(14px,1.3vw,22px)] max-w-[740px]">
-              Everything you need to know about how CabinGuard helps keep drivers, families, and organizations safer
-              on the road.
-            </p>
+            <p className="lp-lead mt-[clamp(14px,1.3vw,22px)] max-w-[740px]">{t.lead}</p>
           </Reveal>
           <Accordion />
         </div>
@@ -49,16 +96,14 @@ export function Faq() {
           </div>
 
           <ul className="relative z-10 grid gap-3 sm:grid-cols-3 xl:-mt-[2%] xl:gap-[18px]">
-            {PROMISES.map((promise, index) => (
-              <li key={promise.caption}>
+            {promises.map((promise, index) => (
+              <li key={index}>
                 <Reveal delay={index * 0.07} y={16} className="h-full">
                   <div className="flex h-full gap-3.5 rounded-[18px] border border-white/90 bg-white/90 p-[clamp(14px,1.1vw,18px)] shadow-[var(--lp-shadow-card)] backdrop-blur-sm">
                     <span className="lp-tile size-[clamp(44px,3.2vw,54px)] rounded-[14px]">{promise.icon}</span>
                     <span className="leading-tight">
                       <span className="block text-[clamp(14px,0.98vw,16.5px)] font-bold tracking-[-0.015em] text-[var(--lp-ink)]">
-                        {promise.title[0]}
-                        <br />
-                        {promise.title[1]}
+                        <Lines lines={promise.title} />
                       </span>
                       <span className="mt-1.5 block whitespace-nowrap text-[clamp(11.5px,0.76vw,13px)] text-[var(--lp-muted)]">{promise.caption}</span>
                     </span>
@@ -78,6 +123,7 @@ export function Faq() {
 }
 
 function Accordion() {
+  const { FAQ } = useContent();
   const [open, setOpen] = useState(0);
   const reduced = usePrefersReducedMotion();
   const base = useId();
@@ -89,7 +135,7 @@ function Accordion() {
         const panelId = `${base}-panel-${index}`;
         const buttonId = `${base}-button-${index}`;
         return (
-          <li key={item.question}>
+          <li key={index}>
             <Reveal delay={index * 0.05} y={16}>
               <div
                 className={`rounded-[18px] border-2 bg-white/90 shadow-[var(--lp-shadow-card)] backdrop-blur-sm transition-[border-color,box-shadow] duration-300 ${
@@ -148,6 +194,8 @@ function Accordion() {
 }
 
 function CtaPanel() {
+  const t = useMessages(messages).cta;
+  const { demoHref, salesHref } = useContent();
   return (
     <div className="relative h-full overflow-hidden rounded-[26px] border border-white/90 bg-[linear-gradient(135deg,#eef4ff_0%,#e3ecfd_55%,#dbe7fc_100%)] p-[clamp(24px,2.2vw,38px)] shadow-[var(--lp-shadow-card)]">
       <div aria-hidden="true" className="pointer-events-none absolute bottom-0 right-0 top-0 hidden w-[34%] sm:block 2xl:w-[42%]">
@@ -161,20 +209,19 @@ function CtaPanel() {
         />
       </div>
       <div className="relative max-w-[440px] sm:max-w-[66%] 2xl:max-w-[440px]">
-        <p className="lp-eyebrow text-[clamp(10.5px,0.8vw,13.5px)]">Safer drivers. Stronger families.</p>
+        <p className="lp-eyebrow text-[clamp(10.5px,0.8vw,13.5px)]">{t.eyebrow}</p>
         <h2 className="mt-[clamp(14px,1.2vw,20px)] text-[clamp(32px,3.1vw,52px)] font-extrabold leading-[1.04] tracking-[-0.045em] text-[var(--lp-ink)]">
-          Ready to make
+          {t.title}
           <br />
-          <span className="lp-accent">every trip safer?</span>
+          <span className="lp-accent">{t.accent}</span>
         </h2>
         <p className="mt-[clamp(12px,1vw,16px)] text-[clamp(15px,1.06vw,17.5px)] leading-[1.45] text-[var(--lp-body)]">
-          See how CabinGuard can help your organization protect drivers, support families, and prevent emergencies
-          before they happen.
+          {t.body}
         </p>
         <div className="mt-[clamp(20px,1.8vw,30px)] flex flex-wrap gap-4">
           <PopIn delay={0.1}>
             <a href={demoHref} className="lp-btn-primary h-[58px] px-8 text-[17px]">
-              Request demo <ArrowRight size={19} />
+              {t.demo} <ArrowRight size={19} />
             </a>
           </PopIn>
           <PopIn delay={0.22}>
@@ -182,7 +229,7 @@ function CtaPanel() {
               <span className="grid size-[34px] place-items-center rounded-full border-2 border-[#c9d8fb] text-[var(--lp-blue)]">
                 <MessageSquare size={15} />
               </span>
-              Talk to sales
+              {t.sales}
             </a>
           </PopIn>
         </div>

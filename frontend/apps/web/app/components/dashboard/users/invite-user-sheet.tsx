@@ -29,7 +29,58 @@ import {
 import { createUser, type AdminUser } from "../../../../lib/api/admin-users";
 import { ApiError } from "../../../../lib/api/client";
 import type { Role } from "../../../../lib/api/auth";
+import { useErrorText } from "../../../../lib/i18n/api-errors";
+import { useMessages } from "../../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../../lib/i18n/messages";
 import { useToast } from "../toast-provider";
+
+const messages = defineMessages({
+  en: {
+    title: "Invite a user",
+    description:
+      "They receive an email with a single-use link and a temporary password, and must choose their own password on first sign-in.",
+    email: "Email address",
+    emailPlaceholder: "driver@company.com",
+    firstName: "First name",
+    firstNamePlaceholder: "e.g. Amara",
+    lastName: "Last name",
+    lastNamePlaceholder: "e.g. Okafor",
+    role: "Role",
+    driver: "Driver",
+    admin: "Administrator",
+    adminHint: "Administrators can manage every account, including this one.",
+    temporaryNote:
+      "The temporary password is generated here and shown only in that email. Nobody, including you, can read it afterwards.",
+    cancel: "Cancel",
+    submit: "Send invitation",
+    submitting: "Sending",
+    failed: "Could not create the account. Please try again.",
+    notSent: "Invitation could not be sent.",
+  },
+  fr: {
+    title: "Inviter un utilisateur",
+    description:
+      "La personne reçoit un e-mail contenant un lien à usage unique et un mot de passe temporaire, et doit choisir son propre mot de passe à la première connexion.",
+    email: "Adresse e-mail",
+    emailPlaceholder: "conducteur@entreprise.com",
+    firstName: "Prénom",
+    firstNamePlaceholder: "ex. Amara",
+    lastName: "Nom",
+    lastNamePlaceholder: "ex. Okafor",
+    role: "Rôle",
+    driver: "Conducteur",
+    admin: "Administrateur",
+    adminHint:
+      "Les administrateurs peuvent gérer tous les comptes, y compris celui-ci.",
+    temporaryNote:
+      "Le mot de passe temporaire est généré ici et n’apparaît que dans cet e-mail. Personne, pas même vous, ne pourra le lire ensuite.",
+    cancel: "Annuler",
+    submit: "Envoyer l’invitation",
+    submitting: "Envoi",
+    failed: "Impossible de créer le compte. Veuillez réessayer.",
+    notSent: "L’invitation n’a pas pu être envoyée.",
+  },
+});
 
 interface InviteUserSheetProps {
   open: boolean;
@@ -42,6 +93,8 @@ export function InviteUserSheet({
   onOpenChange,
   onCreated,
 }: InviteUserSheetProps) {
+  const t = useMessages(messages);
+  const errorText = useErrorText();
   const toast = useToast();
   const [role, setRole] = useState<Role>("DRIVER");
   const [submitting, setSubmitting] = useState(false);
@@ -74,11 +127,9 @@ export function InviteUserSheet({
       onOpenChange(false);
     } catch (err) {
       const message =
-        err instanceof ApiError
-          ? err.message
-          : "Could not create the account. Please try again.";
+        err instanceof ApiError ? errorText.message(err) : t.failed;
       setError(message);
-      toast.error("Invitation could not be sent.", message);
+      toast.error(t.notSent, message);
     } finally {
       setSubmitting(false);
     }
@@ -99,18 +150,17 @@ export function InviteUserSheet({
             </span>
             <div className="min-w-0 pt-1">
               <DialogTitle className="text-[28px] leading-8 tracking-[-0.035em]">
-                Invite a user
+                {t.title}
               </DialogTitle>
               <DialogDescription className="mt-1.5 max-w-[426px] text-[14px] leading-[21px]">
-                They receive an email with a single-use link and a temporary
-                password, and must choose their own password on first sign-in.
+                {t.description}
               </DialogDescription>
             </div>
           </DialogHeader>
 
           <div className="flex flex-col gap-5 px-7 pt-1 pb-[34px]">
             <div className="cg-form-reveal cg-form-delay-1 flex flex-col gap-2">
-              <Label htmlFor="invite-email">Email address</Label>
+              <Label htmlFor="invite-email">{t.email}</Label>
               <div className="relative">
                 <Mail
                   aria-hidden="true"
@@ -124,7 +174,7 @@ export function InviteUserSheet({
                   required
                   maxLength={254}
                   autoComplete="off"
-                  placeholder="driver@company.com"
+                  placeholder={t.emailPlaceholder}
                   disabled={submitting}
                   className="h-12 rounded-[9px] pr-4 pl-11 text-[16px] focus-visible:ring-[3px]"
                 />
@@ -133,7 +183,7 @@ export function InviteUserSheet({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="cg-form-reveal cg-form-delay-2 flex flex-col gap-2">
-                <Label htmlFor="invite-first">First name</Label>
+                <Label htmlFor="invite-first">{t.firstName}</Label>
                 <div className="relative">
                   <UserRound
                     aria-hidden="true"
@@ -145,14 +195,14 @@ export function InviteUserSheet({
                     name="firstName"
                     required
                     maxLength={100}
-                    placeholder="e.g. Amara"
+                    placeholder={t.firstNamePlaceholder}
                     disabled={submitting}
                     className="h-11 rounded-[9px] pr-3 pl-10"
                   />
                 </div>
               </div>
               <div className="cg-form-reveal cg-form-delay-3 flex flex-col gap-2">
-                <Label htmlFor="invite-last">Last name</Label>
+                <Label htmlFor="invite-last">{t.lastName}</Label>
                 <div className="relative">
                   <UserRound
                     aria-hidden="true"
@@ -164,7 +214,7 @@ export function InviteUserSheet({
                     name="lastName"
                     required
                     maxLength={100}
-                    placeholder="e.g. Okafor"
+                    placeholder={t.lastNamePlaceholder}
                     disabled={submitting}
                     className="h-11 rounded-[9px] pr-3 pl-10"
                   />
@@ -173,7 +223,7 @@ export function InviteUserSheet({
             </div>
 
             <div className="cg-form-reveal cg-form-delay-4 flex flex-col gap-2">
-              <Label htmlFor="invite-role">Role</Label>
+              <Label htmlFor="invite-role">{t.role}</Label>
               <div className="relative">
                 <ShieldCheck
                   aria-hidden="true"
@@ -192,14 +242,12 @@ export function InviteUserSheet({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="DRIVER">Driver</SelectItem>
-                    <SelectItem value="ADMIN">Administrator</SelectItem>
+                    <SelectItem value="DRIVER">{t.driver}</SelectItem>
+                    <SelectItem value="ADMIN">{t.admin}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <p className="text-[12px] text-muted-foreground">
-                Administrators can manage every account, including this one.
-              </p>
+              <p className="text-[12px] text-muted-foreground">{t.adminHint}</p>
             </div>
 
             <p className="cg-form-reveal cg-form-delay-5 flex items-start gap-4 rounded-[10px] border border-[#cfdaed] bg-[#f7f9fd] px-5 py-5 text-[14px] leading-[21px] text-[#526180]">
@@ -207,8 +255,7 @@ export function InviteUserSheet({
                 className="mt-0.5 size-6 shrink-0 text-[#2947e8]"
                 strokeWidth={1.8}
               />
-              The temporary password is generated here and shown only in that
-              email. Nobody, including you, can read it afterwards.
+              {t.temporaryNote}
             </p>
 
             {error && (
@@ -229,7 +276,7 @@ export function InviteUserSheet({
               disabled={submitting}
               className="h-11 rounded-[9px] px-6 text-[15px]"
             >
-              Cancel
+              {t.cancel}
             </Button>
             <Button
               type="submit"
@@ -237,7 +284,7 @@ export function InviteUserSheet({
               className="h-11 rounded-[9px] px-6 text-[15px] shadow-[0_5px_14px_rgba(48,71,217,.2)]"
             >
               {submitting && <LoaderCircle className="animate-spin" />}
-              {submitting ? "Sending" : "Send invitation"}
+              {submitting ? t.submitting : t.submit}
             </Button>
           </DialogFooter>
         </form>

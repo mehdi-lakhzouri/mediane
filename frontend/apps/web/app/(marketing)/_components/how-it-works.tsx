@@ -13,12 +13,100 @@ import {
 import Image from "next/image";
 import { type KeyboardEvent, useRef, useState } from "react";
 import { areaPath, pointAt, smoothPath, toPoints } from "../_lib/chart";
-import { ECOSYSTEM, type EcosystemId, STEPS } from "../_lib/content";
+import { Lines } from "../../../lib/i18n/lines";
+import { useMessages } from "../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../lib/i18n/messages";
+import type { EcosystemId, MarketingContent } from "../_lib/content";
+import { useContent } from "../_lib/use-content";
 import { ConsoleIncident, INCIDENT_SIZE } from "./console-incident";
 import { Icon } from "./icons";
 import { EASE, Reveal, ScaledCanvas, usePrefersReducedMotion, useSeen } from "./motion";
 
+const messages = defineMessages({
+  en: {
+    eyebrow: "How CabinGuard works",
+    title: ["From detection to response", "in "],
+    accent: "three clear steps",
+    lead: "CabinGuard turns real-time driver and vehicle signals into life-saving action. We monitor, detect, and notify — keeping drivers, families, and organizations connected and safer on every journey.",
+    panel: (label: string) => `${label} in the CabinGuard console`,
+    ecosystem: "A complete safety ecosystem",
+    signals: [
+      ["Heart rate", "& wellness"],
+      ["Driving", "behavior"],
+      ["Location", "& route"],
+      ["Vehicle", "telemetry"],
+    ],
+    anomaly: {
+      title: "High heart rate detected",
+      live: "Real time",
+      cause: "Possible fatigue or medical issue",
+      reading: "128 bpm",
+      delta: "↑ 45% above normal range",
+      marker: "Anomaly detected",
+    },
+    response: [
+      {
+        title: "Family notified",
+        time: "2 minutes ago",
+        body: "Sarah Taylor has been alerted about Mike’s condition.",
+      },
+      {
+        title: "Live location shared",
+        time: "2 minutes ago",
+        body: "Real-time location and incident details sent to family.",
+      },
+      {
+        title: "Response in progress",
+        time: "5 minutes ago",
+        body: "Family and support team coordinating next steps.",
+      },
+    ],
+  },
+  fr: {
+    eyebrow: "Comment fonctionne CabinGuard",
+    title: ["De la détection à l’intervention", "en "],
+    accent: "trois étapes claires",
+    lead: "CabinGuard transforme les signaux du conducteur et du véhicule en actions qui sauvent des vies. Nous surveillons, détectons et prévenons — pour que conducteurs, familles et organisations restent connectés et plus en sécurité à chaque trajet.",
+    panel: (label: string) => `${label} dans la console CabinGuard`,
+    ecosystem: "Un écosystème de sécurité complet",
+    signals: [
+      ["Rythme cardiaque", "et bien-être"],
+      ["Comportement", "de conduite"],
+      ["Position", "et itinéraire"],
+      ["Télémétrie", "du véhicule"],
+    ],
+    anomaly: {
+      title: "Rythme cardiaque élevé détecté",
+      live: "Temps réel",
+      cause: "Fatigue ou problème médical possible",
+      reading: "128 bpm",
+      delta: "↑ 45 % au-dessus de la normale",
+      marker: "Anomalie détectée",
+    },
+    response: [
+      {
+        title: "Famille prévenue",
+        time: "Il y a 2 minutes",
+        body: "Sarah Taylor a été alertée de l’état de Mike.",
+      },
+      {
+        title: "Position partagée en direct",
+        time: "Il y a 2 minutes",
+        body: "Position en temps réel et détails de l’incident envoyés à la famille.",
+      },
+      {
+        title: "Intervention en cours",
+        time: "Il y a 5 minutes",
+        body: "La famille et l’équipe d’assistance coordonnent la suite.",
+      },
+    ],
+  },
+});
+
 export function HowItWorks() {
+  const t = useMessages(messages);
+  const { ECOSYSTEM, STEPS } = useContent();
+  const [firstLine, secondLine] = t.title;
   const [audience, setAudience] = useState<EcosystemId>("drivers");
   const activeLabel = ECOSYSTEM.find((item) => item.id === audience)?.title;
 
@@ -33,16 +121,14 @@ export function HowItWorks() {
       <div className="lp-container relative pb-[clamp(64px,8vw,128px)] pt-[clamp(40px,3vw,52px)]">
         <div className="flex flex-col gap-10 xl:flex-row xl:items-start xl:justify-between">
           <Reveal className="max-w-[800px]">
-            <p className="lp-eyebrow">How CabinGuard works</p>
+            <p className="lp-eyebrow">{t.eyebrow}</p>
             <h2 id="how-title" className="lp-title mt-[clamp(16px,1.6vw,26px)]">
-              From detection to response
+              {firstLine}
               <br />
-              in <span className="lp-accent">three clear steps</span>
+              {secondLine}
+              <span className="lp-accent">{t.accent}</span>
             </h2>
-            <p className="lp-lead mt-[clamp(14px,1.2vw,20px)] max-w-[760px]">
-              CabinGuard turns real-time driver and vehicle signals into life-saving action. We monitor, detect, and
-              notify — keeping drivers, families, and organizations connected and safer on every journey.
-            </p>
+            <p className="lp-lead mt-[clamp(14px,1.2vw,20px)] max-w-[760px]">{t.lead}</p>
           </Reveal>
           <Reveal delay={0.1} className="xl:mr-[-8px] xl:w-[min(42vw,668px)]">
             <EcosystemTabs value={audience} onChange={setAudience} />
@@ -61,10 +147,10 @@ export function HowItWorks() {
           </ol>
           <div className="relative mx-auto w-full max-w-[520px] 2xl:mx-0 2xl:-mt-[38px] 2xl:max-w-none">
             <Reveal delay={0.2} y={40} className="2xl:w-[145%]">
-              <div role="tabpanel" aria-label={`${activeLabel} in the CabinGuard console`} style={{ perspective: 2000 }}>
+              <div role="tabpanel" aria-label={t.panel(activeLabel ?? "")} style={{ perspective: 2000 }}>
                 <div style={{ transform: "rotateY(-12deg) rotateZ(-1.5deg)", transformOrigin: "0% 50%" }}>
                   <ScaledCanvas width={INCIDENT_SIZE.width} height={INCIDENT_SIZE.height}>
-                    <ConsoleIncident active={activeLabel} />
+                    <ConsoleIncident active={audience} />
                   </ScaledCanvas>
                 </div>
               </div>
@@ -77,6 +163,8 @@ export function HowItWorks() {
 }
 
 function EcosystemTabs({ value, onChange }: { value: EcosystemId; onChange: (id: EcosystemId) => void }) {
+  const t = useMessages(messages);
+  const { ECOSYSTEM } = useContent();
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
   const onKey = (event: KeyboardEvent, index: number) => {
     const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
@@ -92,7 +180,7 @@ function EcosystemTabs({ value, onChange }: { value: EcosystemId; onChange: (id:
   return (
     <div className="rounded-[24px] border border-white/90 bg-white/55 p-[clamp(16px,1.4vw,24px)] shadow-[var(--lp-shadow-card)] backdrop-blur-md">
       <p className="lp-eyebrow pl-1 text-[clamp(11px,0.82vw,13.5px)]" id="ecosystem-label">
-        A complete safety ecosystem
+        {t.ecosystem}
       </p>
       <div role="tablist" aria-labelledby="ecosystem-label" className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-[18px]">
         {ECOSYSTEM.map((item, index) => {
@@ -129,9 +217,7 @@ function EcosystemTabs({ value, onChange }: { value: EcosystemId; onChange: (id:
                 {item.title}
               </span>
               <span className="mt-1 text-[clamp(13px,0.95vw,16px)] leading-[1.3] text-[var(--lp-body)]">
-                {item.body[0]}
-                <br />
-                {item.body[1]}
+                <Lines lines={item.body} />
               </span>
             </button>
           );
@@ -141,7 +227,7 @@ function EcosystemTabs({ value, onChange }: { value: EcosystemId; onChange: (id:
   );
 }
 
-function StepCard({ step, last }: { step: (typeof STEPS)[number]; last: boolean }) {
+function StepCard({ step, last }: { step: MarketingContent["STEPS"][number]; last: boolean }) {
   return (
     <article className="relative rounded-[22px] border border-white/90 bg-white/85 p-[clamp(18px,1.4vw,24px)] shadow-[var(--lp-shadow-card)] backdrop-blur-md">
       {!last ? <StepArrow /> : null}
@@ -152,9 +238,7 @@ function StepCard({ step, last }: { step: (typeof STEPS)[number]; last: boolean 
         <div className="pt-1">
           <p className="lp-eyebrow text-[clamp(11px,0.82vw,14px)] tracking-[0.26em]">{step.eyebrow}</p>
           <h3 className="mt-2 text-[clamp(18px,1.36vw,23px)] font-bold leading-[1.2] tracking-[-0.025em] text-[var(--lp-ink)]">
-            {step.title[0]}
-            <br />
-            {step.title[1]}
+            <Lines lines={step.title} />
           </h3>
         </div>
       </div>
@@ -191,27 +275,30 @@ function StepArrow() {
   );
 }
 
-const SIGNALS = [
-  { icon: <HeartPulse size={22} />, label: ["Heart rate", "& wellness"] },
-  { icon: <Icon name="steering" size={22} />, label: ["Driving", "behavior"] },
-  { icon: <MapPin size={22} fill="currentColor" stroke="#fff" />, label: ["Location", "& route"] },
-  { icon: <ChartColumn size={22} />, label: ["Vehicle", "telemetry"] },
+const SIGNAL_ICONS = [
+  <HeartPulse key="heart" size={22} />,
+  <Icon key="steering" name="steering" size={22} />,
+  <MapPin key="pin" size={22} fill="currentColor" stroke="#fff" />,
+  <ChartColumn key="chart" size={22} />,
 ];
 
 function Signals() {
+  const t = useMessages(messages);
+  const signals = t.signals.map((label, index) => ({
+    label,
+    icon: SIGNAL_ICONS[index],
+  }));
   return (
     <ul className="mt-5 grid grid-cols-4 gap-1">
-      {SIGNALS.map((signal, index) => (
-        <li key={signal.label[0]} className="flex flex-col items-center text-center">
+      {signals.map((signal, index) => (
+        <li key={index} className="flex flex-col items-center text-center">
           <Reveal delay={0.25 + index * 0.07} y={10}>
             <span className="grid size-[clamp(42px,3.1vw,52px)] place-items-center rounded-full border border-[#e3ebf8] bg-white text-[var(--lp-blue)] shadow-[0_10px_20px_-14px_rgba(16,40,94,0.5)]">
               {signal.icon}
             </span>
           </Reveal>
           <span className="mt-2 text-[clamp(12px,0.86vw,14.5px)] leading-[1.25] text-[var(--lp-ink-soft)]">
-            {signal.label[0]}
-            <br />
-            {signal.label[1]}
+            <Lines lines={signal.label} />
           </span>
         </li>
       ))}
@@ -224,6 +311,7 @@ const HEART = [76, 80, 74, 79, 82, 76, 80, 84, 78, 81, 86, 92, 104, 114, 122, 12
 const ANOMALY_AT = 11;
 
 function Anomaly() {
+  const t = useMessages(messages).anomaly;
   const reduced = usePrefersReducedMotion();
   const { ref, seen } = useSeen<HTMLDivElement>(0.3);
   const show = seen;
@@ -247,14 +335,14 @@ function Anomaly() {
           </motion.span>
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
-              <p className="text-[clamp(12.5px,0.86vw,14.5px)] font-bold text-[var(--lp-ink)]">High heart rate detected</p>
+              <p className="text-[clamp(12.5px,0.86vw,14.5px)] font-bold text-[var(--lp-ink)]">{t.title}</p>
               <span className="lp-pill flex-none border border-[#f7c3ca] bg-white/70 px-1.5 text-[10.5px] font-semibold text-[#d61f2b]">
-                Real time
+                {t.live}
               </span>
             </div>
-            <p className="text-[clamp(12px,0.82vw,13.5px)] text-[var(--lp-muted)]">Possible fatigue or medical issue</p>
-            <p className="mt-2 text-[clamp(18px,1.4vw,23px)] font-extrabold tracking-[-0.02em] text-[#d61f2b]">128 bpm</p>
-            <p className="text-[clamp(12px,0.82vw,13.5px)] text-[var(--lp-body)]">↑ 45% above normal range</p>
+            <p className="text-[clamp(12px,0.82vw,13.5px)] text-[var(--lp-muted)]">{t.cause}</p>
+            <p className="mt-2 text-[clamp(18px,1.4vw,23px)] font-extrabold tracking-[-0.02em] text-[#d61f2b]">{t.reading}</p>
+            <p className="text-[clamp(12px,0.82vw,13.5px)] text-[var(--lp-body)]">{t.delta}</p>
           </div>
         </div>
       </div>
@@ -325,7 +413,7 @@ function Anomaly() {
             animate={show ? { opacity: 1, y: 0 } : undefined}
             transition={{ duration: 0.4, delay: 1.7, ease: EASE }}
           >
-            <MapPin size={11} fill="currentColor" stroke="#fff" /> Anomaly detected
+            <MapPin size={11} fill="currentColor" stroke="#fff" /> {t.marker}
           </motion.span>
         </div>
         <div className="mt-1.5 flex justify-between px-1 text-[11px] text-[var(--lp-muted)]">
@@ -338,17 +426,22 @@ function Anomaly() {
   );
 }
 
-const RESPONSE = [
-  { icon: <Users size={20} />, title: "Family notified", time: "2 minutes ago", body: "Sarah Taylor has been alerted about Mike’s condition." },
-  { icon: <MapPin size={20} fill="currentColor" stroke="#fff" />, title: "Live location shared", time: "2 minutes ago", body: "Real-time location and incident details sent to family." },
-  { icon: <ShieldPlus size={20} />, title: "Response in progress", time: "5 minutes ago", body: "Family and support team coordinating next steps." },
+const RESPONSE_ICONS = [
+  <Users key="users" size={20} />,
+  <MapPin key="pin" size={20} fill="currentColor" stroke="#fff" />,
+  <ShieldPlus key="shield" size={20} />,
 ];
 
 function Timeline() {
+  const t = useMessages(messages);
+  const response = t.response.map((item, index) => ({
+    ...item,
+    icon: RESPONSE_ICONS[index],
+  }));
   return (
     <ul className="mt-4 space-y-2.5">
-      {RESPONSE.map((item, index) => (
-        <li key={item.title}>
+      {response.map((item, index) => (
+        <li key={index}>
           <Reveal delay={0.3 + index * 0.12} y={14}>
             <div className="flex gap-3 rounded-[14px] border border-[#e8eef8] bg-white p-[clamp(10px,0.9vw,14px)] shadow-[0_10px_22px_-18px_rgba(16,40,94,0.45)]">
               <span className="grid size-[44px] flex-none place-items-center rounded-full border border-[#e3ebf8] bg-[#f6f9ff] text-[var(--lp-blue)]">

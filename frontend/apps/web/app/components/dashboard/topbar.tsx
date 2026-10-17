@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, ChevronDown, Command, House, Menu, Search } from "lucide-react";
+import Link from "next/link";
+import {
+  Bell,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Search,
+} from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Tooltip,
@@ -11,6 +18,37 @@ import {
 } from "@repo/ui/components/ui/tooltip";
 import { fullName, initials, type CurrentUser } from "../../../lib/api/auth";
 import { getUnreadNotificationCount } from "../../../lib/api/notifications";
+import { useMessages } from "../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../lib/i18n/messages";
+import { LanguageSwitch } from "../language-switch";
+import { roleMessages } from "./user-menu";
+
+const messages = defineMessages({
+  en: {
+    expand: "Expand sidebar",
+    collapse: "Collapse sidebar",
+    openMenu: "Open menu",
+    breadcrumb: "Breadcrumb",
+    search: "Search dashboard",
+    searchPlaceholder: "Search users, families, or settings...",
+    notifications: "Notifications",
+    unread: (count: number) =>
+      `${count} unread notification${count === 1 ? "" : "s"}`,
+    menuFor: (name: string) => `Account menu for ${name}`,
+  },
+  fr: {
+    expand: "Déplier la barre latérale",
+    collapse: "Replier la barre latérale",
+    openMenu: "Ouvrir le menu",
+    breadcrumb: "Fil d’Ariane",
+    search: "Rechercher dans le tableau de bord",
+    searchPlaceholder: "Rechercher utilisateurs, familles…",
+    notifications: "Notifications",
+    unread: (count: number) =>
+      `${count} notification${count > 1 ? "s" : ""} non lue${count > 1 ? "s" : ""}`,
+    menuFor: (name: string) => `Menu du compte de ${name}`,
+  },
+});
 
 interface TopbarProps {
   section: string;
@@ -18,6 +56,7 @@ interface TopbarProps {
   collapsed: boolean;
   onToggleCollapsed: () => void;
   onOpenMobile: () => void;
+  onOpenSearch: () => void;
 }
 
 export function Topbar({
@@ -26,8 +65,11 @@ export function Topbar({
   collapsed,
   onToggleCollapsed,
   onOpenMobile,
+  onOpenSearch,
 }: TopbarProps) {
-  const collapseLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
+  const t = useMessages(messages);
+  const roles = useMessages(roleMessages);
+  const collapseLabel = collapsed ? t.expand : t.collapse;
   const [unread, setUnread] = useState<number | null>(null);
 
   useEffect(() => {
@@ -41,13 +83,13 @@ export function Topbar({
   }, []);
 
   return (
-    <header className="cg-topbar sticky top-0 z-20 flex h-[50px] shrink-0 items-center gap-2 border-b border-border bg-card px-4 transition-[padding] duration-200 sm:px-7">
+    <header className="cg-topbar sticky top-0 z-20 flex h-[58px] shrink-0 items-center gap-2 border-b border-border bg-card/95 px-4 shadow-[0_1px_0_rgba(16,24,40,.02)] backdrop-blur-xl transition-[padding] duration-200 sm:px-7">
       <Button
         type="button"
         variant="ghost"
         size="icon"
         onClick={onOpenMobile}
-        aria-label="Open menu"
+        aria-label={t.openMenu}
         className="lg:hidden"
       >
         <Menu />
@@ -65,7 +107,11 @@ export function Topbar({
               aria-label={collapseLabel}
               className="hidden size-8 text-[#536584] lg:inline-flex"
             >
-              <House className="size-[18px]" />
+              {collapsed ? (
+                <PanelLeftOpen className="size-[18px]" />
+              ) : (
+                <PanelLeftClose className="size-[18px]" />
+              )}
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">{collapseLabel}</TooltipContent>
@@ -77,7 +123,7 @@ export function Topbar({
         className="mx-1 hidden h-5 w-px bg-border lg:block"
       />
 
-      <nav aria-label="Breadcrumb" className="min-w-0">
+      <nav aria-label={t.breadcrumb} className="min-w-0">
         <ol className="flex items-center gap-2 text-[13px]">
           <li className="hidden font-medium text-muted-foreground sm:block">
             CabinGuard
@@ -89,29 +135,38 @@ export function Topbar({
         </ol>
       </nav>
 
-      <label className="absolute left-1/2 hidden h-[34px] w-[440px] -translate-x-1/2 items-center gap-2 rounded-[7px] border border-[#dce4ef] bg-[#f7f9fc] px-3 text-[#617190] shadow-[0_1px_2px_rgba(16,24,40,.025)] xl:flex">
+      <button
+        type="button"
+        onClick={onOpenSearch}
+        aria-label={t.search}
+        className="absolute left-1/2 hidden h-9 w-[min(420px,34vw)] -translate-x-1/2 items-center gap-2 rounded-[9px] border border-[#dce4ef] bg-[#f7f9fc] px-3 text-left text-[#617190] shadow-[0_1px_2px_rgba(16,24,40,.025)] outline-none transition hover:border-[#c9d5e8] hover:bg-white hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring xl:flex"
+      >
         <Search className="size-[17px] shrink-0" />
-        <input
-          type="search"
-          aria-label="Search dashboard"
-          placeholder="Search users, families, or settings..."
-          className="min-w-0 flex-1 bg-transparent text-[11px] outline-none placeholder:text-[#7787a4]"
-        />
-        <span className="flex items-center gap-0.5 rounded bg-[#eef1f6] px-1.5 py-0.5 text-[10px] font-semibold text-[#8190a9]">
-          <Command className="size-3" />K
+        <span className="min-w-0 flex-1 truncate text-[11px] text-[#7787a4]">
+          {t.searchPlaceholder}
         </span>
-      </label>
+        <span className="flex items-center gap-0.5 rounded bg-[#eef1f6] px-1.5 py-0.5 text-[10px] font-semibold text-[#8190a9]">
+          Ctrl K
+        </span>
+      </button>
 
       <div className="ml-auto flex h-full items-center gap-2">
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          aria-label={
-            unread === null
-              ? "Notifications"
-              : `${unread} unread notification${unread === 1 ? "" : "s"}`
-          }
+          onClick={onOpenSearch}
+          aria-label={t.search}
+          className="size-8 text-[#526180] xl:hidden"
+        >
+          <Search className="size-[18px]" />
+        </Button>
+        <LanguageSwitch variant="console" />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={unread === null ? t.notifications : t.unread(unread)}
           className="relative size-8 text-[#526180]"
         >
           <Bell className="size-[18px]" />
@@ -120,10 +175,10 @@ export function Topbar({
           ) : null}
         </Button>
         <span className="h-6 w-px bg-[#e7ebf2]" />
-        <button
-          type="button"
-          className="hidden h-full items-center gap-2.5 px-1 text-left sm:flex"
-          aria-label={`Account menu for ${fullName(user)}`}
+        <Link
+          href="/dashboard/profile"
+          className="hidden h-11 items-center gap-2.5 rounded-xl px-1.5 text-left outline-none transition hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring sm:flex"
+          aria-label={t.menuFor(fullName(user))}
         >
           <span className="grid size-9 place-items-center rounded-full bg-[#465da1] text-[12px] font-bold text-white">
             {initials(user)}
@@ -133,11 +188,10 @@ export function Topbar({
               {fullName(user)}
             </span>
             <span className="text-[10px] text-[#687795]">
-              {user.role === "ADMIN" ? "Administrator" : "Driver"}
+              {roles[user.role]}
             </span>
           </span>
-          <ChevronDown className="size-4 text-[#3c5279]" />
-        </button>
+        </Link>
       </div>
     </header>
   );
