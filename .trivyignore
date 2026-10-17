@@ -1,0 +1,7 @@
+# Accepted Trivy findings. One ID per line, each preceded by a comment with
+# the reason, the owner and a review date. An entry without them is rejected
+# in code review.
+#
+# Example:
+# # Not reachable: only used by the build toolchain. Owner: @handle. Review: 2026-12-01
+# CVE-2026-00000

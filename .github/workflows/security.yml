@@ -1,0 +1,223 @@
+name: Security
+
+# Static security checks. Findings go to Security > Code scanning when the
+# repository has it (public, or GHAS_ENABLED=true); otherwise to a SARIF
+# artifact and the job summary. CodeQL and dependency review need Code
+# scanning and switch on by themselves when it becomes available.
+#
+# Gate mode comes from the repository variable SECURITY_GATE_MODE:
+#   audit   (default) report only, never fail the run
+#   enforce fail on secrets, HIGH/CRITICAL fixable vulnerabilities, SAST errors
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * 1" # Mondays 03:17 UTC: full scan against fresh advisories
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ENFORCE: ${{ vars.SECURITY_GATE_MODE == 'enforce' }}
+  GITLEAKS_VERSION: 8.30.1
+  TRIVY_VERSION: v0.76.0
+
+jobs:
+  repo:
+    name: Repository features
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code-scanning: ${{ steps.features.outputs.code-scanning }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/actions
+      - id: features
+        uses: ./.github/actions/repo-features
+        with:
+          ghas-enabled: ${{ vars.GHAS_ENABLED }}
+
+  secrets:
+    name: Secrets (Gitleaks)
+    needs: repo
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the whole history: a secret removed later is still leaked
+          persist-credentials: false
+      - name: Install Gitleaks (checksum verified)
+        run: |
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          cd "$RUNNER_TEMP"
+          curl -fsSLO "$base/$archive"
+          curl -fsSLO "$base/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          grep " ${archive}\$" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum -c -
+          tar -xzf "$archive" gitleaks
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Scan the git history
+        run: |
+          gitleaks git --config .gitleaks.toml --redact --no-banner \
+            --report-format sarif --report-path gitleaks.sarif \
+            --exit-code "$([ "$ENFORCE" = true ] && echo 1 || echo 0)"
+      - uses: ./.github/actions/publish-sarif
+        if: always()
+        with:
+          sarif-file: gitleaks.sarif
+          category: gitleaks
+          code-scanning: ${{ needs.repo.outputs.code-scanning }}
+
+  codeql:
+    name: SAST (CodeQL ${{ matrix.language }})
+    needs: repo
+    # CodeQL on private code needs GitHub Advanced Security.
+    if: needs.repo.outputs.code-scanning == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript, actions]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          queries: security-extended
+          config-file: ./.github/codeql/codeql-config.yml
+      - uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          category: codeql-${{ matrix.language }}
+
+  semgrep:
+    name: SAST (Semgrep)
+    needs: repo
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Scan backend and frontend
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src \
+            semgrep/semgrep:1.181.0@sha256:81474464c1f07483ba0682a44787fd93c91397419762a04abe2bafaae396304b \
+            semgrep scan --metrics=off --sarif --output semgrep.sarif \
+              --config p/default --config p/owasp-top-ten --config p/nodejsscan \
+              --config p/typescript --config p/react \
+              backend frontend
+      - uses: ./.github/actions/publish-sarif
+        if: always()
+        with:
+          sarif-file: semgrep.sarif
+          category: semgrep
+          code-scanning: ${{ needs.repo.outputs.code-scanning }}
+      - name: Gate on ERROR-severity findings
+        if: env.ENFORCE == 'true'
+        shell: python3 {0}
+        run: |
+          import json, sys
+          runs = json.load(open("semgrep.sarif"))["runs"]
+          errors = [r for run in runs for r in run["results"] if r.get("level") == "error"]
+          print(f"{len(errors)} ERROR-severity finding(s)")
+          sys.exit(1 if errors else 0)
+
+  trivy-fs:
+    name: SCA + IaC (Trivy)
+    needs: repo
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Lockfiles (npm, pnpm, pub) and config (Dockerfiles, compose, workflows).
+      # Secrets are Gitleaks' job; licenses are dependency-review's.
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: ${{ env.TRIVY_VERSION }}
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          skip-dirs: "**/node_modules,design,marketing"
+          format: sarif
+          output: trivy-fs.sarif
+          exit-code: ${{ env.ENFORCE == 'true' && '1' || '0' }}
+      - uses: ./.github/actions/publish-sarif
+        if: always()
+        with:
+          sarif-file: trivy-fs.sarif
+          category: trivy-fs
+          code-scanning: ${{ needs.repo.outputs.code-scanning }}
+
+  dependency-review:
+    name: Dependency review
+    needs: repo
+    # Needs the dependency graph of Code scanning (public repo or GHAS).
+    # Without it, trivy-fs above still checks every lockfile on each PR.
+    if: github.event_name == 'pull_request' && needs.repo.outputs.code-scanning == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          # Copyleft licenses are flagged for a human decision, never auto-accepted.
+          deny-licenses: AGPL-1.0-or-later, AGPL-3.0-only, AGPL-3.0-or-later, GPL-2.0-only, GPL-2.0-or-later, GPL-3.0-only, GPL-3.0-or-later, SSPL-1.0
+          show-openssf-scorecard: true
+          warn-on-openssf-scorecard-level: 3
+          comment-summary-in-pr: on-failure
+          warn-only: ${{ env.ENFORCE != 'true' }}
+
+  pre-commit:
+    name: Repository hygiene (pre-commit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Covered by dedicated jobs (Gitleaks above, linters in CI) with full tooling.
+      SKIP: gitleaks,backend-eslint,backend-prettier,frontend-eslint,frontend-prettier,dart-format
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      - run: pip install pre-commit==4.7.0
+      - run: pre-commit run --all-files --show-diff-on-failure --color always

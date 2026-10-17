@@ -1,0 +1,36 @@
+name: Repository features
+description: >-
+  Detects which GitHub security features this repository can use, so the same
+  workflows run on a private repository today and light up everything once it
+  is public (or has GitHub Advanced Security).
+
+inputs:
+  ghas-enabled:
+    description: Value of the GHAS_ENABLED repository variable ('true' when a private repo has GHAS)
+    default: "false"
+
+outputs:
+  public:
+    description: "'true' when the repository is public"
+    value: ${{ steps.detect.outputs.public }}
+  code-scanning:
+    description: "'true' when Code scanning, CodeQL and dependency review are available"
+    value: ${{ steps.detect.outputs.code-scanning }}
+
+runs:
+  using: composite
+  steps:
+    - id: detect
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GHAS_ENABLED: ${{ inputs.ghas-enabled }}
+      run: |
+        visibility="$(gh api "repos/${GITHUB_REPOSITORY}" --jq .visibility)"
+        public=false
+        [ "$visibility" = public ] && public=true
+        code_scanning="$public"
+        [ "$GHAS_ENABLED" = true ] && code_scanning=true
+        echo "public=$public" >> "$GITHUB_OUTPUT"
+        echo "code-scanning=$code_scanning" >> "$GITHUB_OUTPUT"
+        echo "Repository is $visibility: code scanning=$code_scanning, public supply-chain signing=$public"
