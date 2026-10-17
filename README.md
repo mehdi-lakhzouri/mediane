@@ -261,6 +261,56 @@ flutter analyze
 flutter test
 ```
 
+Web E2E (Playwright), against a running API and web app. The admin must exist without an authenticator; the suite enrolls one:
+
+```bash
+cd backend && printf '%s' "$ADMIN_PASSWORD" | npm run cli -- admin:create --email "$ADMIN_EMAIL" --first-name E2E --last-name Admin --password-stdin
+cd frontend/apps/web
+pnpm exec playwright install chromium
+ADMIN_EMAIL=... ADMIN_PASSWORD=... WEB_URL=http://localhost:3000 API_URL=http://localhost:4000/api/v1 pnpm test:e2e
+```
+
+## CI/CD and security pipeline
+
+GitHub Actions workflows live in `.github/workflows/`:
+
+| Workflow | Trigger | What it does |
+| --- | --- | --- |
+| `ci.yml` | PR, push to `main` | Backend lint, format, types, unit tests with coverage, build, e2e on PostgreSQL. Frontend lint, types, build. Flutter format, analyze, tests. Playwright E2E on the full stack. `CI success` is the single check to require. |
+| `security.yml` | PR, push to `main`, weekly | Gitleaks (whole history), CodeQL, Semgrep, Trivy (dependencies and IaC), dependency review on PRs, pre-commit hygiene. |
+| `containers.yml` | PR, push to `main`, `v*` tags, daily | Builds the `backend`, `migrate` and `web` images, scans them with Trivy. On `main` and tags: pushes to GHCR with an SBOM and build provenance; on a public repository also a Cosign keyless signature and GitHub attestations. Re-scans the published images daily. |
+| `dast.yml` | nightly, manual | Runs the production images on an isolated network and scans the API (from its OpenAPI document) and the web app with OWASP ZAP in daemon mode. |
+
+Findings appear under **Security > Code scanning** when the repository has it (public, or `GHAS_ENABLED=true` with GitHub Advanced Security); on a private repository each report is kept as a `sarif-*` workflow artifact and summarized on the job page. CodeQL, dependency review, Cosign and attestations switch on by themselves once the repository is public. The repository variable `SECURITY_GATE_MODE` decides whether they block: `audit` (default) reports only, `enforce` fails the run on secrets, fixable HIGH/CRITICAL vulnerabilities, SAST errors and high-risk DAST alerts. Accepted exceptions go in `.trivyignore`, `.gitleaks.toml` and `.github/dast/zap-alert-filters.json`, each with a justification.
+
+Container images run as a non-root user on distroless bases (no shell, no package manager):
+
+```bash
+docker build -t cabinguard-backend backend
+docker build -t cabinguard-migrate --target migrate backend
+docker build -f frontend/apps/web/Dockerfile --build-arg NEXT_PUBLIC_API_BASE_URL=https://api.example.com/api/v1 -t cabinguard-web frontend
+```
+
+Run the DAST stack locally (all ports bound to 127.0.0.1):
+
+```bash
+export ZAP_API_KEY=$(openssl rand -hex 32) JWT_ACCESS_SECRET=$(openssl rand -hex 32) \
+  TOKEN_HASH_SECRET=$(openssl rand -hex 32) MFA_ENCRYPTION_KEY=$(openssl rand -base64 32)
+mkdir -p zap-reports && docker compose -f .github/dast/compose.dast.yaml up -d --wait
+DATABASE_URL=postgresql://dast:dast@127.0.0.1:55432/cabinguard bash .github/dast/export-openapi.sh zap-reports/openapi.json
+python3 .github/dast/zap_scan.py   # reports in zap-reports/
+docker compose -f .github/dast/compose.dast.yaml down -v
+```
+
+### Contributing: local hooks
+
+Commits run the same hygiene checks as CI (secrets, YAML, workflows, Dockerfiles, ESLint, Prettier, `dart format`) and require [Conventional Commits](https://www.conventionalcommits.org/) messages:
+
+```bash
+pipx install pre-commit   # or: pip install pre-commit
+pre-commit install --install-hooks
+```
+
 ## Storage and email
 
 Development defaults to signed files under `backend/uploads`. Production requires `STORAGE_DRIVER=s3` and a private S3-compatible bucket. AWS IAM roles or another provider's short-lived credentials are preferred over static keys.

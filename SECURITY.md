@@ -27,7 +27,7 @@ Only the latest commit on `main` and the latest published images receive securit
 
 ## Verifying our images
 
-Published images are signed with Sigstore (keyless) and carry SLSA build provenance and an SPDX SBOM:
+Published images carry an SPDX SBOM and build provenance. Once the repository is public they are also signed with Sigstore (keyless) and attested by GitHub:
 
 ```bash
 cosign verify ghcr.io/hejerayadi/cabinguard-backend@sha256:<digest> \
