@@ -1,0 +1,84 @@
+# Shift-left checks, run before every commit (and on the commit message).
+#
+#   pipx install pre-commit   # or: pip install pre-commit
+#   pre-commit install --install-hooks -t pre-commit -t commit-msg
+#
+# The same hooks run in CI (security.yml), so skipping them locally with
+# --no-verify only delays the failure. Node hooks need the sub-project's
+# dependencies installed (npm ci in backend/, pnpm install in frontend/).
+
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit]
+exclude: ^(design|marketing)/|(^|/)(node_modules|dist|\.next|\.turbo|build|coverage)/|^backend/src/generated/
+
+repos:
+  # --- secrets ----------------------------------------------------------------
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks # staged changes only; uses .gitleaks.toml
+
+  # --- generic hygiene --------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: detect-private-key
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: check-case-conflict
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: end-of-file-fixer
+        # Mail templates are rendered byte for byte; Xcode assets are generated.
+        exclude: \.(svg|lock|hbs)$|^driver_health_app/ios/Runner/Assets\.xcassets/
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+
+  # --- pipeline and containers -------------------------------------------------
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.15.1
+    hooks:
+      - id: hadolint-docker
+
+  # --- per-project linters and formatters (tools from each project) ------------
+  - repo: local
+    hooks:
+      - id: backend-eslint
+        name: backend eslint
+        language: system
+        entry: node scripts/git-hooks/run-in.mjs backend eslint --max-warnings 0
+        files: ^backend/(src|test)/.*\.ts$
+      - id: backend-prettier
+        name: backend prettier
+        language: system
+        entry: node scripts/git-hooks/run-in.mjs backend prettier --write
+        files: ^backend/(src|test)/.*\.ts$
+      - id: frontend-eslint
+        name: frontend eslint (apps/web)
+        language: system
+        entry: node scripts/git-hooks/run-in.mjs frontend/apps/web eslint --max-warnings 0 --no-warn-ignored
+        files: ^frontend/apps/web/.*\.(ts|tsx|js|mjs)$
+        exclude: ^frontend/apps/web/e2e/
+      - id: frontend-prettier
+        name: frontend prettier
+        language: system
+        entry: node scripts/git-hooks/run-in.mjs frontend prettier --write
+        files: ^frontend/.*\.(ts|tsx|md)$
+      - id: dart-format
+        name: dart format
+        language: system
+        entry: dart format
+        files: ^driver_health_app/(lib|test)/.*\.dart$
+
+  # --- commit message: Conventional Commits -----------------------------------
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, merge, security]

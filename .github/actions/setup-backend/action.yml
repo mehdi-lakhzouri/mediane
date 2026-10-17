@@ -1,0 +1,16 @@
+name: Setup backend
+description: Node from .node-version, cached npm install of backend/ (postinstall runs prisma generate).
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version-file: .node-version
+        cache: npm
+        cache-dependency-path: backend/package-lock.json
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: backend
+      run: npm ci --no-audit --no-fund
