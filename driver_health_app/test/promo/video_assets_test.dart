@@ -1,5 +1,10 @@
 // Captures the real application widgets for the promo composition.
 // Representative data is restricted to this offline capture harness.
+// Needs the local Flutter font cache and writes into ../design: excluded from
+// CI by its tag (see dart_test.yaml).
+@Tags(['promo'])
+library;
+
 import 'dart:io';
 import 'dart:ui' as ui;
 
