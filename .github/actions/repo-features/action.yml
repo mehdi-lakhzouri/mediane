@@ -14,8 +14,11 @@ outputs:
     description: "'true' when the repository is public"
     value: ${{ steps.detect.outputs.public }}
   code-scanning:
-    description: "'true' when Code scanning, CodeQL and dependency review are available"
+    description: "'true' when Code scanning and CodeQL are available"
     value: ${{ steps.detect.outputs.code-scanning }}
+  dependency-graph:
+    description: "'true' when the dependency graph is enabled (needed by dependency review)"
+    value: ${{ steps.detect.outputs.dependency-graph }}
 
 runs:
   using: composite
@@ -31,6 +34,12 @@ runs:
         [ "$visibility" = public ] && public=true
         code_scanning="$public"
         [ "$GHAS_ENABLED" = true ] && code_scanning=true
+        # A repository setting of its own (Settings > Code security > Dependency graph).
+        dependency_graph=false
+        if gh api "repos/${GITHUB_REPOSITORY}/dependency-graph/sbom" --silent 2>/dev/null; then
+          dependency_graph=true
+        fi
         echo "public=$public" >> "$GITHUB_OUTPUT"
         echo "code-scanning=$code_scanning" >> "$GITHUB_OUTPUT"
-        echo "Repository is $visibility: code scanning=$code_scanning, public supply-chain signing=$public"
+        echo "dependency-graph=$dependency_graph" >> "$GITHUB_OUTPUT"
+        echo "Repository is $visibility: code scanning=$code_scanning, dependency graph=$dependency_graph, public supply-chain signing=$public"

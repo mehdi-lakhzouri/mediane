@@ -36,6 +36,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       code-scanning: ${{ steps.features.outputs.code-scanning }}
+      dependency-graph: ${{ steps.features.outputs.dependency-graph }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -182,9 +183,12 @@ jobs:
   dependency-review:
     name: Dependency review
     needs: repo
-    # Needs the dependency graph of Code scanning (public repo or GHAS).
-    # Without it, trivy-fs above still checks every lockfile on each PR.
-    if: github.event_name == 'pull_request' && needs.repo.outputs.code-scanning == 'true'
+    # Needs Code scanning (public repo or GHAS) and the dependency graph
+    # setting. Without them, trivy-fs above still checks every lockfile.
+    if: >-
+      github.event_name == 'pull_request'
+      && needs.repo.outputs.code-scanning == 'true'
+      && needs.repo.outputs.dependency-graph == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

@@ -205,6 +205,29 @@ jobs:
           sbom-path: sbom-${{ matrix.name }}.spdx.json
           push-to-registry: true
 
+      # Prove the evidence is usable: verify it exactly as a consumer would.
+      - name: Verify signature and attestations
+        if: env.SIGN == 'true'
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ref="${IMAGE}@${DIGEST}"
+          cosign verify "$ref" \
+            --certificate-identity-regexp "^https://github.com/${GITHUB_REPOSITORY}/" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com >/dev/null
+          echo "Cosign signature verified for $ref"
+          gh attestation verify "oci://$ref" -R "$GITHUB_REPOSITORY"
+          gh attestation verify "oci://$ref" -R "$GITHUB_REPOSITORY" \
+            --predicate-type https://spdx.dev/Document/v2.3
+          {
+            echo "### Supply chain: ${{ matrix.name }}"
+            echo "- Image: \`$ref\`"
+            echo "- Cosign keyless signature: verified"
+            echo "- SLSA build provenance attestation: verified"
+            echo "- SPDX SBOM attestation: verified"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   rescan:
     # A CVE disclosed after the build is invisible to the build-time scan:
     # re-scan what is actually published, every day.

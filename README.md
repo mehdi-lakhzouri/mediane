@@ -272,16 +272,99 @@ ADMIN_EMAIL=... ADMIN_PASSWORD=... WEB_URL=http://localhost:3000 API_URL=http://
 
 ## CI/CD and security pipeline
 
-GitHub Actions workflows live in `.github/workflows/`:
+Every change goes through the same DevSecOps pipeline, from the developer's machine to the published container images, and the running application is attacked every night. The workflows live in `.github/workflows/`.
 
-| Workflow | Trigger | What it does |
+```mermaid
+flowchart TB
+    dev([Developer]) --> hooks["<b>pre-commit hooks</b><br/>Gitleaks · private keys · actionlint · hadolint<br/>ESLint · Prettier · dart format · Conventional Commits"]
+    hooks --> pr["Pull request"]
+
+    subgraph PRC["On every pull request"]
+        direction LR
+        ci["<b>ci.yml</b><br/>backend: lint · types · 130 unit · 110 e2e on PostgreSQL<br/>frontend: lint · types · build<br/>mobile: format · analyze · 142 tests<br/>Playwright: 14 browser tests"]
+        sec["<b>security.yml</b><br/>Gitleaks (full history) · Semgrep<br/>Trivy (lockfiles + IaC) · pre-commit<br/>CodeQL · dependency review ¹"]
+        img["<b>containers.yml</b><br/>build backend · migrate · web<br/>Trivy image scan"]
+    end
+    pr --> ci & sec & img
+    ci --> gate{{"CI success"}}
+    gate -->|review + merge| main[("main")]
+
+    subgraph PUB["On push to main or a v* tag"]
+        push["Trivy scan, then push to GHCR<br/>SBOM + SLSA provenance<br/>Cosign signature + attestations ¹, verified"]
+    end
+    main --> push --> ghcr[("ghcr.io/hajer-s-org/cabinguard-*")]
+
+    subgraph CRON["Scheduled (UTC)"]
+        dast["<b>02:00 daily</b> · dast.yml<br/>OWASP ZAP daemon vs the production images"]
+        weekly["<b>Mon 03:17</b> · security.yml<br/>full static scan, fresh advisories"]
+        rescan["<b>04:41 daily</b> · containers.yml<br/>Trivy re-scan of the published images"]
+    end
+    main -.-> dast & weekly
+    ghcr -.-> rescan
+
+    sec & img & push & dast & weekly & rescan --> findings[["Findings: Security › Code scanning ¹<br/>or SARIF artifacts + job summaries"]]
+```
+
+¹ Public repository, or `GHAS_ENABLED=true` with GitHub Advanced Security. On a private repository these steps are skipped automatically and every report is kept as a `sarif-*` workflow artifact with a findings table on the job page; nothing in the workflows has to change when the visibility does. Dependency review also needs the **Dependency graph** repository setting; without it the job is skipped and Trivy still checks every lockfile.
+
+### Workflows
+
+| Workflow | Runs on | What it does |
 | --- | --- | --- |
-| `ci.yml` | PR, push to `main` | Backend lint, format, types, unit tests with coverage, build, e2e on PostgreSQL. Frontend lint, types, build. Flutter format, analyze, tests. Playwright E2E on the full stack. `CI success` is the single check to require. |
-| `security.yml` | PR, push to `main`, weekly | Gitleaks (whole history), CodeQL, Semgrep, Trivy (dependencies and IaC), dependency review on PRs, pre-commit hygiene. |
-| `containers.yml` | PR, push to `main`, `v*` tags, daily | Builds the `backend`, `migrate` and `web` images, scans them with Trivy. On `main` and tags: pushes to GHCR with an SBOM and build provenance; on a public repository also a Cosign keyless signature and GitHub attestations. Re-scans the published images daily. |
-| `dast.yml` | nightly, manual | Runs the production images on an isolated network and scans the API (from its OpenAPI document) and the web app with OWASP ZAP in daemon mode. |
+| `ci.yml` | PR, push to `main`, manual | Backend lint, Prettier, types, unit tests with coverage, build, migrations and e2e tests on PostgreSQL 18. Frontend lint, types, build. Flutter format, analyze, tests. Playwright E2E against the real API, PostgreSQL and `next start`, with every secret generated per run. On PRs, untouched projects are skipped. **`CI success`** aggregates every job and is the one check to require. |
+| `security.yml` | PR, push to `main`, Mondays 03:17 UTC, manual | Gitleaks over the whole git history, Semgrep (OWASP Top 10, Node.js, TypeScript, React), Trivy on every lockfile and on the Dockerfiles/compose files, the pre-commit hooks. CodeQL when Code scanning is available; dependency review when the **Dependency graph** setting is on too (Settings › Code security). |
+| `containers.yml` | PR (backend/frontend changes), push to `main`, `v*` tags, daily 04:41 UTC, manual | Builds the `backend`, `migrate` and `web` images (distroless, uid 65532, base images pinned by digest) and scans them with Trivy **before** any push. On `main` and tags: pushes to GHCR with a BuildKit SBOM and SLSA provenance, an SPDX SBOM artifact, and on a public repository a Cosign keyless signature and GitHub attestations, both verified in the same job. Every day, re-scans the published `:main` images for CVEs disclosed after the build. |
+| `dast.yml` | daily 02:00 UTC, manual | Runs the production images in production mode (read-only filesystem, no capabilities) on an isolated network with PostgreSQL and Mailpit. OWASP ZAP runs as a daemon with an API key generated per run; `zap_scan.py` imports the 90 API routes from the OpenAPI document, crawls the web app, runs the passive and a time-boxed active scan (20 min), and writes HTML, JSON and SARIF reports. |
 
-Findings appear under **Security > Code scanning** when the repository has it (public, or `GHAS_ENABLED=true` with GitHub Advanced Security); on a private repository each report is kept as a `sarif-*` workflow artifact and summarized on the job page. CodeQL, dependency review, Cosign and attestations switch on by themselves once the repository is public. The repository variable `SECURITY_GATE_MODE` decides whether they block: `audit` (default) reports only, `enforce` fails the run on secrets, fixable HIGH/CRITICAL vulnerabilities, SAST errors and high-risk DAST alerts. Accepted exceptions go in `.trivyignore`, `.gitleaks.toml` and `.github/dast/zap-alert-filters.json`, each with a justification.
+All scheduled workflows run from `main` and can be started by hand:
+
+```bash
+gh workflow run dast.yml -f ascan_minutes=30
+gh workflow run security.yml
+gh workflow run containers.yml
+```
+
+### Security gate
+
+The repository variable `SECURITY_GATE_MODE` decides whether security findings block:
+
+| Finding | `audit` (default) | `enforce` |
+| --- | --- | --- |
+| Secret in the git history (Gitleaks) | reported | fails |
+| Fixable HIGH/CRITICAL vulnerability (Trivy: lockfiles, images, published images) | reported | fails |
+| Semgrep ERROR | reported | fails |
+| New vulnerable dependency in a PR (dependency review) | warning | fails |
+| ZAP alert of risk High | reported | fails |
+
+Tests, lint and type checks always block. Accepted exceptions are never silent: they go in `.trivyignore`, `.gitleaks.toml` or `.github/dast/zap-alert-filters.json`, each with a justification, an owner and a review date.
+
+### Pipeline hardening
+
+- Actions are pinned by commit SHA and container images by digest.
+- Tokens are least-privilege (`contents: read` by default, write scopes per job) and checkout never persists credentials.
+- No secret is stored for testing: JWT, HMAC and MFA keys, the E2E admin password and the ZAP API key are generated per run and masked.
+- Gitleaks is installed from a checksum-verified release.
+
+### Keeping dependencies current
+
+Updates are made deliberately (there is no automated update bot). Trivy reports known vulnerabilities on every PR, every Monday on `main`, and every day on the published images; the report names the fixed version to move to. Pinned versions to bump by hand:
+
+```bash
+gh api repos/<owner>/<action>/releases/latest --jq .tag_name                   # GitHub Action, then pin its commit SHA
+docker buildx imagetools inspect node:24-trixie-slim --format '{{json .Manifest.Digest}}'   # base image digest
+```
+
+### Verifying a published image
+
+```bash
+cosign verify ghcr.io/hajer-s-org/cabinguard-backend@sha256:<digest> \
+  --certificate-identity-regexp '^https://github.com/hajer-s-org/EMBs-x-VTS-CabinGuard-ADI/' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+gh attestation verify oci://ghcr.io/hajer-s-org/cabinguard-backend@sha256:<digest> \
+  -R hajer-s-org/EMBs-x-VTS-CabinGuard-ADI
+```
+
+### Running it locally
 
 Container images run as a non-root user on distroless bases (no shell, no package manager):
 
@@ -291,7 +374,7 @@ docker build -t cabinguard-migrate --target migrate backend
 docker build -f frontend/apps/web/Dockerfile --build-arg NEXT_PUBLIC_API_BASE_URL=https://api.example.com/api/v1 -t cabinguard-web frontend
 ```
 
-Run the DAST stack locally (all ports bound to 127.0.0.1):
+The DAST stack (all ports bound to 127.0.0.1):
 
 ```bash
 export ZAP_API_KEY=$(openssl rand -hex 32) JWT_ACCESS_SECRET=$(openssl rand -hex 32) \
@@ -304,7 +387,7 @@ docker compose -f .github/dast/compose.dast.yaml down -v
 
 ### Contributing: local hooks
 
-Commits run the same hygiene checks as CI (secrets, YAML, workflows, Dockerfiles, ESLint, Prettier, `dart format`) and require [Conventional Commits](https://www.conventionalcommits.org/) messages:
+Commits run the same checks as CI (secrets, YAML, workflows, Dockerfiles, ESLint, Prettier, `dart format`) and require [Conventional Commits](https://www.conventionalcommits.org/) messages:
 
 ```bash
 pipx install pre-commit   # or: pip install pre-commit
