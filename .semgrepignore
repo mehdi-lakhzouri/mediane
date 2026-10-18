@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.next/
+.turbo/
+coverage/
+backend/src/generated/
+# Test fixtures and manual browser scripts hold fake credentials on purpose
+backend/test/
+**/*.spec.ts
+**/*.e2e-spec.ts
+frontend/apps/web/e2e/

@@ -1,0 +1,10 @@
+name: CabinGuard CodeQL
+
+paths-ignore:
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/.next/**"
+  - backend/src/generated/**
+  - driver_health_app/** # Dart is not supported by CodeQL (covered by Trivy + Dependabot pub)
+  - design/**
+  - marketing/**

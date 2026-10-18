@@ -1,0 +1,25 @@
+# Gitleaks configuration: the default ruleset plus a narrow allowlist.
+# Every entry below must be a file that holds only placeholders or
+# test-only values. Never allowlist a real secret: rotate it instead.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Placeholders and test-only values"
+paths = [
+  # Deterministic secrets for the Jest e2e suite (never used outside tests)
+  '''^backend/test/setup-env\.ts$''',
+  # Flutter widget/flow tests type fake credentials into mocked screens
+  '''^driver_health_app/test/''',
+  # Documented templates with placeholder values
+  '''(^|/)\.env\.example$''',
+  '''\.example\.json$''',
+  # Lockfiles hold integrity hashes, not credentials
+  '''(^|/)(package-lock\.json|pnpm-lock\.yaml|pubspec\.lock)$''',
+]
+# Exact placeholder values (matched against the secret, not the whole file)
+regexes = [
+  # NestJS starter README badge: ...circleci...?token=abc123def456
+  '''^abc123def456$''',
+]
