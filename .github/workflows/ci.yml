@@ -28,11 +28,16 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
       mobile: ${{ steps.filter.outputs.mobile }}
+    # Pull requests only: the filter reads the PR's files through the API. On
+    # main every job runs anyway, and comparing pushes would need git fetch
+    # credentials that checkout deliberately does not persist.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: github.event_name == 'pull_request'
         with:
           persist-credentials: false
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        if: github.event_name == 'pull_request'
         id: filter
         with:
           # Pipeline changes re-run everything they could affect.
@@ -284,7 +289,9 @@ jobs:
     name: CI success
     # The single check to mark as required: green only when every job that ran passed.
     if: always()
-    needs: [backend, frontend, mobile, e2e-playwright]
+    # `changes` included: if it fails, every other job is skipped, and a run
+    # made only of skipped jobs must not count as green.
+    needs: [changes, backend, frontend, mobile, e2e-playwright]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
