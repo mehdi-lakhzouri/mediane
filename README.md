@@ -394,6 +394,71 @@ pipx install pre-commit   # or: pip install pre-commit
 pre-commit install --install-hooks
 ```
 
+## Production deployment
+
+The demo runs on one Azure VM (Ubuntu 24.04, Standard B2ls_v2) behind `app.vunlera.tn` (console) and `api.vunlera.tn` (API). `.github/workflows/deploy.yml` delivers the images that `containers.yml` built, scanned and published, pinned by digest.
+
+```mermaid
+flowchart LR
+    gh["deploy.yml<br/>(GitHub Actions)"] -->|"OIDC, no stored Azure secret"| az["Azure"]
+    az -->|"Run Command, no SSH"| vm
+    subgraph vm["VM: only ports 80 and 443 open"]
+        caddy["Caddy<br/>Let's Encrypt TLS, HTTP to HTTPS"] --> web["web"]
+        caddy --> api["api"]
+        api --> pg[("PostgreSQL<br/>internal network")]
+        api --> up[("uploads volume")]
+    end
+    users(["Browsers and the mobile app"]) -->|HTTPS| caddy
+```
+
+`deploy/deploy.sh` runs on the VM: it writes the configuration (mode 600), pulls the images by digest with the job's short-lived token, applies the database migrations, starts the release, checks `https://api…/api/v1/health` and `https://app…/sign-in` through Caddy, and **restarts the previous release automatically** if the new one is not healthy. The `verify` job then checks TLS, the HTTP redirect and the security headers from outside.
+
+Migrations only move forward: a rollback restarts the previous images, not the previous schema, so keep migrations compatible with the version before them.
+
+### Configuration
+
+Environment `production` (Settings › Environments; deployments from `main` only):
+
+| Kind | Name | Value |
+| --- | --- | --- |
+| Variable | `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` | the deployment identity (federated credential for this environment, role *Virtual Machine Contributor* on the VM only) |
+| Variable | `AZURE_RESOURCE_GROUP`, `AZURE_VM_NAME` | `rg-cabinguard-prod`, `vm-cabinguard-prod` |
+| Variable | `APP_DOMAIN`, `API_DOMAIN` | `app.vunlera.tn`, `api.vunlera.tn` |
+| Variable | `MAIL_FROM` | `CabinGuard <address@gmail.com>` |
+| Secret | `POSTGRES_PASSWORD` | `openssl rand -hex 32` (alphanumeric: it goes into a URL) |
+| Secret | `JWT_ACCESS_SECRET`, `TOKEN_HASH_SECRET` | `openssl rand -base64 48`, two different values |
+| Secret | `MFA_ENCRYPTION_KEY`, `DEVICE_ENCRYPTION_KEY` | `openssl rand -base64 32`; **never change them**: enrolled authenticators and device secrets depend on them |
+| Secret | `MAIL_USER`, `MAIL_PASSWORD` | the Gmail address and an app password |
+
+Repository variable `NEXT_PUBLIC_API_BASE_URL=https://api.vunlera.tn/api/v1`: the web image is built with it, so set it before the build that you deploy.
+
+For this single-server demo the photos are stored on the VM (`STORAGE_LOCAL_IN_PRODUCTION=true`, a Docker volume); there is no database backup. Moving to Cloudflare R2 or Amazon S3 later means setting `STORAGE_DRIVER=s3` and the `S3_*` variables, with no code change.
+
+### Deploying
+
+```bash
+gh workflow run deploy.yml                       # the latest images built from main
+gh workflow run deploy.yml -f version=sha-1a2b3c4  # a given build, e.g. to roll back by hand
+```
+
+Starting the workflow is the approval: required reviewers on an environment need a paid plan for a private organisation repository. With the repository variable `AUTO_DEPLOY=true`, `containers.yml` deploys every green build of `main`.
+
+The first administrator, once (the password is read from stdin, never from the command line):
+
+```bash
+az vm run-command invoke -g rg-cabinguard-prod -n vm-cabinguard-prod --command-id RunShellScript --scripts \
+  "cd /opt/cabinguard && printf '%s' 'CHANGE-ME-long-password' | docker compose --env-file release.env -f compose.prod.yaml run --rm -T api dist/cli.js admin:create --email admin@vunlera.tn --first-name Admin --last-name CabinGuard --password-stdin"
+```
+
+### Operating the VM
+
+| Task | Command |
+| --- | --- |
+| Stop (compute billing stops, IP and data kept) | `az vm deallocate -g rg-cabinguard-prod -n vm-cabinguard-prod` |
+| Start (the stack restarts by itself) | `az vm start -g rg-cabinguard-prod -n vm-cabinguard-prod` |
+| Status of the containers | `az vm run-command invoke -g rg-cabinguard-prod -n vm-cabinguard-prod --command-id RunShellScript --scripts "cd /opt/cabinguard && docker compose --env-file release.env -f compose.prod.yaml ps"` |
+| Recent API logs | same, with `logs --tail 100 api` |
+
 ## Storage and email
 
 Development defaults to signed files under `backend/uploads`. Production requires `STORAGE_DRIVER=s3` and a private S3-compatible bucket. AWS IAM roles or another provider's short-lived credentials are preferred over static keys.

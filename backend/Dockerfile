@@ -25,7 +25,8 @@ FROM deps AS build
 COPY nest-cli.json tsconfig.json tsconfig.build.json ./
 COPY src ./src
 RUN npm run build \
- && npm prune --omit=dev --no-audit --no-fund
+ && npm prune --omit=dev --no-audit --no-fund \
+ && mkdir -p /data/uploads
 
 # --- migrations: one-shot job run before the API is (re)started --------------
 # Distroless too: the Prisma CLI is called directly, so no npm/npx in the image.
@@ -47,6 +48,9 @@ ENV NODE_ENV=production \
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+# Mount point for local uploads (STORAGE_LOCAL_DIR=/data/uploads): a volume
+# mounted here inherits this ownership, so the read-only API can still write.
+COPY --from=build --chown=65532:65532 /data/uploads /data/uploads
 USER 65532:65532
 EXPOSE 4000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \

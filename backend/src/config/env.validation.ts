@@ -323,6 +323,15 @@ export class EnvironmentVariables {
   @IsString()
   STORAGE_LOCAL_DIR = 'uploads';
 
+  /**
+   * Single-server deployments only (e.g. a demo VM): allow the local driver in
+   * production. Files then exist on that one server, with no redundancy, so
+   * this must stay false as soon as the API runs on more than one instance.
+   */
+  @Transform(toBool)
+  @IsBoolean()
+  STORAGE_LOCAL_IN_PRODUCTION = false;
+
   /** Public base URL of this API, used to build signed local-file links. Defaults to http://localhost:PORT. */
   @IsOptional()
   @IsUrl(HTTP_URL)
@@ -417,8 +426,10 @@ function crossFieldErrors(env: EnvironmentVariables): string[] {
     if (!env.FRONTEND_URL.startsWith('https://')) {
       errors.push('FRONTEND_URL must be https in production');
     }
-    if (env.STORAGE_DRIVER !== 's3') {
-      errors.push('STORAGE_DRIVER must be s3 in production');
+    if (env.STORAGE_DRIVER !== 's3' && !env.STORAGE_LOCAL_IN_PRODUCTION) {
+      errors.push(
+        'STORAGE_DRIVER must be s3 in production (or STORAGE_LOCAL_IN_PRODUCTION=true on a single server)',
+      );
     }
   }
   return errors;

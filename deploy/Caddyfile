@@ -1,0 +1,25 @@
+# TLS certificates are obtained and renewed automatically (Let's Encrypt),
+# and plain HTTP is redirected to HTTPS. Security headers come from the
+# applications themselves (helmet in the API, next.config.js in the web app).
+
+(common) {
+	encode zstd gzip
+	header -Server
+	log {
+		output stdout
+		format json
+	}
+}
+
+{$APP_DOMAIN} {
+	import common
+	reverse_proxy web:3000
+}
+
+{$API_DOMAIN} {
+	import common
+	request_body {
+		max_size 10MB
+	}
+	reverse_proxy api:4000
+}

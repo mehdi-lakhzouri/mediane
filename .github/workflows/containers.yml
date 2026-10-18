@@ -228,6 +228,18 @@ jobs:
             echo "- SPDX SBOM attestation: verified"
           } >> "$GITHUB_STEP_SUMMARY"
 
+  deploy:
+    name: Deploy to production
+    # Off by default: a person starts deploy.yml. AUTO_DEPLOY=true deploys
+    # every green build of main.
+    needs: image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AUTO_DEPLOY == 'true'
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+    uses: ./.github/workflows/deploy.yml
+
   rescan:
     # A CVE disclosed after the build is invisible to the build-time scan:
     # re-scan what is actually published, every day.
