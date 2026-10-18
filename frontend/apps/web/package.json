@@ -20,7 +20,7 @@
     "@repo/ui": "workspace:*",
     "@tanstack/react-table": "^8.21.3",
     "country-flag-icons": "^1.6.20",
-    "framer-motion": "^13.4.6",
+    "framer-motion": "^14.1.0",
     "input-otp": "^1.5.0",
     "lucide-react": "^1.55.0",
     "next": "^16.4.0",
