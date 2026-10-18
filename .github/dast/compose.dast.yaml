@@ -1,0 +1,115 @@
+# Ephemeral stack for the DAST scan (.github/workflows/dast.yml), also usable
+# locally. The API runs the production image in production mode: the scan
+# sees exactly what ships (HSTS, strict CSP, __Host- cookies, no Swagger).
+#
+#   export ZAP_API_KEY="$(openssl rand -hex 32)"   # plus the secrets below
+#   docker compose -f .github/dast/compose.dast.yaml up -d --wait
+#
+# Everything is published on 127.0.0.1 only. Secrets come from the
+# environment (generated per run in CI) and must never be committed.
+
+name: cabinguard-dast
+
+x-api-env: &api-env
+  NODE_ENV: production
+  PORT: "4000"
+  LOG_LEVEL: warn
+  DATABASE_URL: postgresql://dast:dast@postgres:5432/cabinguard
+  JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?generate with openssl rand -hex 32}
+  TOKEN_HASH_SECRET: ${TOKEN_HASH_SECRET:?generate with openssl rand -hex 32}
+  MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?generate with openssl rand -base64 32}
+  # Production validation requires https origins and Secure cookies.
+  CORS_ORIGINS: https://cabinguard.dast
+  FRONTEND_URL: https://cabinguard.dast
+  COOKIE_SECURE: "true"
+  SWAGGER_ENABLED: "false"
+  MAIL_HOST: mailpit
+  MAIL_PORT: "1025"
+  MAIL_FROM: CabinGuard <no-reply@cabinguard.dast>
+  # Production requires the s3 driver; uploads fail against this placeholder.
+  STORAGE_DRIVER: s3
+  S3_BUCKET: cabinguard-dast
+  S3_REGION: us-east-1
+  S3_ENDPOINT: http://s3.invalid
+  S3_FORCE_PATH_STYLE: "true"
+  # The scanner sends thousands of requests from one IP.
+  THROTTLE_DEFAULT_LIMIT: "100000"
+  SAFETY_WORKER_ENABLED: "false"
+
+services:
+  postgres:
+    image: postgres:18.4@sha256:a02db8cac496f15b094798a38254f14d6e00741f709360e5e00bb6668ea31636
+    environment:
+      POSTGRES_DB: cabinguard
+      POSTGRES_USER: dast
+      POSTGRES_PASSWORD: dast
+    ports: ["127.0.0.1:55432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dast -d cabinguard"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:v1.31.6@sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387
+
+  migrate:
+    image: ${MIGRATE_IMAGE:-cabinguard-migrate:local}
+    environment:
+      DATABASE_URL: postgresql://dast:dast@postgres:5432/cabinguard
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+
+  api:
+    image: ${BACKEND_IMAGE:-cabinguard-backend:local}
+    environment: *api-env
+    ports: ["127.0.0.1:4100:4000"]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      mailpit: { condition: service_started }
+
+  web:
+    image: ${WEB_IMAGE:-cabinguard-web:local}
+    ports: ["127.0.0.1:3100:3000"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      api: { condition: service_healthy }
+
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:2.17.0@sha256:5ccfff9a411743ab2615136a2edd7416bec9ce41572fa94e935df38c14adb2b6
+    # Daemon mode, driven over its REST API by zap-scan.sh. The key is
+    # generated per run; the API only answers callers presenting it.
+    command:
+      - zap.sh
+      - -daemon
+      - -host
+      - 0.0.0.0
+      - -port
+      - "8090"
+      - -config
+      - api.key=${ZAP_API_KEY:?generate with openssl rand -hex 32}
+      - -config
+      - api.addrs.addr.name=.*
+      - -config
+      - api.addrs.addr.regex=true
+      - -config
+      - api.disablekey=false
+    ports: ["127.0.0.1:8090:8090"]
+    volumes:
+      - ${ZAP_WORK_DIR:-../../zap-reports}:/zap/wrk:rw
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -H \"X-ZAP-API-Key: $$ZAP_API_KEY\" http://127.0.0.1:8090/JSON/core/view/version/ >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    environment:
+      ZAP_API_KEY: ${ZAP_API_KEY}
+    depends_on:
+      web: { condition: service_healthy }

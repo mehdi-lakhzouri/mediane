@@ -1,0 +1,141 @@
+name: DAST
+
+# Dynamic scan of the running application with OWASP ZAP in daemon mode.
+# The stack (.github/dast/compose.dast.yaml) is built from this commit, runs
+# in production mode on an isolated network, and is destroyed afterwards.
+# The ZAP API key and every application secret are generated per run.
+
+on:
+  schedule:
+    - cron: "0 2 * * *" # nightly 02:00 UTC
+  workflow_dispatch:
+    inputs:
+      ascan_minutes:
+        description: Active scan time budget (minutes)
+        default: "20"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  COMPOSE_FILE: .github/dast/compose.dast.yaml
+  ZAP_WORK_DIR: ${{ github.workspace }}/zap-reports
+
+jobs:
+  repo:
+    name: Repository features
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code-scanning: ${{ steps.features.outputs.code-scanning }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/actions
+      - id: features
+        uses: ./.github/actions/repo-features
+        with:
+          ghas-enabled: ${{ vars.GHAS_ENABLED }}
+
+  zap:
+    name: OWASP ZAP (API + web)
+    needs: repo
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Generate the ZAP API key and ephemeral secrets
+        run: |
+          # Never stored anywhere: they live for this job only and are masked in logs.
+          for name in ZAP_API_KEY JWT_ACCESS_SECRET TOKEN_HASH_SECRET; do
+            value="$(openssl rand -hex 32)"
+            echo "::add-mask::$value"
+            echo "$name=$value" >> "$GITHUB_ENV"
+          done
+          value="$(openssl rand -base64 32)"
+          echo "::add-mask::$value"
+          echo "MFA_ENCRYPTION_KEY=$value" >> "$GITHUB_ENV"
+          mkdir -p "$ZAP_WORK_DIR"
+          chmod 0777 "$ZAP_WORK_DIR" # the ZAP container runs as uid 1000
+
+      # The images under test, built from this commit (cache shared with containers.yml).
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build API image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: backend
+          target: runtime
+          load: true
+          tags: cabinguard-backend:local
+          cache-from: type=gha,scope=backend
+      - name: Build migration image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: backend
+          target: migrate
+          load: true
+          tags: cabinguard-migrate:local
+          cache-from: type=gha,scope=migrate
+      - name: Build web image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: frontend
+          file: frontend/apps/web/Dockerfile
+          load: true
+          tags: cabinguard-web:local
+          build-args: NEXT_PUBLIC_API_BASE_URL=http://localhost:4100/api/v1
+          cache-from: type=gha,scope=web
+
+      - name: Start the stack and the ZAP daemon
+        run: docker compose up -d --wait --wait-timeout 300
+
+      # Swagger is off in production, so the API description comes from the
+      # same commit booted briefly in development mode.
+      - uses: ./.github/actions/setup-backend
+      - name: Export the OpenAPI document
+        env:
+          DATABASE_URL: postgresql://dast:dast@127.0.0.1:55432/cabinguard
+        run: |
+          (cd backend && npm run build)
+          bash .github/dast/export-openapi.sh "$ZAP_WORK_DIR/openapi.json"
+
+      - name: Scan
+        env:
+          ASCAN_MAX_MINUTES: ${{ inputs.ascan_minutes || '20' }}
+          SECURITY_GATE_MODE: ${{ vars.SECURITY_GATE_MODE || 'audit' }}
+        run: python3 -I .github/dast/zap_scan.py
+
+      - uses: ./.github/actions/publish-sarif
+        if: always()
+        with:
+          sarif-file: zap-reports/zap-report.sarif.json
+          category: zap
+          code-scanning: ${{ needs.repo.outputs.code-scanning }}
+      - name: Collect container logs
+        if: failure()
+        run: docker compose logs --no-color > "$ZAP_WORK_DIR/compose.log" 2>&1 || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: zap-reports
+          path: |
+            zap-reports/
+            !zap-reports/openapi.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v --remove-orphans

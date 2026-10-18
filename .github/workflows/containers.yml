@@ -7,11 +7,11 @@ name: Containers
 # repository is private and switch on by themselves once it is public.
 #
 # Verify a published image:
-#   cosign verify ghcr.io/hejerayadi/cabinguard-backend@sha256:<digest> \
-#     --certificate-identity-regexp '^https://github.com/hejerayadi/EMBs-x-VTS-CabinGuard-ADI/' \
+#   cosign verify ghcr.io/hajer-s-org/cabinguard-backend@sha256:<digest> \
+#     --certificate-identity-regexp '^https://github.com/hajer-s-org/EMBs-x-VTS-CabinGuard-ADI/' \
 #     --certificate-oidc-issuer https://token.actions.githubusercontent.com
-#   gh attestation verify oci://ghcr.io/hejerayadi/cabinguard-backend@sha256:<digest> \
-#     -R hejerayadi/EMBs-x-VTS-CabinGuard-ADI
+#   gh attestation verify oci://ghcr.io/hajer-s-org/cabinguard-backend@sha256:<digest> \
+#     -R hajer-s-org/EMBs-x-VTS-CabinGuard-ADI
 
 on:
   pull_request:

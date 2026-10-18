@@ -1,0 +1,24 @@
+{
+  "_comment": "Accepted ZAP alerts, applied before the scan. newLevel: -1 false positive, 0 info, 1 low, 2 medium, 3 high. Each entry needs a justification, an owner and a review date; the justification is logged on every run.",
+  "filters": [
+    {
+      "ruleId": "10010",
+      "newLevel": -1,
+      "url": "^http://api:4000/api/v1/auth/csrf$",
+      "urlIsRegex": true,
+      "parameter": "__Host-cg_csrf",
+      "justification": "Double-submit CSRF token: the console reads this cookie to echo it in X-CSRF-Token, so it cannot be HttpOnly. It holds no session authority (Secure, SameSite=Strict, HMAC-signed). Session cookies are HttpOnly (checked by the Playwright suite).",
+      "owner": "backend",
+      "review": "2027-04-30"
+    },
+    {
+      "ruleId": "10202",
+      "newLevel": -1,
+      "url": "^http://web:3000/.*",
+      "urlIsRegex": true,
+      "justification": "The console's forms are submitted by JavaScript to the API with the X-CSRF-Token header (double-submit, enforced by the API's CSRF guard). A native POST to a Next.js page has no side effect, so no hidden form token is needed.",
+      "owner": "frontend",
+      "review": "2027-04-30"
+    }
+  ]
+}

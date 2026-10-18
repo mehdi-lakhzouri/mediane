@@ -17,7 +17,7 @@ We acknowledge reports within 3 business days and keep you informed until a fix 
 
 ## Scope
 
-In scope: the code in this repository and the container images published from it (`ghcr.io/hejerayadi/cabinguard-*`).
+In scope: the code in this repository and the container images published from it (`ghcr.io/hajer-s-org/cabinguard-*`).
 
 Out of scope: denial of service by volume, social engineering, findings that need a compromised device or account, and reports from automated scanners without a demonstrated impact.
 
@@ -27,12 +27,12 @@ Only the latest commit on `main` and the latest published images receive securit
 
 ## Verifying our images
 
-Published images are signed with Sigstore (keyless) and carry SLSA build provenance and an SPDX SBOM:
+Published images carry an SPDX SBOM and build provenance. Once the repository is public they are also signed with Sigstore (keyless) and attested by GitHub:
 
 ```bash
-cosign verify ghcr.io/hejerayadi/cabinguard-backend@sha256:<digest> \
-  --certificate-identity-regexp '^https://github.com/hejerayadi/EMBs-x-VTS-CabinGuard-ADI/' \
+cosign verify ghcr.io/hajer-s-org/cabinguard-backend@sha256:<digest> \
+  --certificate-identity-regexp '^https://github.com/hajer-s-org/EMBs-x-VTS-CabinGuard-ADI/' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
-gh attestation verify oci://ghcr.io/hejerayadi/cabinguard-backend@sha256:<digest> \
-  -R hejerayadi/EMBs-x-VTS-CabinGuard-ADI
+gh attestation verify oci://ghcr.io/hajer-s-org/cabinguard-backend@sha256:<digest> \
+  -R hajer-s-org/EMBs-x-VTS-CabinGuard-ADI
 ```
