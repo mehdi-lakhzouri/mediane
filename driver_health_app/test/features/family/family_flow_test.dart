@@ -271,6 +271,32 @@ void main() {
       expect(find.text('Code K7M4-QX9P'), findsOneWidget);
       expect(find.text('Owned by Karim'), findsOneWidget);
     });
+
+    testWidgets('opens the preview from the web app link it was shared as', (
+      tester,
+    ) async {
+      backend.on(
+        'GET',
+        'families/invites/K7M4QX9P',
+        (_) => FakeResponse.ok({
+          'familyName': 'Ben Salah',
+          'ownerFirstName': 'Karim',
+          'memberCount': 3,
+          'maxMembers': 10,
+          'full': false,
+        }),
+      );
+      final container = await pumpCabinGuard(tester, backend: backend);
+      await openFamilyTab(tester);
+
+      // https://app.vunlera.tn/mobile/join-family#K7M4-QX9P, as Android
+      // hands it to the app.
+      container.read(appRouterProvider).go('/mobile/join-family#K7M4-QX9P');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Code K7M4-QX9P'), findsOneWidget);
+      expect(find.text('Owned by Karim'), findsOneWidget);
+    });
   });
 
   group('as the owner', () {

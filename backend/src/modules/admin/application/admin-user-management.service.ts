@@ -20,7 +20,7 @@ import { SecureTokenService } from '../../security/infrastructure/secure-token.s
 import { SessionsService } from '../../sessions/application/sessions.service';
 import { SessionRevocationReason } from '../../sessions/domain/refresh-session';
 import type { AccountState } from '../../users/domain/account-state';
-import type { Role } from '../../users/domain/role';
+import { Role } from '../../users/domain/role';
 import { User } from '../../users/domain/user';
 import { UserStatus } from '../../users/domain/user-status';
 import {
@@ -459,11 +459,14 @@ export class AdminUserManagementService {
       requestId: string;
     },
   ): Promise<void> {
+    // Administrators work in the web console; drivers only in the mobile app.
+    const base =
+      user.role === Role.DRIVER ? this.app.mobileLinkUrl : this.app.frontendUrl;
     const mail = {
       to: user.email.value,
       firstName: user.firstName,
       // Fragment: the token never reaches server logs or Referer headers.
-      acceptUrl: `${this.app.frontendUrl}/accept-invitation#token=${params.invitationToken}`,
+      acceptUrl: `${base}/accept-invitation#token=${params.invitationToken}`,
       temporaryPassword: params.temporaryPassword,
       expiresAt: params.expiresAt,
     };

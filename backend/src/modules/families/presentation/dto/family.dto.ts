@@ -148,7 +148,9 @@ export class MyFamilyResponse {
 
 export class FamilyInviteResponse {
   @ApiProperty({ example: 'K7M4-QX9P' }) code!: string;
-  @ApiProperty({ example: 'https://cabinguard.app/join-family#K7M4-QX9P' })
+  @ApiProperty({
+    example: 'https://app.vunlera.tn/mobile/join-family#K7M4-QX9P',
+  })
   link!: string;
   @ApiProperty({ type: Date }) expiresAt!: Date;
 }

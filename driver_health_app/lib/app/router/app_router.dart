@@ -1,5 +1,6 @@
 import 'package:driver_health_app/app/router/app_routes.dart';
 import 'package:driver_health_app/app/router/route_guard.dart';
+import 'package:driver_health_app/core/navigation/app_link.dart';
 import 'package:driver_health_app/core/navigation/link_token.dart';
 import 'package:driver_health_app/core/navigation/pending_deep_link.dart';
 import 'package:driver_health_app/core/presentation/motion/animated_branches.dart';
@@ -48,13 +49,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: AppRoutes.splash,
     refreshListenable: Listenable.merge([sessions, appLock]),
-    redirect: (context, state) => resolveRedirect(
-      uri: state.uri,
-      location: state.matchedLocation,
-      auth: sessions.state,
-      locked: appLock.locked,
-      pending: pendingLink,
-    ),
+    // An app link (/mobile/...) first becomes its in-app route, which the
+    // usual guard then checks.
+    redirect: (context, state) =>
+        appLinkLocation(state.uri) ??
+        resolveRedirect(
+          uri: state.uri,
+          location: state.matchedLocation,
+          auth: sessions.state,
+          locked: appLock.locked,
+          pending: pendingLink,
+        ),
     routes: [
       GoRoute(
         path: AppRoutes.splash,

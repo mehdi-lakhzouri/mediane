@@ -466,6 +466,23 @@ az vm run-command invoke -g rg-cabinguard-prod -n vm-cabinguard-prod --command-i
   "cd /opt/cabinguard && printf '%s' 'CHANGE-ME-long-password' | docker compose --env-file release.env -f compose.prod.yaml run --rm -T api dist/cli.js admin:create --email admin@vunlera.tn --first-name Admin --last-name CabinGuard --password-stdin"
 ```
 
+### Links that open the driver app
+
+Administrators work in the web console, drivers only in the mobile app, so their emailed links differ:
+
+| Link | Administrator | Driver |
+| --- | --- | --- |
+| Invitation | `https://app.vunlera.tn/accept-invitation#token=…` (web) | `https://app.vunlera.tn/mobile/accept-invitation#token=…` |
+| Family invite | — | `https://app.vunlera.tn/mobile/join-family#CODE` |
+
+On an Android phone with the app, `/mobile/...` links open the app directly (Android App Links, declared in `AndroidManifest.xml`). Android trusts them because the site publishes `/.well-known/assetlinks.json` with the app's package and the SHA-256 of the certificate that signs the APK. Anywhere else (no app, a computer), the same URL shows a page that hands the link over to the app (`cabinguard://app/...`) and never redeems the token itself.
+
+**When the signing key changes** (another computer's debug key, or a real release key), add its fingerprint to `frontend/apps/web/public/.well-known/assetlinks.json`, otherwise Android shows the hand-over page instead of opening the app:
+
+```bash
+keytool -list -v -keystore <keystore> -alias <alias> | grep SHA256   # or: apksigner verify --print-certs app.apk
+```
+
 ### Operating the VM
 
 | Task | Command |

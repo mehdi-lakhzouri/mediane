@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.cabinguard.mobile",
+      "sha256_cert_fingerprints": [
+        "3D:D0:38:9A:2F:26:45:FA:C7:B6:19:D1:A1:3D:BA:C5:AA:40:07:AB:1F:18:DD:59:82:31:8D:B0:38:97:A5:3B"
+      ]
+    }
+  }
+]

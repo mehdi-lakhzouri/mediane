@@ -4,6 +4,9 @@ import { NodeEnv, readEnv } from './env.validation';
 export const appConfig = registerAs('app', () => {
   const env = readEnv();
   const isProduction = env.NODE_ENV === NodeEnv.Production;
+  const mobileLinkUrl = (
+    env.MOBILE_LINK_URL ?? `${env.FRONTEND_URL}/mobile`
+  ).replace(/\/+$/, '');
   return {
     name: 'CabinGuard API',
     nodeEnv: env.NODE_ENV,
@@ -14,8 +17,10 @@ export const appConfig = registerAs('app', () => {
     logLevel: env.LOG_LEVEL,
     corsOrigins: env.CORS_ORIGINS,
     frontendUrl: env.FRONTEND_URL,
+    /** Links for the driver app: opened by the app, or handed over to it. */
+    mobileLinkUrl,
     familyInviteUrl: (
-      env.FAMILY_INVITE_URL ?? `${env.FRONTEND_URL}/join-family`
+      env.FAMILY_INVITE_URL ?? `${mobileLinkUrl}/join-family`
     ).replace(/\/+$/, ''),
     trustProxy: env.TRUST_PROXY,
     // Hard rule: never exposed in production, even if misconfigured.

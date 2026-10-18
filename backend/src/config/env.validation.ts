@@ -257,8 +257,18 @@ export class EnvironmentVariables {
   SAFETY_INCIDENT_RETENTION_DAYS = 365;
 
   /**
+   * Base of the links meant for the driver app (Android App Links: the phone
+   * opens them in the app, a browser shows a page that hands over to it).
+   * Default: FRONTEND_URL/mobile.
+   */
+  @IsOptional()
+  @IsUrl(HTTP_URL)
+  MOBILE_LINK_URL?: string;
+
+  /**
    * Base of the shareable family invitation link (an https page that opens
-   * the mobile app). The code is appended as a fragment. Default: FRONTEND_URL/join-family.
+   * the mobile app). The code is appended as a fragment.
+   * Default: MOBILE_LINK_URL/join-family.
    */
   @IsOptional()
   @IsUrl(HTTP_URL)

@@ -179,6 +179,10 @@ describe('Admin user management (e2e)', () => {
 
     expect(sentInvites).toHaveLength(1);
     const mail = sentInvites[0];
+    // A driver works in the mobile app: the link is one the app opens.
+    expect(mail.acceptUrl).toMatch(
+      /^http:\/\/localhost:3000\/mobile\/accept-invitation#token=/,
+    );
     // The raw token travels in the URL fragment, never the query string.
     expect(mail.acceptUrl).toContain('#token=');
     expect(mail.acceptUrl).not.toContain('?');
@@ -186,6 +190,21 @@ describe('Admin user management (e2e)', () => {
       mail.acceptUrl.split('#token=')[1],
     );
     expect(row.passwordHash).not.toContain(mail.temporaryPassword);
+  });
+
+  it('sends administrators to the web console, not to the mobile app', async () => {
+    const res = await post('/admin/users', {
+      email: `admin-${Date.now()}@cabinguard.test`,
+      firstName: 'Ada',
+      lastName: 'Admin',
+      role: 'ADMIN',
+    }).expect(201);
+    createdIds.push(body<UserView>(res).data!.id);
+
+    const mail = sentInvites[sentInvites.length - 1];
+    expect(mail.acceptUrl).toMatch(
+      /^http:\/\/localhost:3000\/accept-invitation#token=/,
+    );
   });
 
   it('rejects a duplicate email', async () => {

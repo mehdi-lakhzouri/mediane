@@ -114,7 +114,8 @@ class _ActivateAccountScreenState extends ConsumerState<ActivateAccountScreen> {
               key: ActivateAccountScreen.linkFieldKey,
               label: 'Invitation link',
               controller: _link,
-              hintText: 'https://cabinguard.app/accept-invitation#token=…',
+              hintText:
+                  'https://app.vunlera.tn/mobile/accept-invitation#token=…',
               prefixIcon: Icons.link_rounded,
               keyboardType: TextInputType.url,
               textInputAction: TextInputAction.done,

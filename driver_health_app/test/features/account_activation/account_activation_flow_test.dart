@@ -52,6 +52,26 @@ void main() {
     expect(find.text('Welcome back'), findsOneWidget);
   });
 
+  testWidgets('opens the web app link a driver invitation email carries', (
+    tester,
+  ) async {
+    final container = await pumpCabinGuard(tester, backend: backend);
+
+    // https://app.vunlera.tn/mobile/accept-invitation#token=..., as Android
+    // hands it to the app.
+    container
+        .read(appRouterProvider)
+        .go('/mobile/accept-invitation#token=$token');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Activate your account'), findsOneWidget);
+    await tapVisible(tester, 'Activate account');
+    expect(
+      bodyOf(backend.requestsTo('POST', 'invitations/mobile/accept').single),
+      {'token': token},
+    );
+  });
+
   testWidgets('explains a used or expired invitation', (tester) async {
     final container = await pumpCabinGuard(tester, backend: backend);
 
@@ -84,7 +104,7 @@ void main() {
 
     await tester.enterText(
       field,
-      'https://cabinguard.app/accept-invitation#token=$token',
+      'https://app.vunlera.tn/mobile/accept-invitation#token=$token',
     );
     await tapVisible(tester, 'Activate account');
     expect(find.text('You’re all set'), findsOneWidget);

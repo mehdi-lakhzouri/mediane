@@ -244,7 +244,7 @@ describe('Families (e2e)', () => {
     invite = body<Invite>(res).data!;
     expect(invite.code).toMatch(/^[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$/);
     expect(invite.link).toBe(
-      `http://localhost:3000/join-family#${invite.code}`,
+      `http://localhost:3000/mobile/join-family#${invite.code}`,
     );
     // Asking again returns the same, still valid, code.
     const same = await as('amira', 'get', '/families/mine/invite').expect(200);

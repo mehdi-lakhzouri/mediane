@@ -33,22 +33,26 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Android App Links: https://app.vunlera.tn/mobile/... opens the
+                 app directly; the site proves ownership in
+                 /.well-known/assetlinks.json (package + signing certificate).
+                 Without the app, the same URL shows a page that hands over. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="https"
-                    android:host="cabinguard.app"
-                    android:pathPrefix="/reset-password" />
+                    android:host="app.vunlera.tn"
+                    android:pathPrefix="/mobile/accept-invitation" />
                 <data
                     android:scheme="https"
-                    android:host="cabinguard.app"
-                    android:pathPrefix="/accept-invitation" />
+                    android:host="app.vunlera.tn"
+                    android:pathPrefix="/mobile/join-family" />
                 <data
                     android:scheme="https"
-                    android:host="cabinguard.app"
-                    android:pathPrefix="/join-family" />
+                    android:host="app.vunlera.tn"
+                    android:pathPrefix="/mobile/reset-password" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
