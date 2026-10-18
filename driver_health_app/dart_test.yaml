@@ -1,0 +1,5 @@
+tags:
+  # Offline capture harness for the promo video, not a test: it reads fonts
+  # from the local Flutter cache and writes images into ../design.
+  # CI runs `flutter test --exclude-tags promo`; run it with `flutter test -t promo`.
+  promo:

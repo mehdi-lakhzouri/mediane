@@ -1,0 +1,53 @@
+version: 2
+
+# Weekly batches: minor and patch updates are grouped per ecosystem so they
+# arrive as one PR; majors stay separate because they need a human read.
+# Security updates are raised immediately, independently of this schedule.
+# Cooldown: a new release waits 7 days before being proposed, so a hijacked
+# package version is usually yanked before it reaches us (supply-chain safety).
+
+updates:
+  - package-ecosystem: npm
+    directory: /backend
+    schedule: { interval: weekly, day: monday, time: "05:00", timezone: Etc/UTC }
+    cooldown: { default-days: 7 }
+    open-pull-requests-limit: 5
+    commit-message: { prefix: "chore(deps)", prefix-development: "chore(deps-dev)", include: scope }
+    groups:
+      backend-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm # also handles pnpm lockfiles
+    directory: /frontend
+    schedule: { interval: weekly, day: monday, time: "05:00", timezone: Etc/UTC }
+    cooldown: { default-days: 7 }
+    open-pull-requests-limit: 5
+    commit-message: { prefix: "chore(deps)", prefix-development: "chore(deps-dev)", include: scope }
+    groups:
+      frontend-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: pub
+    directory: /driver_health_app
+    schedule: { interval: weekly, day: monday, time: "05:00", timezone: Etc/UTC }
+    cooldown: { default-days: 7 }
+    open-pull-requests-limit: 5
+    commit-message: { prefix: "chore(deps)", include: scope }
+    groups:
+      mobile-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directories: [/, /.github/actions/*] # workflows and the composite actions
+    schedule: { interval: weekly, day: monday, time: "05:00", timezone: Etc/UTC }
+    cooldown: { default-days: 7 }
+    commit-message: { prefix: "ci", include: scope }
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker-compose
+    directory: /docker
+    schedule: { interval: weekly, day: monday, time: "05:00", timezone: Etc/UTC }
+    cooldown: { default-days: 7 }
+    commit-message: { prefix: "chore(docker)", include: scope }

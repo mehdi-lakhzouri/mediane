@@ -38,6 +38,13 @@ yarn-error.log*
 # Test / coverage output
 coverage/
 .nyc_output/
+playwright-report/
+test-results/
+blob-report/
+# Saved E2E sessions and the enrolled test authenticator
+e2e/.auth/
+# DAST output (ZAP reports)
+zap-reports/
 
 # OS cruft
 .DS_Store

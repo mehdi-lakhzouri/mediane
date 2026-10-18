@@ -1,11 +1,15 @@
 // Captures the real application widgets for the promo composition.
 // Representative data is restricted to this offline capture harness.
+// Needs the local Flutter font cache and writes into ../design: excluded from
+// CI by its tag (see dart_test.yaml).
+@Tags(['promo'])
+library;
+
 import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:driver_health_app/app/app.dart';
 import 'package:driver_health_app/app/router/app_router.dart';
-import 'package:driver_health_app/app/router/app_routes.dart';
 import 'package:driver_health_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -28,14 +32,10 @@ void main() {
       final fontPath =
           Platform.environment['CABINGUARD_ROBOTO'] ??
           '${artifacts.path}/material_fonts/roboto-regular.ttf';
-      roboto.addFont(
-        File(fontPath)
-            .readAsBytes()
-            .then((bytes) => ByteData.sublistView(bytes)),
-      );
+      roboto.addFont(File(fontPath).readAsBytes().then(ByteData.sublistView));
       await roboto.load();
-      final icons = FontLoader('MaterialIcons');
-      icons.addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
+      final icons = FontLoader('MaterialIcons')
+        ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
       await icons.load();
     });
 
@@ -139,7 +139,7 @@ void main() {
       Platform.environment['CABINGUARD_CAPTURE_DIR'] ??
           '../design/promo/video/assets',
     );
-    await tester.runAsync(() async => output.create(recursive: true));
+    await tester.runAsync(() => output.create(recursive: true));
 
     Future<void> capture(String name) async {
       await pumpSteps(tester, steps: 12);
