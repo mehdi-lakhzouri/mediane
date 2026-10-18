@@ -69,6 +69,7 @@ Build settings live in `env/*.json`. Each machine has its own copy, which is git
 | --- | --- | --- | --- |
 | `env/dev-lan.json` | Phone on the same Wi-Fi as the PC | `http://<PC LAN IP>:4000/api/v1` | debug (cleartext HTTP is allowed in debug builds only) |
 | `env/demo-tunnel.json` | Demo from any network | `https://<static domain>/api/v1` | release |
+| `env/production.json` | The production API on the Azure VM | `https://api.vunlera.tn/api/v1` | release (`APP_ENV=production` requires HTTPS) |
 
 ```powershell
 Copy-Item env/dev-lan.example.json env/dev-lan.json   # then set your IP (ipconfig > Wi-Fi > IPv4)

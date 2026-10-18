@@ -394,6 +394,22 @@ pipx install pre-commit   # or: pip install pre-commit
 pre-commit install --install-hooks
 ```
 
+## Environments
+
+| | Local (your PC) | Production (the Azure VM) |
+| --- | --- | --- |
+| Purpose | develop and test | the demo at `https://app.vunlera.tn` |
+| Configuration templates | `backend/.env.example` → `backend/.env`<br>`docker/.env.example` → `docker/.env`<br>`frontend/apps/web/.env.example` → `.env.local`<br>`driver_health_app/env/dev-lan.example.json` | `deploy/production.env.example` (reference only)<br>`driver_health_app/env/production.example.json` |
+| Who writes the real file | you, by copying the template | the deploy workflow, from the GitHub environment `production`, into `/opt/cabinguard/.env` (mode 600) |
+| Where the secrets live | your `.env` files (gitignored) | GitHub environment secrets; never in the repository or on your PC |
+| How it runs | `docker compose` for PostgreSQL and Redis, then `npm run start:dev` and `pnpm dev` | containers from GHCR, pinned by digest, behind Caddy (`deploy/compose.prod.yaml`) |
+| URLs | `http://localhost:3000`, `http://localhost:4000/api/v1` | `https://app.vunlera.tn`, `https://api.vunlera.tn/api/v1` |
+| `NODE_ENV` | `development` (Swagger on, plain HTTP allowed) | `production` (HTTPS only, Secure cookies, Swagger refused) |
+| Photos | `backend/uploads` | Docker volume `uploads` on the VM |
+| Mail | your SMTP settings, or a local catcher | Gmail SMTP with an app password |
+
+Run the production stack itself on your PC before deploying: build the three images, then follow *Running it locally* in the pipeline section above.
+
 ## Production deployment
 
 The demo runs on one Azure VM (Ubuntu 24.04, Standard B2ls_v2) behind `app.vunlera.tn` (console) and `api.vunlera.tn` (API). `.github/workflows/deploy.yml` delivers the images that `containers.yml` built, scanned and published, pinned by digest.
@@ -421,7 +437,7 @@ Environment `production` (Settings › Environments; deployments from `main` onl
 
 | Kind | Name | Value |
 | --- | --- | --- |
-| Variable | `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` | the deployment identity (federated credential for this environment, role *Virtual Machine Contributor* on the VM only) |
+| Variable | `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` | the deployment identity: a user-assigned managed identity with the role *Virtual Machine Contributor* on the VM only, and a federated credential whose subject is the organisation's immutable form, `repo:hajer-s-org@344101369/EMBs-x-VTS-CabinGuard-ADI@1365926680:environment:production` (issuer `https://token.actions.githubusercontent.com`, audience `api://AzureADTokenExchange`) |
 | Variable | `AZURE_RESOURCE_GROUP`, `AZURE_VM_NAME` | `rg-cabinguard-prod`, `vm-cabinguard-prod` |
 | Variable | `APP_DOMAIN`, `API_DOMAIN` | `app.vunlera.tn`, `api.vunlera.tn` |
 | Variable | `MAIL_FROM` | `CabinGuard <address@gmail.com>` |
