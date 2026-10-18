@@ -5,6 +5,6 @@ paths-ignore:
   - "**/dist/**"
   - "**/.next/**"
   - backend/src/generated/**
-  - driver_health_app/** # Dart is not supported by CodeQL (covered by Trivy + Dependabot pub)
+  - driver_health_app/** # Dart is not supported by CodeQL (pubspec.lock is covered by Trivy)
   - design/**
   - marketing/**

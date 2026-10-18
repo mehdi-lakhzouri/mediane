@@ -6,7 +6,8 @@
 #
 # Builder and runtime share the same Debian release (trixie), so the native
 # modules compiled here (argon2, sharp) find the same glibc at runtime.
-# Base images are pinned by digest; Dependabot (docker) keeps them current.
+# Base images are pinned by digest: bump them deliberately (docker buildx
+# imagetools inspect <image>:<tag>); the daily Trivy re-scan says when.
 
 ARG NODE_IMAGE=node:24-trixie-slim@sha256:7f486cabe892bff8fef04c0f7da8dba84a560be3e4e2740b7a86afc57ebec315
 ARG RUNTIME_IMAGE=gcr.io/distroless/nodejs24-debian13:nonroot@sha256:59c479c9b8c123e66047315c968aa2d35e31ae5149c856e4110a79c8b3563f0b
