@@ -23,7 +23,7 @@ services:
       - embs-network
 
   redis:
-    image: redis:8.8
+    image: redis:8.10
     restart: unless-stopped
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
