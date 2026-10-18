@@ -14,7 +14,7 @@
     {
       "ruleId": "10202",
       "newLevel": -1,
-      "url": "^http://web:3000/.*",
+      "url": "^http://web:3000(/.*)?$",
       "urlIsRegex": true,
       "justification": "The console's forms are submitted by JavaScript to the API with the X-CSRF-Token header (double-submit, enforced by the API's CSRF guard). A native POST to a Next.js page has no side effect, so no hidden form token is needed.",
       "owner": "frontend",
