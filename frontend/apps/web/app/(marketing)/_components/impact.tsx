@@ -4,7 +4,12 @@ import { motion } from "framer-motion";
 import { ArrowDown, ArrowUp, ChartColumn, Quote } from "lucide-react";
 import Image from "next/image";
 import { areaPath, lastPoint, smoothPath, toPoints } from "../_lib/chart";
-import { CUSTOMERS, IMPACT_STATS, RESULTS, TESTIMONIAL } from "../_lib/content";
+import { useMemo } from "react";
+import { INTL_LOCALE } from "../../../lib/i18n/config";
+import { useLocale, useMessages } from "../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../lib/i18n/messages";
+import type { MarketingContent } from "../_lib/content";
+import { useContent } from "../_lib/use-content";
 import { type ChartColor, Columns, Sparkline } from "./charts";
 import { RangePill } from "./console-chrome";
 import { Icon } from "./icons";
@@ -19,7 +24,34 @@ const TRENDS = {
   bars: [3, 4, 5, 5.5, 6.5, 7.5, 8.5, 9.5, 10],
 } as const satisfies Record<string, readonly number[]>;
 
+const messages = defineMessages({
+  en: {
+    eyebrow: "Our impact & trust",
+    title: "Trusted to protect",
+    accent: "drivers, families",
+    titleEnd: ", and fleets.",
+    lead: "CabinGuard is relied on by forward-thinking organizations to keep drivers safer, families more informed, and operations running smoothly — every mile, every day.",
+    trusted: "Trusted by forward-thinking organizations",
+    customers: "Customers",
+    results: "Real results. Safer journeys.",
+    range: "Last 12 months",
+  },
+  fr: {
+    eyebrow: "Notre impact et la confiance",
+    title: "La confiance pour protéger",
+    accent: "conducteurs, familles",
+    titleEnd: " et flottes.",
+    lead: "Des organisations tournées vers l’avenir comptent sur CabinGuard pour protéger leurs conducteurs, informer les familles et assurer la bonne marche de leurs opérations — à chaque kilomètre, chaque jour.",
+    trusted: "Ils nous font confiance",
+    customers: "Clients",
+    results: "Des résultats concrets. Des trajets plus sûrs.",
+    range: "12 derniers mois",
+  },
+});
+
 export function Impact() {
+  const t = useMessages(messages);
+  const { IMPACT_STATS, CUSTOMERS } = useContent();
   return (
     <section id="impact" className="relative scroll-mt-20 overflow-hidden bg-[linear-gradient(180deg,#f9fbff_0%,#f4f8fe_100%)]" aria-labelledby="impact-title">
       <div
@@ -43,21 +75,19 @@ export function Impact() {
 
       <div className="lp-container relative pb-[clamp(48px,4vw,64px)] pt-[clamp(40px,3vw,50px)]">
         <Reveal className="max-w-[820px]">
-          <p className="lp-eyebrow pl-[clamp(0px,1vw,14px)]">Our impact &amp; trust</p>
+          <p className="lp-eyebrow pl-[clamp(0px,1vw,14px)]">{t.eyebrow}</p>
           <h2 id="impact-title" className="lp-title mt-[clamp(18px,2vw,32px)] pl-[clamp(0px,1vw,14px)]">
-            Trusted to protect
+            {t.title}
             <br />
-            <span className="lp-accent">drivers, families</span>, and fleets.
+            <span className="lp-accent">{t.accent}</span>
+            {t.titleEnd}
           </h2>
-          <p className="lp-lead mt-[clamp(14px,1.2vw,20px)] max-w-[720px] pl-[clamp(0px,1vw,14px)]">
-            CabinGuard is relied on by forward-thinking organizations to keep drivers safer, families more informed,
-            and operations running smoothly — every mile, every day.
-          </p>
+          <p className="lp-lead mt-[clamp(14px,1.2vw,20px)] max-w-[720px] pl-[clamp(0px,1vw,14px)]">{t.lead}</p>
         </Reveal>
 
         <ul className="mt-[clamp(24px,2vw,32px)] grid gap-[13px] sm:grid-cols-2 lg:grid-cols-3 xl:-mx-[clamp(0px,1.4vw,24px)] 2xl:grid-cols-5">
           {IMPACT_STATS.map((stat, index) => (
-            <li key={stat.label}>
+            <li key={index}>
               <Reveal delay={index * 0.07} y={22} className="h-full">
                 <StatCard stat={stat} index={index} />
               </Reveal>
@@ -76,9 +106,9 @@ export function Impact() {
 
         <Reveal className="mt-[clamp(20px,1.8vw,28px)]">
           <p className="text-center text-[clamp(11px,0.82vw,13.5px)] font-semibold uppercase tracking-[0.3em] text-[var(--lp-muted)]">
-            Trusted by forward-thinking organizations
+            {t.trusted}
           </p>
-          <ul className="mt-5 grid grid-cols-2 items-center gap-y-6 sm:grid-cols-4 xl:grid-cols-8" aria-label="Customers">
+          <ul className="mt-5 grid grid-cols-2 items-center gap-y-6 sm:grid-cols-4 xl:grid-cols-8" aria-label={t.customers}>
             {CUSTOMERS.map((name, index) => (
               <li
                 key={name}
@@ -97,7 +127,7 @@ export function Impact() {
 
 const STAT_TILE: Record<string, string> = { siren: "lp-tile-red" };
 
-function StatCard({ stat, index }: { stat: (typeof IMPACT_STATS)[number]; index: number }) {
+function StatCard({ stat, index }: { stat: MarketingContent["IMPACT_STATS"][number]; index: number }) {
   const chartKey = stat.chart === "blue" && index === 3 ? "uptime" : stat.chart;
   return (
     <article className="flex h-full flex-col rounded-[20px] border border-white/90 bg-white/90 p-[clamp(16px,1.2vw,20px)] shadow-[var(--lp-shadow-card)] backdrop-blur-sm">
@@ -141,6 +171,7 @@ function StatCard({ stat, index }: { stat: (typeof IMPACT_STATS)[number]; index:
 }
 
 function TestimonialCard() {
+  const { TESTIMONIAL } = useContent();
   return (
     <figure className="grid h-full gap-6 rounded-[22px] border border-white/90 bg-white/90 p-[clamp(18px,1.5vw,26px)] shadow-[var(--lp-shadow-card)] lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
       <div className="flex gap-5">
@@ -171,8 +202,8 @@ function TestimonialCard() {
           {TESTIMONIAL.company}
         </p>
         <dl className="grid grid-cols-3 divide-x divide-[var(--lp-line)] rounded-[14px] bg-white py-4 shadow-[0_8px_18px_-14px_rgba(16,40,94,0.35)]">
-          {TESTIMONIAL.results.map((result) => (
-            <div key={result.label} className="px-[clamp(8px,1vw,14px)]">
+          {TESTIMONIAL.results.map((result, index) => (
+            <div key={index} className="px-[clamp(8px,1vw,14px)]">
               <dt className="sr-only">{result.label}</dt>
               <dd className="text-[clamp(18px,1.4vw,23px)] font-extrabold tracking-[-0.02em] text-[var(--lp-ink)]">
                 {result.value}
@@ -186,11 +217,22 @@ function TestimonialCard() {
   );
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const PROACTIVE = [30, 36, 40, 44, 41, 46, 45, 49, 47, 52, 55, 60];
 const ENGAGEMENT = [14, 18, 16, 20, 23, 21, 25, 24, 30, 28, 33, 40];
 
 function ResultsCard() {
+  const t = useMessages(messages);
+  const { RESULTS } = useContent();
+  const locale = useLocale();
+  // "Jan, Feb…" / "janv., févr.…" from the reader's locale.
+  const months = useMemo(() => {
+    const format = new Intl.DateTimeFormat(INTL_LOCALE[locale], {
+      month: "short",
+    });
+    return Array.from({ length: 12 }, (_, month) =>
+      format.format(new Date(2025, month, 1)),
+    );
+  }, [locale]);
   const { ref, seen } = useSeen<HTMLDivElement>(0.3);
   const show = seen;
   const w = 520;
@@ -204,15 +246,15 @@ function ResultsCard() {
     <div ref={ref} className="flex h-full flex-col rounded-[22px] border border-white/90 bg-white/90 p-[clamp(18px,1.4vw,24px)] shadow-[var(--lp-shadow-card)]">
       <div className="flex items-center justify-between gap-3">
         <p className="flex items-center gap-3 text-[clamp(15px,1.06vw,17.5px)] font-bold tracking-[-0.015em] text-[var(--lp-ink)]">
-          <ChartColumn size={22} className="text-[var(--lp-blue)]" /> Real results. Safer journeys.
+          <ChartColumn size={22} className="text-[var(--lp-blue)]" /> {t.results}
         </p>
-        <RangePill label="Last 12 months" />
+        <RangePill label={t.range} />
       </div>
       <ul className="mt-5 grid grid-cols-3 divide-x divide-[var(--lp-line)]">
-        {RESULTS.map((result) => {
+        {RESULTS.map((result, index) => {
           const down = result.trend === "down";
           return (
-            <li key={result.label} className="flex items-center justify-between gap-2 px-[clamp(8px,1vw,16px)] first:pl-0">
+            <li key={index} className="flex items-center justify-between gap-2 px-[clamp(8px,1vw,16px)] first:pl-0">
               <span>
                 <span className="block text-[clamp(17px,1.3vw,22px)] font-extrabold tracking-[-0.02em] text-[var(--lp-ink)]">
                   {result.value}
@@ -276,7 +318,7 @@ function ResultsCard() {
           <circle cx={lastPoint(b).x} cy={lastPoint(b).y} r="4" fill="#8a6cf5" stroke="#fff" strokeWidth="2" />
         </svg>
         <div className="mt-3 flex justify-between text-[clamp(10.5px,0.72vw,12px)] text-[var(--lp-muted)]">
-          {MONTHS.map((month) => (
+          {months.map((month) => (
             <span key={month}>{month}</span>
           ))}
         </div>

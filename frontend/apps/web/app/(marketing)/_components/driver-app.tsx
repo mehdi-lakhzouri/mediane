@@ -3,11 +3,39 @@
 import { motion, type MotionValue, useScroll, useTransform } from "framer-motion";
 import Image from "next/image";
 import { useRef } from "react";
-import { APP_POINTS } from "../_lib/content";
+import { useMessages } from "../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../lib/i18n/messages";
+import { useContent } from "../_lib/use-content";
 import { Icon } from "./icons";
 import { Reveal, usePrefersReducedMotion } from "./motion";
 
+const messages = defineMessages({
+  en: {
+    eyebrow: "The driver app",
+    title: "Help is one tap away.",
+    accent: "So is the all-clear.",
+    lead: "The CabinGuard app pairs with the cabin unit, answers its alerts and keeps the driver in charge of who is told what.",
+    homeAlt: "CabinGuard home screen showing protection active",
+    alertAlt: "Are you OK? countdown with 22 seconds left and an I’m OK button",
+    notificationsAlt:
+      "Notification center with safety, family and security alerts",
+  },
+  fr: {
+    eyebrow: "L’application conducteur",
+    title: "L’aide est à un appui.",
+    accent: "La fin d’alerte aussi.",
+    lead: "L’application CabinGuard s’associe au boîtier embarqué, répond à ses alertes et laisse le conducteur décider de qui est informé, et de quoi.",
+    homeAlt: "Écran d’accueil CabinGuard indiquant que la protection est active",
+    alertAlt:
+      "Compte à rebours « Tout va bien ? » avec 22 secondes restantes et un bouton « Je vais bien »",
+    notificationsAlt:
+      "Centre de notifications avec des alertes de sécurité, de famille et de compte",
+  },
+});
+
 export function DriverApp() {
+  const t = useMessages(messages);
+  const { APP_POINTS } = useContent();
   const stage = useRef<HTMLDivElement>(null);
   const reduced = usePrefersReducedMotion();
   const { scrollYProgress } = useScroll({ target: stage, offset: ["start end", "end start"] });
@@ -27,20 +55,17 @@ export function DriverApp() {
       <div className="lp-container relative grid items-center gap-14 py-[clamp(72px,6.4vw,112px)] lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
         <div>
           <Reveal>
-            <p className="lp-eyebrow text-[#8fb4ff]">The driver app</p>
+            <p className="lp-eyebrow text-[#8fb4ff]">{t.eyebrow}</p>
             <h2 id="app-title" className="lp-title mt-[clamp(16px,1.6vw,26px)] text-white">
-              Help is one tap away.
+              {t.title}
               <br />
-              <span className="text-[#6ea2ff]">So is the all-clear.</span>
+              <span className="text-[#6ea2ff]">{t.accent}</span>
             </h2>
-            <p className="lp-lead mt-[clamp(14px,1.2vw,20px)] max-w-[560px] text-white/72">
-              The CabinGuard app pairs with the cabin unit, answers its alerts and keeps the driver in charge of
-              who is told what.
-            </p>
+            <p className="lp-lead mt-[clamp(14px,1.2vw,20px)] max-w-[560px] text-white/72">{t.lead}</p>
           </Reveal>
           <ul className="mt-10 grid gap-x-8 gap-y-7 sm:grid-cols-2">
             {APP_POINTS.map((point, index) => (
-              <li key={point.title}>
+              <li key={index}>
                 <Reveal delay={0.06 * index} y={16} className="flex gap-4">
                   <span className="grid size-11 flex-none place-items-center rounded-[13px] border border-white/10 bg-white/[0.07] text-[#8fb4ff]">
                     <Icon name={point.icon} size={20} />
@@ -56,15 +81,15 @@ export function DriverApp() {
         </div>
 
         <div ref={stage} className="relative mx-auto flex w-full max-w-[680px] items-center justify-center py-6">
-          <Phone src="/landing/app-home.webp" alt="CabinGuard home screen showing protection active" offset={reduced ? undefined : sink} className="hidden w-[30%] translate-x-[18%] -rotate-[7deg] opacity-80 sm:block" />
+          <Phone src="/landing/app-home.webp" alt={t.homeAlt} offset={reduced ? undefined : sink} className="hidden w-[30%] translate-x-[18%] -rotate-[7deg] opacity-80 sm:block" />
           <Phone
             src="/landing/app-alert.webp"
-            alt="Are you OK? countdown with 22 seconds left and an I’m OK button"
+            alt={t.alertAlt}
             offset={reduced ? undefined : rise}
             className="relative z-10 w-[min(72%,300px)] sm:w-[38%]"
             priority
           />
-          <Phone src="/landing/app-notifications.webp" alt="Notification center with safety, family and security alerts" offset={reduced ? undefined : sink} className="hidden w-[30%] -translate-x-[18%] rotate-[7deg] opacity-80 sm:block" />
+          <Phone src="/landing/app-notifications.webp" alt={t.notificationsAlt} offset={reduced ? undefined : sink} className="hidden w-[30%] -translate-x-[18%] rotate-[7deg] opacity-80 sm:block" />
         </div>
       </div>
     </section>

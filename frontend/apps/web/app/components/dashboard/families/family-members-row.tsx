@@ -16,13 +16,19 @@ import type {
   AdminFamily,
   AdminFamilyMember,
 } from "../../../../lib/api/admin-families";
+import {
+  useFormatters,
+  useMessages,
+} from "../../../../lib/i18n/locale-provider";
 import { listItemMotion } from "../motion";
-import { formatDate, fullName } from "../users/format";
+import { fullName } from "../users/format";
+import { familiesMessages } from "./families.messages";
 
 export interface FamilyDetailState {
   data: AdminFamily | null;
   loading: boolean;
-  error: string | null;
+  /** Kept as the failure itself so its message follows a language switch. */
+  error: { cause: unknown } | null;
 }
 
 function initials(member: AdminFamilyMember): string {
@@ -32,14 +38,19 @@ function initials(member: AdminFamilyMember): string {
 export function FamilyMembersRow({
   family,
   state,
+  errorMessage,
   onRetry,
   onManage,
 }: {
   family: AdminFamily;
   state: FamilyDetailState | undefined;
+  /** Shown when loading the members failed. */
+  errorMessage: string;
   onRetry: () => void;
   onManage: () => void;
 }) {
+  const t = useMessages(familiesMessages).row;
+  const format = useFormatters();
   const details = state?.data;
 
   return (
@@ -50,24 +61,22 @@ export function FamilyMembersRow({
             <div className="flex items-center gap-2">
               <UsersRound className="size-[18px] text-primary" />
               <h3 className="text-[14px] font-semibold text-foreground">
-                Members of {family.name}
+                {t.membersOf(family.name)}
               </h3>
               {details ? (
                 <Badge variant="secondary">
-                  {details.memberCount} member
-                  {details.memberCount === 1 ? "" : "s"}
+                  {t.count(details.memberCount)}
                 </Badge>
               ) : null}
             </div>
             <p className="mt-1 text-[12px] text-muted-foreground">
-              Administrative membership details only. Private shared health and
-              contact data stays hidden.
+              {t.privacy}
             </p>
           </div>
           <div className="flex items-center gap-2">
             {details?.pendingRequestCount ? (
               <Badge variant="warning">
-                {details.pendingRequestCount} waiting to join
+                {t.waiting(details.pendingRequestCount)}
               </Badge>
             ) : null}
             <Button
@@ -77,16 +86,13 @@ export function FamilyMembersRow({
               className="rounded-[8px]"
               onClick={onManage}
             >
-              Manage family
+              {t.manage}
             </Button>
           </div>
         </div>
 
         {state?.loading || !state ? (
-          <div
-            className="space-y-3 px-5 py-5"
-            aria-label="Loading family members"
-          >
+          <div className="space-y-3 px-5 py-5" aria-label={t.loading}>
             {[0, 1].map((row) => (
               <div key={row} className="flex items-center gap-3">
                 <Skeleton className="size-9 rounded-full" />
@@ -99,7 +105,7 @@ export function FamilyMembersRow({
         ) : state.error ? (
           <div className="flex min-h-28 flex-col items-center justify-center px-5 py-5 text-center">
             <p className="text-[13px] font-medium text-foreground">
-              {state.error}
+              {errorMessage}
             </p>
             <Button
               type="button"
@@ -108,15 +114,15 @@ export function FamilyMembersRow({
               className="mt-3 rounded-[8px]"
               onClick={onRetry}
             >
-              <RefreshCcw /> Try again
+              <RefreshCcw /> {t.retry}
             </Button>
           </div>
         ) : details?.members?.length ? (
           <div>
             <div className="hidden grid-cols-[minmax(220px,1fr)_150px_180px] gap-4 bg-[#fbfcff] px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground sm:grid">
-              <span>Member</span>
-              <span>Family role</span>
-              <span>Joined</span>
+              {t.columns.map((column) => (
+                <span key={column}>{column}</span>
+              ))}
             </div>
             <ul className="divide-y divide-[#e6ecf6]">
               {details.members.map((member, index) => (
@@ -137,7 +143,7 @@ export function FamilyMembersRow({
                         {fullName(member)}
                       </p>
                       <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                        Driver account
+                        {t.driverAccount}
                       </p>
                     </div>
                   </div>
@@ -147,17 +153,17 @@ export function FamilyMembersRow({
                         variant="warning"
                         className="border-[#efca72] bg-[#fff8e8] text-[#956006]"
                       >
-                        <Crown /> Owner
+                        <Crown /> {t.owner}
                       </Badge>
                     ) : (
                       <Badge variant="secondary">
-                        <UserRound /> Member
+                        <UserRound /> {t.member}
                       </Badge>
                     )}
                   </div>
                   <p className="flex items-center gap-2 text-[12px] text-muted-foreground tabular-nums">
                     <CalendarDays className="size-3.5" />
-                    {formatDate(member.joinedAt)}
+                    {format.date(member.joinedAt)}
                   </p>
                 </motion.li>
               ))}
@@ -168,7 +174,7 @@ export function FamilyMembersRow({
             <div>
               <ShieldCheck className="mx-auto size-5 text-muted-foreground" />
               <p className="mt-2 text-[13px] text-muted-foreground">
-                This family has no members.
+                {t.empty}
               </p>
             </div>
           </div>

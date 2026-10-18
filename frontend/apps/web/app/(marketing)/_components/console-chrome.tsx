@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Bell,
   Calendar,
@@ -13,6 +15,11 @@ import {
   Users,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { useMessages } from "../../../lib/i18n/locale-provider";
+import {
+  consoleMessages,
+  type ConsoleNavKey,
+} from "../_lib/console.messages";
 import { ShieldMark } from "./icons";
 
 /**
@@ -20,39 +27,40 @@ import { ShieldMark } from "./icons";
  * chip, drawn at design pixels (the parent ScaledCanvas scales them).
  */
 export type ConsoleNavItem = {
-  label: string;
+  key: ConsoleNavKey;
   icon: typeof Users;
   divider?: boolean;
 };
 
 export const OVERVIEW_NAV: ConsoleNavItem[] = [
-  { label: "Overview", icon: LayoutGrid },
-  { label: "Drivers", icon: UserRound },
-  { label: "Families", icon: Users, divider: true },
-  { label: "Incidents", icon: ShieldCheck, divider: true },
-  { label: "Invitations", icon: Mail, divider: true },
-  { label: "Health", icon: HeartPulse },
-  { label: "Analytics", icon: ChartColumn },
-  { label: "Settings", icon: Settings },
+  { key: "overview", icon: LayoutGrid },
+  { key: "drivers", icon: UserRound },
+  { key: "families", icon: Users, divider: true },
+  { key: "incidents", icon: ShieldCheck, divider: true },
+  { key: "invitations", icon: Mail, divider: true },
+  { key: "health", icon: HeartPulse },
+  { key: "analytics", icon: ChartColumn },
+  { key: "settings", icon: Settings },
 ];
 
 export function ConsoleSidebar({
   items,
   width = 112,
   gap = 40,
-  active: activeLabel,
+  active: activeKey,
   brand = true,
   className = "inset-y-0",
 }: {
   items: ConsoleNavItem[];
   width?: number;
   gap?: number;
-  /** Label of the highlighted item; the first item when omitted. */
+  /** Key of the highlighted item; the first item when omitted. */
   active?: string;
   /** Whether the sidebar carries the CabinGuard mark at its top. */
   brand?: boolean;
   className?: string;
 }) {
+  const t = useMessages(consoleMessages);
   return (
     <aside
       className={`lp-console-sidebar absolute left-0 flex flex-col px-2.5 pt-6 text-white ${className}`}
@@ -68,10 +76,10 @@ export function ConsoleSidebar({
       ) : null}
       <nav className="flex flex-col">
         {items.map((item, index) => {
-          const active = activeLabel ? item.label === activeLabel : index === 0;
+          const active = activeKey ? item.key === activeKey : index === 0;
           const ItemIcon = item.icon;
           return (
-            <div key={item.label}>
+            <div key={item.key}>
               <div
                 className={`flex items-center gap-1.5 rounded-[10px] px-1.5 text-[11.5px] font-medium transition-colors duration-300 ${
                   active
@@ -81,7 +89,7 @@ export function ConsoleSidebar({
                 style={{ height: 34, marginBottom: gap - 34 }}
               >
                 <ItemIcon size={15} strokeWidth={2} className="flex-none" />
-                <span className="truncate">{item.label}</span>
+                <span className="truncate">{t.nav[item.key]}</span>
               </div>
               {item.divider ? (
                 <div className="mx-2 -mt-1 mb-2 h-px bg-white/12" />
@@ -94,11 +102,12 @@ export function ConsoleSidebar({
   );
 }
 export function ConsoleTopBar({ name = "Mahdi Lakhzouri" }: { name?: string }) {
+  const t = useMessages(consoleMessages);
   return (
     <div className="flex items-center gap-4">
       <div className="flex h-[34px] w-[330px] items-center gap-2 rounded-full border border-[#e6edf8] bg-white/90 px-3.5 text-[11.5px] text-[#8b98b1]">
         <Search size={14} strokeWidth={2} className="text-[#56647f]" />
-        Search drivers, families, incidents, or settings...
+        {t.search}
       </div>
       <div className="ml-auto flex items-center gap-4">
         <span className="relative text-[#3b4a6b]">
@@ -113,7 +122,7 @@ export function ConsoleTopBar({ name = "Mahdi Lakhzouri" }: { name?: string }) {
             {name}
           </span>
           <span className="block text-[10.5px] text-[#7a87a3]">
-            Administrator
+            {t.admin}
           </span>
         </span>
         <ChevronDown size={15} className="text-[#3b4a6b]" />
@@ -121,11 +130,12 @@ export function ConsoleTopBar({ name = "Mahdi Lakhzouri" }: { name?: string }) {
     </div>
   );
 }
-export function RangePill({ label = "Last 30 days" }: { label?: string }) {
+export function RangePill({ label }: { label?: string }) {
+  const t = useMessages(consoleMessages);
   return (
     <div className="flex h-[32px] items-center gap-2 rounded-[10px] border border-[#e3eaf6] bg-white px-3 text-[11.5px] font-medium text-[#1a2547] shadow-[0_6px_14px_-10px_rgba(16,40,94,0.3)]">
       <Calendar size={13} strokeWidth={2} />
-      {label}
+      {label ?? t.range}
       <ChevronDown size={13} className="ml-3" />
     </div>
   );

@@ -55,11 +55,7 @@ import {
 } from "../../components/dashboard/motion";
 import { useToast } from "../../components/dashboard/toast-provider";
 import { InviteUserSheet } from "../../components/dashboard/users/invite-user-sheet";
-import {
-  formatDateTime,
-  fullName,
-  initials,
-} from "../../components/dashboard/users/format";
+import { fullName, initials } from "../../components/dashboard/users/format";
 import { RoleBadge } from "../../components/dashboard/users/user-badges";
 import {
   getAdminInvitationStats,
@@ -75,6 +71,13 @@ import {
 } from "../../../lib/api/admin-users";
 import type { Role } from "../../../lib/api/auth";
 import { ApiError } from "../../../lib/api/client";
+import { useErrorText } from "../../../lib/i18n/api-errors";
+import { useFormatters, useMessages } from "../../../lib/i18n/locale-provider";
+import { labelMessages } from "../../components/dashboard/labels";
+import {
+  invitationsMessages,
+  type InvitationsMessages,
+} from "../../components/dashboard/invitations/invitations.messages";
 
 type StatusFilter = AdminInvitationStatus | "ALL";
 type RoleFilter = Role | "ALL";
@@ -98,18 +101,25 @@ function canResend(invitation: AdminInvitation): boolean {
 
 function uniqueByUser(invitations: AdminInvitation[]): AdminInvitation[] {
   return Array.from(
-    new Map(invitations.map((invitation) => [invitation.userId, invitation])).values(),
+    new Map(
+      invitations.map((invitation) => [invitation.userId, invitation]),
+    ).values(),
   );
 }
 
 export function InvitationsScreen() {
+  const t = useMessages(invitationsMessages);
+  const labels = useMessages(labelMessages);
+  const format = useFormatters();
+  const errorText = useErrorText();
   const toast = useToast();
   const [rows, setRows] = useState<AdminInvitation[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [stats, setStats] = useState<AdminInvitationStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  // The failure, not its text: the message follows a language switch.
+  const [loadError, setLoadError] = useState<{ error: unknown } | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
@@ -161,15 +171,19 @@ export function InvitationsScreen() {
       if (id !== requestId.current) return;
       setRows([]);
       setTotalItems(0);
-      setLoadError(
-        error instanceof ApiError
-          ? error.message
-          : "Could not load invitations. Please try again.",
-      );
+      setLoadError({ error });
     } finally {
       if (id === requestId.current) setLoading(false);
     }
-  }, [pagination.pageIndex, pagination.pageSize, roleFilter, search, sortBy, sortDir, statusFilter]);
+  }, [
+    pagination.pageIndex,
+    pagination.pageSize,
+    roleFilter,
+    search,
+    sortBy,
+    sortDir,
+    statusFilter,
+  ]);
 
   const loadStats = useCallback(async () => {
     try {
@@ -198,29 +212,23 @@ export function InvitationsScreen() {
       try {
         if (action === "resend") {
           await resendInvitation(invitation.userId);
-          toast.success(
-            "New invitation issued.",
-            "Email delivery was requested and the previous credentials are no longer valid.",
-          );
+          toast.success(t.single.resent, t.single.resentDetail);
         } else {
           await revokeInvitation(invitation.userId);
-          toast.success(
-            "Invitation revoked.",
-            "The recipient can no longer use that link.",
-          );
+          toast.success(t.single.revoked, t.single.revokedDetail);
         }
         setSelected(null);
       } catch (error) {
         toast.error(
-          "The invitation could not be updated.",
-          error instanceof ApiError ? error.message : "Please try again.",
+          t.single.failed,
+          error instanceof ApiError ? errorText.message(error) : t.single.retry,
         );
       } finally {
         setBusy(false);
         await Promise.all([load(), loadStats()]);
       }
     },
-    [load, loadStats, toast],
+    [errorText, load, loadStats, t, toast],
   );
 
   const askAction = useCallback(
@@ -229,18 +237,19 @@ export function InvitationsScreen() {
       setConfirm({
         title:
           action === "resend"
-            ? `Send a new invitation to ${name}?`
-            : `Revoke ${name}'s invitation?`,
+            ? t.single.resendTitle(name)
+            : t.single.revokeTitle(name),
         description:
           action === "resend"
-            ? "This creates a new single-use link and temporary password. Credentials from every previous invitation stop working."
-            : "The current invitation link stops working immediately. You can send a fresh invitation later while the account is still awaiting activation.",
-        actionLabel: action === "resend" ? "Send new invitation" : "Revoke",
+            ? t.single.resendDescription
+            : t.single.revokeDescription,
+        actionLabel:
+          action === "resend" ? t.single.resendAction : t.single.revokeAction,
         destructive: action === "revoke",
         run: () => runSingle(action, invitation),
       });
     },
-    [runSingle],
+    [runSingle, t],
   );
 
   const selectedRows = useMemo(
@@ -271,21 +280,23 @@ export function InvitationsScreen() {
       if (failed.length === 0) {
         toast.success(
           action === "resend"
-            ? `${succeeded} invitation${succeeded === 1 ? "" : "s"} issued again.`
-            : `${succeeded} invitation${succeeded === 1 ? "" : "s"} revoked.`,
+            ? t.bulk.resent(succeeded)
+            : t.bulk.revoked(succeeded),
         );
       } else {
         const reason = failed[0]?.reason;
         toast.error(
-          `${succeeded} of ${results.length} invitations updated.`,
-          reason instanceof ApiError ? reason.message : "Some actions failed.",
+          t.bulk.partial(succeeded, results.length),
+          reason instanceof ApiError
+            ? errorText.message(reason)
+            : t.bulk.someFailed,
         );
       }
       setRowSelection({});
       setBusy(false);
       await Promise.all([load(), loadStats()]);
     },
-    [load, loadStats, toast],
+    [errorText, load, loadStats, t, toast],
   );
 
   const askBulk = useCallback(
@@ -293,18 +304,19 @@ export function InvitationsScreen() {
       setConfirm({
         title:
           action === "resend"
-            ? `Send ${invitations.length} new invitations?`
-            : `Revoke ${invitations.length} invitations?`,
+            ? t.bulk.resendTitle(invitations.length)
+            : t.bulk.revokeTitle(invitations.length),
         description:
           action === "resend"
-            ? "Each recipient gets a new link and temporary password. Every older credential stops working."
-            : "The selected active links stop working immediately.",
-        actionLabel: action === "resend" ? "Send invitations" : "Revoke",
+            ? t.bulk.resendDescription
+            : t.bulk.revokeDescription,
+        actionLabel:
+          action === "resend" ? t.bulk.resendAction : t.bulk.revokeAction,
         destructive: action === "revoke",
         run: () => runBulk(action, invitations),
       });
     },
-    [runBulk],
+    [runBulk, t],
   );
 
   const columns = useMemo<ColumnDef<AdminInvitation>[]>(
@@ -315,7 +327,7 @@ export function InvitationsScreen() {
         enableSorting: false,
         header: ({ table }) => (
           <Checkbox
-            aria-label="Select all invitations on this page"
+            aria-label={t.columns.selectAll}
             checked={
               table.getIsAllPageRowsSelected()
                 ? true
@@ -330,7 +342,7 @@ export function InvitationsScreen() {
         ),
         cell: ({ row }) => (
           <Checkbox
-            aria-label={`Select invitation for ${row.original.email}`}
+            aria-label={t.columns.select(row.original.email)}
             checked={row.getIsSelected()}
             onCheckedChange={(value) => row.toggleSelected(value === true)}
           />
@@ -339,7 +351,7 @@ export function InvitationsScreen() {
       {
         id: "email",
         size: 310,
-        header: "Recipient",
+        header: t.columns.recipient,
         enableSorting: true,
         cell: ({ row }) => (
           <div className="flex items-center gap-3">
@@ -360,14 +372,14 @@ export function InvitationsScreen() {
       {
         id: "role",
         size: 105,
-        header: "Role",
+        header: t.columns.role,
         enableSorting: false,
         cell: ({ row }) => <RoleBadge role={row.original.role} />,
       },
       {
         id: "status",
         size: 135,
-        header: "Status",
+        header: t.columns.status,
         enableSorting: true,
         cell: ({ row }) => (
           <InvitationStatusBadge status={row.original.status} />
@@ -376,39 +388,39 @@ export function InvitationsScreen() {
       {
         id: "invitedBy",
         size: 165,
-        header: "Invited by",
+        header: t.columns.invitedBy,
         enableSorting: false,
         cell: ({ row }) => (
           <span className="text-foreground">
             {row.original.invitedBy
               ? fullName(row.original.invitedBy)
-              : "System"}
+              : t.system}
           </span>
         ),
       },
       {
         id: "createdAt",
         size: 170,
-        header: "Issued",
+        header: t.columns.issued,
         enableSorting: true,
         cell: ({ row }) => (
           <span className="whitespace-nowrap text-muted-foreground tabular-nums">
-            {formatDateTime(row.original.createdAt)}
+            {format.dateTime(row.original.createdAt)}
           </span>
         ),
       },
       {
         id: "expiresAt",
         size: 180,
-        header: "Expiry",
+        header: t.columns.expiry,
         enableSorting: true,
         cell: ({ row }) => (
           <div>
             <p className="whitespace-nowrap text-muted-foreground tabular-nums">
-              {formatDateTime(row.original.expiresAt)}
+              {format.dateTime(row.original.expiresAt)}
             </p>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
-              {expiryLabel(row.original)}
+              {expiryLabel(row.original, t)}
             </p>
           </div>
         ),
@@ -417,7 +429,7 @@ export function InvitationsScreen() {
         id: "actions",
         size: 56,
         enableSorting: false,
-        header: () => <span className="sr-only">Actions</span>,
+        header: () => <span className="sr-only">{t.columns.actions}</span>,
         cell: ({ row }) => (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -425,7 +437,7 @@ export function InvitationsScreen() {
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                aria-label={`Actions for ${row.original.email}`}
+                aria-label={t.row.actionsFor(row.original.email)}
                 disabled={busy}
               >
                 <MoreVertical />
@@ -433,7 +445,7 @@ export function InvitationsScreen() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[210px]">
               <DropdownMenuItem onSelect={() => setSelected(row.original)}>
-                <Eye /> View details
+                <Eye /> {t.row.view}
               </DropdownMenuItem>
               {canResend(row.original) ? (
                 <>
@@ -441,7 +453,7 @@ export function InvitationsScreen() {
                   <DropdownMenuItem
                     onSelect={() => askAction("resend", row.original)}
                   >
-                    <Send /> Resend invitation
+                    <Send /> {t.row.resend}
                   </DropdownMenuItem>
                 </>
               ) : null}
@@ -450,7 +462,7 @@ export function InvitationsScreen() {
                   variant="destructive"
                   onSelect={() => askAction("revoke", row.original)}
                 >
-                  <Ban /> Revoke invitation
+                  <Ban /> {t.row.revoke}
                 </DropdownMenuItem>
               ) : null}
             </DropdownMenuContent>
@@ -458,7 +470,7 @@ export function InvitationsScreen() {
         ),
       },
     ],
-    [askAction, busy],
+    [askAction, busy, format, t],
   );
 
   return (
@@ -471,12 +483,9 @@ export function InvitationsScreen() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <motion.div variants={headerMotion.invitations.title}>
           <h1 className="text-[32px] font-bold leading-tight tracking-[-0.035em] text-foreground">
-            Invitations
+            {t.title}
           </h1>
-          <p className="mt-1 text-[14px] text-muted-foreground">
-            Track account activation, replace expired links and control pending
-            access.
-          </p>
+          <p className="mt-1 text-[14px] text-muted-foreground">{t.subtitle}</p>
         </motion.div>
         <motion.div
           variants={headerMotion.invitations.actions}
@@ -491,7 +500,7 @@ export function InvitationsScreen() {
             className="h-[46px] rounded-[9px] bg-white px-4"
           >
             <RefreshCcw className={loading ? "animate-spin" : undefined} />
-            <span className="hidden sm:inline">Refresh</span>
+            <span className="hidden sm:inline">{t.refresh}</span>
           </Button>
           <motion.div {...ctaMotion} className="inline-flex">
             <Button
@@ -500,7 +509,7 @@ export function InvitationsScreen() {
               onClick={() => setInviteOpen(true)}
               className="h-[46px] rounded-[9px] px-6 shadow-[0_5px_14px_rgba(48,71,217,.18)]"
             >
-              <MailPlus /> New invitation
+              <MailPlus /> {t.create}
             </Button>
           </motion.div>
         </motion.div>
@@ -531,8 +540,8 @@ export function InvitationsScreen() {
                 <Input
                   value={searchInput}
                   onChange={(event) => setSearchInput(event.target.value)}
-                  placeholder="Search recipient name or email..."
-                  aria-label="Search invitations"
+                  placeholder={t.search}
+                  aria-label={t.searchLabel}
                   className="h-11 rounded-[9px] bg-white pl-11"
                 />
               </div>
@@ -545,18 +554,18 @@ export function InvitationsScreen() {
                 }}
               >
                 <SelectTrigger
-                  aria-label="Filter by invitation status"
+                  aria-label={t.filters.status}
                   className="h-11 w-[175px] rounded-[9px]"
                 >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">All statuses</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="ACCEPTED">Accepted</SelectItem>
-                  <SelectItem value="EXPIRED">Expired</SelectItem>
-                  <SelectItem value="REVOKED">Revoked</SelectItem>
-                  <SelectItem value="SUPERSEDED">Superseded</SelectItem>
+                  <SelectItem value="ALL">{t.filters.allStatuses}</SelectItem>
+                  {STATUSES.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {labels.invitationStatus[status]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select
@@ -568,15 +577,15 @@ export function InvitationsScreen() {
                 }}
               >
                 <SelectTrigger
-                  aria-label="Filter by recipient role"
+                  aria-label={t.filters.role}
                   className="h-11 w-[160px] rounded-[9px]"
                 >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">All roles</SelectItem>
-                  <SelectItem value="DRIVER">Drivers</SelectItem>
-                  <SelectItem value="ADMIN">Admins</SelectItem>
+                  <SelectItem value="ALL">{t.filters.allRoles}</SelectItem>
+                  <SelectItem value="DRIVER">{t.filters.drivers}</SelectItem>
+                  <SelectItem value="ADMIN">{t.filters.admins}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -585,7 +594,7 @@ export function InvitationsScreen() {
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-1.5">
               <Badge variant="default">{selectedRows.length}</Badge>
               <span className="text-[13px] font-medium text-foreground">
-                selected
+                {t.bulk.selected(selectedRows.length)}
               </span>
               <div className="ml-auto flex flex-wrap items-center gap-2">
                 <Button
@@ -595,7 +604,7 @@ export function InvitationsScreen() {
                   disabled={busy || resendable.length === 0}
                   onClick={() => askBulk("resend", resendable)}
                 >
-                  <Send /> Resend ({resendable.length})
+                  <Send /> {t.bulk.resend(resendable.length)}
                 </Button>
                 <Button
                   type="button"
@@ -605,7 +614,7 @@ export function InvitationsScreen() {
                   onClick={() => askBulk("revoke", revocable)}
                   className="text-danger hover:text-danger"
                 >
-                  <Ban /> Revoke ({revocable.length})
+                  <Ban /> {t.bulk.revoke(revocable.length)}
                 </Button>
               </div>
             </div>
@@ -617,15 +626,16 @@ export function InvitationsScreen() {
                   <MailPlus className="size-5 text-primary" />
                 </span>
                 <p className="mt-3 text-[14px] font-semibold text-foreground">
-                  {loadError ??
-                    (search || statusFilter !== "ALL" || roleFilter !== "ALL"
-                      ? "No invitation matches these filters"
-                      : "No invitations yet")}
+                  {loadError
+                    ? loadError.error instanceof ApiError
+                      ? errorText.message(loadError.error)
+                      : t.loadFailed
+                    : search || statusFilter !== "ALL" || roleFilter !== "ALL"
+                      ? t.noMatch
+                      : t.none}
                 </p>
                 <p className="mt-1 text-[13px] text-muted-foreground">
-                  {loadError
-                    ? "Check that the API is reachable, then refresh the workspace."
-                    : "Create an invitation to start onboarding a driver or administrator."}
+                  {loadError ? t.errorHint : t.emptyHint}
                 </p>
               </div>
             </div>
@@ -637,10 +647,7 @@ export function InvitationsScreen() {
         open={inviteOpen}
         onOpenChange={setInviteOpen}
         onCreated={(user) => {
-          toast.success(
-            `Invitation created for ${user.email}.`,
-            "Email delivery was requested. The account stays pending until the recipient accepts.",
-          );
+          toast.success(t.created(user.email), t.createdDetail);
           refreshWorkspace();
         }}
       />
@@ -658,15 +665,25 @@ export function InvitationsScreen() {
   );
 }
 
-function expiryLabel(invitation: AdminInvitation): string {
-  if (invitation.status === "ACCEPTED") return "Accepted";
-  if (invitation.status === "REVOKED") return "Revoked";
-  if (invitation.status === "SUPERSEDED") return "Replaced";
-  if (invitation.status === "EXPIRED") return "Link expired";
+const STATUSES: AdminInvitationStatus[] = [
+  "PENDING",
+  "ACCEPTED",
+  "EXPIRED",
+  "REVOKED",
+  "SUPERSEDED",
+];
+
+function expiryLabel(
+  invitation: AdminInvitation,
+  t: InvitationsMessages,
+): string {
+  if (invitation.status === "ACCEPTED") return t.expiry.accepted;
+  if (invitation.status === "REVOKED") return t.expiry.revoked;
+  if (invitation.status === "SUPERSEDED") return t.expiry.replaced;
+  if (invitation.status === "EXPIRED") return t.expiry.expired;
 
   const milliseconds = new Date(invitation.expiresAt).getTime() - Date.now();
   const hours = Math.max(1, Math.ceil(milliseconds / 3_600_000));
-  if (hours < 24) return `${hours}h remaining`;
-  const days = Math.ceil(hours / 24);
-  return `${days}d remaining`;
+  if (hours < 24) return t.expiry.hours(hours);
+  return t.expiry.days(Math.ceil(hours / 24));
 }

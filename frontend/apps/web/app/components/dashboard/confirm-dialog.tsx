@@ -14,6 +14,21 @@ import {
 } from "@repo/ui/components/ui/alert-dialog";
 import { Input } from "@repo/ui/components/ui/input";
 import { Label } from "@repo/ui/components/ui/label";
+import { useMessages } from "../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../lib/i18n/messages";
+
+const messages = defineMessages({
+  en: {
+    type: "Type",
+    placeholder: (text: string) => `Type ${text} to confirm`,
+    cancel: "Cancel",
+  },
+  fr: {
+    type: "Saisissez",
+    placeholder: (text: string) => `Saisissez ${text} pour confirmer`,
+    cancel: "Annuler",
+  },
+});
 
 export interface ConfirmRequest {
   title: string;
@@ -32,6 +47,7 @@ export function ConfirmDialog({
   request: ConfirmRequest | null;
   onClose: () => void;
 }) {
+  const t = useMessages(messages);
   const [typed, setTyped] = useState("");
   const [running, setRunning] = useState(false);
 
@@ -72,7 +88,7 @@ export function ConfirmDialog({
         {request?.confirmText && (
           <div className="cg-form-reveal flex flex-col gap-2">
             <Label htmlFor="confirm-text">
-              Type <span className="font-mono">{request.confirmText}</span>
+              {t.type} <span className="font-mono">{request.confirmText}</span>
             </Label>
             <div className="relative">
               <Trash2
@@ -84,7 +100,7 @@ export function ConfirmDialog({
                 id="confirm-text"
                 value={typed}
                 autoComplete="off"
-                placeholder={`Type ${request.confirmText} to confirm`}
+                placeholder={t.placeholder(request.confirmText)}
                 disabled={running}
                 className="pl-10"
                 onChange={(event) => setTyped(event.target.value)}
@@ -94,7 +110,7 @@ export function ConfirmDialog({
         )}
 
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={running}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={running}>{t.cancel}</AlertDialogCancel>
           <AlertDialogAction
             variant={request?.destructive ? "destructive" : "default"}
             disabled={!ready || running}

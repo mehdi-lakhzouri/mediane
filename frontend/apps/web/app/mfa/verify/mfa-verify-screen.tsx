@@ -22,6 +22,73 @@ import {
   pendingMfaChallenge,
   type PendingMfaChallenge,
 } from "../../../lib/mfa-challenge";
+import { useErrorText } from "../../../lib/i18n/api-errors";
+import { useMessages } from "../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../lib/i18n/messages";
+
+const messages = defineMessages({
+  en: {
+    steps: ["Verify identity", "Sign in", "Complete"] as [
+      string,
+      string,
+      string,
+    ],
+    preparing: "Preparing the verification step…",
+    eyebrow: "Two-step verification",
+    expiredTitle: "Sign in again",
+    expiredCopy:
+      "This sign-in attempt expired or was stopped after too many wrong codes. Your account is safe.",
+    back: "Back to sign in",
+    appTitle: "Enter your code",
+    recoveryTitle: "Use a recovery code",
+    appCopy:
+      "Open your authenticator app and type the six-digit code for CabinGuard.",
+    recoveryCopy:
+      "Type one of the recovery codes you saved during setup. Each code works once.",
+    recoveryLabel: "Recovery code",
+    errors: {
+      appInvalid:
+        "That code didn't work. Wait for the next one in your app and try again.",
+      recoveryInvalid: "That recovery code is not valid or was already used.",
+      rateLimited: "Too many attempts. Wait a few minutes, then sign in again.",
+    },
+    expiresIn: (clock: string) => `This sign-in attempt expires in ${clock}`,
+    submit: "Verify and sign in",
+    submitting: "Verifying…",
+    useRecovery: "Lost your phone? Use a recovery code",
+    useApp: "Use the authenticator app instead",
+  },
+  fr: {
+    steps: ["Vérifier l’identité", "Connexion", "Terminé"],
+    preparing: "Préparation de l’étape de vérification…",
+    eyebrow: "Vérification en deux étapes",
+    expiredTitle: "Reconnectez-vous",
+    expiredCopy:
+      "Cette tentative de connexion a expiré ou a été bloquée après trop de codes erronés. Votre compte est en sécurité.",
+    back: "Retour à la connexion",
+    appTitle: "Saisissez votre code",
+    recoveryTitle: "Utilisez un code de récupération",
+    appCopy:
+      "Ouvrez votre application d’authentification et saisissez le code à six chiffres de CabinGuard.",
+    recoveryCopy:
+      "Saisissez l’un des codes de récupération enregistrés lors de la configuration. Chaque code ne fonctionne qu’une fois.",
+    recoveryLabel: "Code de récupération",
+    errors: {
+      appInvalid:
+        "Ce code n’a pas fonctionné. Attendez le suivant dans votre application et réessayez.",
+      recoveryInvalid:
+        "Ce code de récupération n’est pas valide ou a déjà été utilisé.",
+      rateLimited:
+        "Trop de tentatives. Patientez quelques minutes puis reconnectez-vous.",
+    },
+    expiresIn: (clock: string) =>
+      `Cette tentative de connexion expire dans ${clock}`,
+    submit: "Vérifier et se connecter",
+    submitting: "Vérification…",
+    useRecovery: "Téléphone perdu ? Utilisez un code de récupération",
+    useApp: "Utiliser plutôt l’application d’authentification",
+  },
+});
 
 type Method = "app" | "recovery";
 
@@ -41,6 +108,8 @@ function formatClock(seconds: number): string {
  * only: reloading this page, or letting it expire, means signing in again.
  */
 export function MfaVerifyScreen() {
+  const t = useMessages(messages);
+  const errorText = useErrorText();
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const [challenge, setChallenge] = useState<PendingMfaChallenge | null>(null);
@@ -85,7 +154,7 @@ export function MfaVerifyScreen() {
     } catch (failure) {
       setVerifying(false);
       if (!(failure instanceof ApiError)) {
-        setError("Something went wrong. Please try again.");
+        setError(errorText.message(failure));
         return;
       }
       if (failure.code === "MFA_CHALLENGE_INVALID") {
@@ -97,11 +166,11 @@ export function MfaVerifyScreen() {
       setError(
         failure.code === "MFA_CODE_INVALID"
           ? method === "app"
-            ? "That code didn't work. Wait for the next one in your app and try again."
-            : "That recovery code is not valid or was already used."
+            ? t.errors.appInvalid
+            : t.errors.recoveryInvalid
           : failure.code === "RATE_LIMITED"
-            ? "Too many attempts. Wait a few minutes, then sign in again."
-            : failure.message,
+            ? t.errors.rateLimited
+            : errorText.message(failure),
       );
     }
   }
@@ -120,11 +189,13 @@ export function MfaVerifyScreen() {
 
   if (!challenge) {
     return (
-      <MfaSecurityShell activeStep={0} progressLabels={["Verify identity", "Sign in", "Complete"]}>
+      <MfaSecurityShell activeStep={0} progressLabels={t.steps}>
         <div className="grid min-h-[480px] place-items-center text-center">
           <div>
             <LoaderCircle className="mx-auto size-9 animate-spin text-[#32caff]" />
-            <p className="mt-5 text-sm font-semibold text-[#aebed0]">Preparing the verification step…</p>
+            <p className="mt-5 text-sm font-semibold text-[#aebed0]">
+              {t.preparing}
+            </p>
           </div>
         </div>
       </MfaSecurityShell>
@@ -133,33 +204,42 @@ export function MfaVerifyScreen() {
 
   if (secondsLeft === 0) {
     return (
-      <MfaSecurityShell activeStep={0} progressLabels={["Verify identity", "Sign in", "Complete"]}>
+      <MfaSecurityShell activeStep={0} progressLabels={t.steps}>
         <div className="flex min-h-[500px] flex-col items-center justify-center text-center">
-          <div className="mfa-stage-icon"><LockKeyhole className="size-8" strokeWidth={1.6} /></div>
-          <p className="mfa-screen-eyebrow mt-6">Two-step verification</p>
-          <h1 className="mfa-screen-title mt-2">Sign in again</h1>
-          <p className="mfa-screen-copy mt-3 max-w-[440px]">This sign-in attempt expired or was stopped after too many wrong codes. Your account is safe.</p>
-          <Link href="/sign-in" className="mfa-primary mt-7 max-w-[390px]"><ArrowLeft className="size-5" />Back to sign in</Link>
+          <div className="mfa-stage-icon">
+            <LockKeyhole className="size-8" strokeWidth={1.6} />
+          </div>
+          <p className="mfa-screen-eyebrow mt-6">{t.eyebrow}</p>
+          <h1 className="mfa-screen-title mt-2">{t.expiredTitle}</h1>
+          <p className="mfa-screen-copy mt-3 max-w-[440px]">{t.expiredCopy}</p>
+          <Link href="/sign-in" className="mfa-primary mt-7 max-w-[390px]">
+            <ArrowLeft className="size-5" />
+            {t.back}
+          </Link>
         </div>
       </MfaSecurityShell>
     );
   }
 
   return (
-    <MfaSecurityShell activeStep={0} progressLabels={["Verify identity", "Sign in", "Complete"]}>
+    <MfaSecurityShell activeStep={0} progressLabels={t.steps}>
       <div className="text-center">
         <div className="mfa-stage-icon mx-auto">
-          {method === "app" ? <Smartphone className="size-8" strokeWidth={1.6} /> : <LifeBuoy className="size-8" strokeWidth={1.6} />}
+          {method === "app" ? (
+            <Smartphone className="size-8" strokeWidth={1.6} />
+          ) : (
+            <LifeBuoy className="size-8" strokeWidth={1.6} />
+          )}
         </div>
-        <p className="mfa-screen-eyebrow mt-5">Two-step verification</p>
-        <h1 className="mfa-screen-title mt-2">{method === "app" ? "Enter your code" : "Use a recovery code"}</h1>
+        <p className="mfa-screen-eyebrow mt-5">{t.eyebrow}</p>
+        <h1 className="mfa-screen-title mt-2">
+          {method === "app" ? t.appTitle : t.recoveryTitle}
+        </h1>
         <p className="mfa-screen-copy mx-auto mt-3 max-w-[470px]">
-          {method === "app"
-            ? "Open your authenticator app and type the six-digit code for CabinGuard."
-            : "Type one of the recovery codes you saved during setup. Each code works once."}
+          {method === "app" ? t.appCopy : t.recoveryCopy}
         </p>
       </div>
-      <form className="mt-8" onSubmit={handleSubmit} aria-busy={verifying}>
+      <form method="post" className="mt-8" onSubmit={handleSubmit} aria-busy={verifying}>
         <AnimatePresence mode="wait" initial={false}>
           {method === "app" ? (
             <motion.div
@@ -188,8 +268,11 @@ export function MfaVerifyScreen() {
               animate={{ opacity: 1, x: 0 }}
               exit={reduceMotion ? undefined : { opacity: 0, x: -16 }}
             >
-              <label htmlFor="recovery-code" className="text-sm font-bold text-[#eaf4fc]">
-                Recovery code
+              <label
+                htmlFor="recovery-code"
+                className="text-sm font-bold text-[#eaf4fc]"
+              >
+                {t.recoveryLabel}
               </label>
               <div className="mfa-key-row mt-2 h-14">
                 <KeyRound className="size-5 shrink-0 text-[#5dccf4]" />
@@ -218,14 +301,14 @@ export function MfaVerifyScreen() {
           {error ? (
             <p
               role="alert"
-            className="inline-flex items-start gap-2 text-left text-sm font-semibold text-[#ff8291]"
+              className="inline-flex items-start gap-2 text-left text-sm font-semibold text-[#ff8291]"
             >
               <AlertCircle className="mt-0.5 size-4 shrink-0" />
               {error}
             </p>
           ) : (
             <p className="text-xs text-[#8fa5bc]">
-              This sign-in attempt expires in {formatClock(secondsLeft)}
+              {t.expiresIn(formatClock(secondsLeft))}
             </p>
           )}
         </div>
@@ -243,7 +326,7 @@ export function MfaVerifyScreen() {
           ) : (
             <LockKeyhole className="size-5" />
           )}
-          {verifying ? "Verifying…" : "Verify and sign in"}
+          {verifying ? t.submitting : t.submit}
         </button>
       </form>
 
@@ -253,9 +336,7 @@ export function MfaVerifyScreen() {
           onClick={() => switchMethod(method === "app" ? "recovery" : "app")}
           className="text-[#35caff] transition hover:text-[#8ae5ff]"
         >
-          {method === "app"
-            ? "Lost your phone? Use a recovery code"
-            : "Use the authenticator app instead"}
+          {method === "app" ? t.useRecovery : t.useApp}
         </button>
         <Link
           href="/sign-in"
@@ -263,7 +344,7 @@ export function MfaVerifyScreen() {
           className="flex items-center gap-2 text-[#8fa5bc] transition hover:text-[#35caff]"
         >
           <ArrowLeft className="size-4" />
-          Back to sign in
+          {t.back}
         </Link>
       </div>
     </MfaSecurityShell>

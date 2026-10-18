@@ -1,12 +1,11 @@
-import { UserRound } from "lucide-react";
-import { SectionPlaceholder } from "../../components/dashboard/section-placeholder";
+import { localizedMetadata } from "../../../lib/i18n/server";
+import { ProfileScreen } from "./profile-screen";
+
+export const generateMetadata = localizedMetadata({
+  en: { title: "Your profile | CabinGuard" },
+  fr: { title: "Votre profil | CabinGuard" },
+});
 
 export default function ProfilePage() {
-  return (
-    <SectionPlaceholder
-      icon={UserRound}
-      title="Your profile"
-      description="Your name, contact details and emergency contact will be editable here once the profile API is implemented."
-    />
-  );
+  return <ProfileScreen />;
 }

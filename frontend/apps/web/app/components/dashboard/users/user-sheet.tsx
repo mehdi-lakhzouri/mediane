@@ -51,9 +51,133 @@ import {
   type InvitationStatus,
 } from "../../../../lib/api/admin-users";
 import { ApiError } from "../../../../lib/api/client";
+import { useErrorText } from "../../../../lib/i18n/api-errors";
+import {
+  useFormatters,
+  useMessages,
+} from "../../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../../lib/i18n/messages";
+import { labelMessages } from "../labels";
 import { useToast } from "../toast-provider";
-import { formatDateTime, fullName, initials } from "./format";
+import { fullName, initials } from "./format";
 import { AccountStateBadge, RoleBadge } from "./user-badges";
+
+const messages = defineMessages({
+  en: {
+    title: "User details",
+    subtitle: "View and manage user information, role, and access permissions.",
+    sendMessage: "Send message",
+    edit: "Edit user",
+    more: "More actions",
+    resend: "Resend invitation",
+    revoke: "Revoke invitation",
+    suspend: "Suspend account",
+    reactivate: "Reactivate account",
+    restore: "Restore account",
+    deletePermanently: "Delete permanently",
+    softDelete: "Soft delete account",
+    editIdentity: "Edit identity",
+    firstName: "First name",
+    firstNameHint:
+      "The given name displayed throughout the administration console.",
+    firstNamePlaceholder: "Enter first name",
+    lastName: "Last name",
+    lastNameHint: "The family name used to identify this account.",
+    lastNamePlaceholder: "Enter last name",
+    cancel: "Cancel",
+    save: "Save changes",
+    saveFailed: "Could not save. Please try again.",
+    updateFailed: "User update failed.",
+    account: "Account information",
+    fullName: "Full name",
+    fullNameHint: "The account holder’s full display name.",
+    email: "Email address",
+    emailHint: "The verified address used for invitations and sign-in.",
+    role: "Role",
+    roleHint: "Determines the permissions granted to this account.",
+    state: "Account state",
+    stateHint:
+      "The effective access and onboarding state calculated by the backend.",
+    mfa: "Two-step verification",
+    mfaHint: "An authenticator app is required at every sign-in.",
+    on: "On",
+    off: "Off",
+    since: "User since",
+    sinceHint: "The date and time when the account was created.",
+    lastLogin: "Last sign-in",
+    lastLoginHint:
+      "The most recent successful authentication recorded for this account.",
+    additional: "Additional details",
+    invitedBy: "Invited by",
+    invitedByHint: "The administrator who originally invited this user.",
+    invitationStatus: "Invitation status",
+    invitationStatusHint:
+      "The current lifecycle state of the latest invitation.",
+    createdAt: "Created at",
+    createdAtHint: "When the latest invitation was created.",
+    notAvailable: "Not available",
+    about: (label: string) => `About ${label}`,
+  },
+  fr: {
+    title: "Détails de l’utilisateur",
+    subtitle:
+      "Consultez et gérez les informations, le rôle et les droits d’accès de l’utilisateur.",
+    sendMessage: "Envoyer un message",
+    edit: "Modifier l’utilisateur",
+    more: "Plus d’actions",
+    resend: "Renvoyer l’invitation",
+    revoke: "Révoquer l’invitation",
+    suspend: "Suspendre le compte",
+    reactivate: "Réactiver le compte",
+    restore: "Restaurer le compte",
+    deletePermanently: "Supprimer définitivement",
+    softDelete: "Supprimer le compte",
+    editIdentity: "Modifier l’identité",
+    firstName: "Prénom",
+    firstNameHint:
+      "Le prénom affiché dans l’ensemble de la console d’administration.",
+    firstNamePlaceholder: "Saisissez le prénom",
+    lastName: "Nom",
+    lastNameHint: "Le nom de famille utilisé pour identifier ce compte.",
+    lastNamePlaceholder: "Saisissez le nom",
+    cancel: "Annuler",
+    save: "Enregistrer les modifications",
+    saveFailed: "Enregistrement impossible. Veuillez réessayer.",
+    updateFailed: "Échec de la mise à jour de l’utilisateur.",
+    account: "Informations du compte",
+    fullName: "Nom complet",
+    fullNameHint: "Le nom complet affiché pour le titulaire du compte.",
+    email: "Adresse e-mail",
+    emailHint:
+      "L’adresse vérifiée utilisée pour les invitations et la connexion.",
+    role: "Rôle",
+    roleHint: "Détermine les autorisations accordées à ce compte.",
+    state: "État du compte",
+    stateHint:
+      "L’état effectif d’accès et d’intégration calculé par le serveur.",
+    mfa: "Vérification en deux étapes",
+    mfaHint:
+      "Une application d’authentification est requise à chaque connexion.",
+    on: "Activée",
+    off: "Désactivée",
+    since: "Utilisateur depuis",
+    sinceHint: "La date et l’heure de création du compte.",
+    lastLogin: "Dernière connexion",
+    lastLoginHint:
+      "La dernière authentification réussie enregistrée pour ce compte.",
+    additional: "Informations complémentaires",
+    invitedBy: "Invité par",
+    invitedByHint: "L’administrateur qui a invité cet utilisateur.",
+    invitationStatus: "Statut de l’invitation",
+    invitationStatusHint: "L’état actuel de la dernière invitation.",
+    createdAt: "Créée le",
+    createdAtHint: "La date de création de la dernière invitation.",
+    notAvailable: "Non disponible",
+    about: (label: string) => `À propos : ${label}`,
+  },
+});
+
+type SheetMessages = (typeof messages)["en"];
 
 export type UserDrawerAction =
   | "suspend"
@@ -81,6 +205,10 @@ export function UserSheet({
   onSaved,
   onAction,
 }: UserSheetProps) {
+  const t = useMessages(messages);
+  const labels = useMessages(labelMessages);
+  const format = useFormatters();
+  const errorText = useErrorText();
   const toast = useToast();
   const [details, setDetails] = useState<AdminUser | null>(null);
   const [invitation, setInvitation] = useState<InvitationStatus | null>(null);
@@ -154,11 +282,9 @@ export function UserSheet({
       setEditing(false);
     } catch (err) {
       const message =
-        err instanceof ApiError
-          ? err.message
-          : "Could not save. Please try again.";
+        err instanceof ApiError ? errorText.message(err) : t.saveFailed;
       setError(message);
-      toast.error("User update failed.", message);
+      toast.error(t.updateFailed, message);
     } finally {
       setSaving(false);
     }
@@ -176,15 +302,13 @@ export function UserSheet({
           <SheetHeader className="sticky top-0 z-10 gap-1 border-0 bg-white/95 px-7 pt-7 pb-5 pr-16 backdrop-blur-xl">
             <div className="flex items-center gap-3">
               <SheetTitle className="text-[26px] leading-8 tracking-[-0.035em]">
-                User details
+                {t.title}
               </SheetTitle>
               {loadingDetails && (
                 <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
               )}
             </div>
-            <p className="text-[14px] leading-5 text-[#536489]">
-              View and manage user information, role, and access permissions.
-            </p>
+            <p className="text-[14px] leading-5 text-[#536489]">{t.subtitle}</p>
           </SheetHeader>
 
           <SheetBody className="px-7 pt-0 pb-5">
@@ -210,7 +334,7 @@ export function UserSheet({
                 <Button asChild className="col-span-2 h-11 rounded-[9px]">
                   <a href={`mailto:${current.email}`}>
                     <Mail />
-                    Send message
+                    {t.sendMessage}
                   </a>
                 </Button>
                 <Button
@@ -219,7 +343,7 @@ export function UserSheet({
                   onClick={() => setEditing((value) => !value)}
                 >
                   <Pencil />
-                  Edit user
+                  {t.edit}
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -228,7 +352,7 @@ export function UserSheet({
                       className="h-11 rounded-[9px] border-[#d8e1ee] bg-white"
                     >
                       <MoreVertical />
-                      More actions
+                      {t.more}
                       <ChevronDown className="ml-1" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -237,35 +361,35 @@ export function UserSheet({
                       <DropdownMenuItem
                         onSelect={() => onAction("resend", current)}
                       >
-                        <Send /> Resend invitation
+                        <Send /> {t.resend}
                       </DropdownMenuItem>
                     )}
                     {invitation?.status === "PENDING" && (
                       <DropdownMenuItem
                         onSelect={() => onAction("revoke", current)}
                       >
-                        <Mail /> Revoke invitation
+                        <Mail /> {t.revoke}
                       </DropdownMenuItem>
                     )}
                     {!deleted && current.status !== "SUSPENDED" && !isSelf && (
                       <DropdownMenuItem
                         onSelect={() => onAction("suspend", current)}
                       >
-                        <ShieldBan /> Suspend account
+                        <ShieldBan /> {t.suspend}
                       </DropdownMenuItem>
                     )}
                     {!deleted && current.status === "SUSPENDED" && (
                       <DropdownMenuItem
                         onSelect={() => onAction("reactivate", current)}
                       >
-                        <ShieldCheck /> Reactivate account
+                        <ShieldCheck /> {t.reactivate}
                       </DropdownMenuItem>
                     )}
                     {deleted && (
                       <DropdownMenuItem
                         onSelect={() => onAction("restore", current)}
                       >
-                        <RotateCcw /> Restore account
+                        <RotateCcw /> {t.restore}
                       </DropdownMenuItem>
                     )}
                     {!isSelf && (
@@ -281,9 +405,7 @@ export function UserSheet({
                           }
                         >
                           <Trash2 />
-                          {deleted
-                            ? "Delete permanently"
-                            : "Soft delete account"}
+                          {deleted ? t.deletePermanently : t.softDelete}
                         </DropdownMenuItem>
                       </>
                     )}
@@ -295,14 +417,15 @@ export function UserSheet({
             {editing && (
               <section className="cg-form-reveal mt-5 rounded-2xl border border-[#dfe6f2] bg-white p-5">
                 <h3 className="text-[14px] font-semibold text-foreground">
-                  Edit identity
+                  {t.editIdentity}
                 </h3>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <div className="cg-form-reveal cg-form-delay-1 grid gap-2">
                     <InfoFieldLabel
                       htmlFor="drawer-firstName"
-                      label="First name"
-                      description="The given name displayed throughout the administration console."
+                      label={t.firstName}
+                      description={t.firstNameHint}
+                      about={t.about}
                     />
                     <div className="relative">
                       <UserRound
@@ -314,7 +437,7 @@ export function UserSheet({
                         id="drawer-firstName"
                         value={firstName}
                         maxLength={100}
-                        placeholder="Enter first name"
+                        placeholder={t.firstNamePlaceholder}
                         disabled={saving}
                         className="pl-10"
                         onChange={(event) => setFirstName(event.target.value)}
@@ -324,8 +447,9 @@ export function UserSheet({
                   <div className="cg-form-reveal cg-form-delay-2 grid gap-2">
                     <InfoFieldLabel
                       htmlFor="drawer-lastName"
-                      label="Last name"
-                      description="The family name used to identify this account."
+                      label={t.lastName}
+                      description={t.lastNameHint}
+                      about={t.about}
                     />
                     <div className="relative">
                       <UserRound
@@ -337,7 +461,7 @@ export function UserSheet({
                         id="drawer-lastName"
                         value={lastName}
                         maxLength={100}
-                        placeholder="Enter last name"
+                        placeholder={t.lastNamePlaceholder}
                         disabled={saving}
                         className="pl-10"
                         onChange={(event) => setLastName(event.target.value)}
@@ -359,7 +483,7 @@ export function UserSheet({
                     size="sm"
                     onClick={() => setEditing(false)}
                   >
-                    Cancel
+                    {t.cancel}
                   </Button>
                   <Button
                     size="sm"
@@ -367,94 +491,94 @@ export function UserSheet({
                     onClick={handleSave}
                   >
                     {saving && <LoaderCircle className="animate-spin" />}
-                    Save changes
+                    {t.save}
                   </Button>
                 </div>
               </section>
             )}
 
-            <DetailSection icon={UserRound} title="Account information">
+            <DetailSection icon={UserRound} title={t.account}>
               <DetailRow
                 icon={UserRound}
-                label="Full name"
-                description="The account holder’s full display name."
+                label={t.fullName}
+                description={t.fullNameHint}
                 value={fullName(current)}
               />
               <DetailRow
                 icon={Mail}
-                label="Email address"
-                description="The verified address used for invitations and sign-in."
+                label={t.email}
+                description={t.emailHint}
                 value={current.email}
               />
               <DetailRow
                 icon={ShieldCheck}
-                label="Role"
-                description="Determines the permissions granted to this account."
+                label={t.role}
+                description={t.roleHint}
                 value={<RoleBadge role={current.role} />}
               />
               <DetailRow
                 icon={Database}
-                label="Account state"
-                description="The effective access and onboarding state calculated by the backend."
+                label={t.state}
+                description={t.stateHint}
                 value={<AccountStateBadge state={current.accountState} />}
               />
               <DetailRow
                 icon={KeyRound}
-                label="Two-step verification"
-                description="An authenticator app is required at every sign-in."
+                label={t.mfa}
+                description={t.mfaHint}
                 value={
                   <Badge
                     variant={current.mfaEnabled ? "success" : "outline"}
                     className="h-7 px-2.5"
                   >
-                    {current.mfaEnabled ? "On" : "Off"}
+                    {current.mfaEnabled ? t.on : t.off}
                   </Badge>
                 }
               />
               <DetailRow
                 icon={CalendarDays}
-                label="User since"
-                description="The date and time when the account was created."
-                value={formatDateTime(current.createdAt)}
+                label={t.since}
+                description={t.sinceHint}
+                value={format.dateTime(current.createdAt)}
               />
               <DetailRow
                 icon={Clock3}
-                label="Last sign-in"
-                description="The most recent successful authentication recorded for this account."
-                value={formatDateTime(current.lastLoginAt)}
+                label={t.lastLogin}
+                description={t.lastLoginHint}
+                value={format.dateTime(current.lastLoginAt)}
               />
             </DetailSection>
 
-            <DetailSection icon={FileText} title="Additional details">
+            <DetailSection icon={FileText} title={t.additional}>
               <DetailRow
                 icon={Mail}
-                label="Invited by"
-                description="The administrator who originally invited this user."
-                value={invitation?.invitedBy ?? "Not available"}
+                label={t.invitedBy}
+                description={t.invitedByHint}
+                value={invitation?.invitedBy ?? t.notAvailable}
               />
               <DetailRow
                 icon={Clock3}
-                label="Invitation status"
-                description="The current lifecycle state of the latest invitation."
+                label={t.invitationStatus}
+                description={t.invitationStatusHint}
                 value={
                   invitation ? (
                     <span className="inline-flex items-center gap-1.5 rounded-md bg-success-surface px-2 py-1 text-[11px] font-semibold text-success-strong">
                       <span className="size-1.5 rounded-full bg-success" />
-                      {sentenceCase(invitation.status)}
+                      {labels.invitationStatus[invitation.status]}
                     </span>
                   ) : (
-                    "Not available"
+                    t.notAvailable
                   )
                 }
               />
               <DetailRow
                 icon={CalendarDays}
-                label="Created at"
-                description="When the latest invitation was created."
+                label={t.createdAt}
+                description={t.createdAtHint}
                 value={
                   invitation
-                    ? formatDateTime(invitation.createdAt)
-                    : "Not available"
+                    ? format.dateTime(invitation.createdAt)
+                    : t.notAvailable
                 }
               />
             </DetailSection>
@@ -465,23 +589,21 @@ export function UserSheet({
   );
 }
 
-function sentenceCase(value: string): string {
-  return value.charAt(0) + value.slice(1).toLowerCase();
-}
-
 function InfoMarker({
   label,
   description,
+  about,
 }: {
   label: string;
   description: string;
+  about: SheetMessages["about"];
 }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <button
           type="button"
-          aria-label={`About ${label}`}
+          aria-label={about(label)}
           className="grid size-4 shrink-0 place-items-center rounded-full border border-[#aab7ca] bg-white text-[10px] font-bold leading-none text-[#526180] transition hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
         >
           i
@@ -501,14 +623,16 @@ function InfoFieldLabel({
   htmlFor,
   label,
   description,
+  about,
 }: {
   htmlFor: string;
   label: string;
   description: string;
+  about: SheetMessages["about"];
 }) {
   return (
     <div className="flex items-center gap-1.5">
-      <InfoMarker label={label} description={description} />
+      <InfoMarker label={label} description={description} about={about} />
       <Label htmlFor={htmlFor}>{label}</Label>
     </div>
   );

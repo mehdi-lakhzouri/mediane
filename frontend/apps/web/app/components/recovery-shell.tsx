@@ -3,8 +3,24 @@
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { ShieldCheck, type LucideIcon } from "lucide-react";
+import { useMessages } from "../../lib/i18n/locale-provider";
+import { defineMessages } from "../../lib/i18n/messages";
 import { BrandLogo } from "./brand-logo";
+import { LanguageSwitch } from "./language-switch";
 import { ThemeToggle } from "./theme-toggle";
+
+const messages = defineMessages({
+  en: {
+    back: "Back to CabinGuard sign in",
+    footnote:
+      "Secure recovery. Your reset link is single-use and time-limited.",
+  },
+  fr: {
+    back: "Retour à la connexion CabinGuard",
+    footnote:
+      "Récupération sécurisée. Votre lien de réinitialisation est à usage unique et limité dans le temps.",
+  },
+});
 
 interface RecoveryShellProps {
   icon: LucideIcon;
@@ -23,10 +39,11 @@ export function RecoveryShell({
   title,
   description,
   visual = "default",
-  footnote = "Secure recovery. Your reset link is single-use and time-limited.",
+  footnote,
   children,
 }: RecoveryShellProps) {
   const reduceMotion = useReducedMotion();
+  const t = useMessages(messages);
 
   return (
     <main
@@ -45,12 +62,13 @@ export function RecoveryShell({
       >
         <Link
           href="/sign-in"
-          aria-label="Back to CabinGuard sign in"
+          aria-label={t.back}
           className="block rounded-2xl focus-visible:ring-2 focus-visible:ring-[#30b5ff] focus-visible:ring-offset-4 focus-visible:outline-none"
         >
           <BrandLogo compact />
         </Link>
       </motion.div>
+      <LanguageSwitch variant="auth" />
       <ThemeToggle />
 
       <div className="relative z-10 grid min-h-svh place-items-center px-4 pt-28 pb-20 sm:px-6 sm:pt-32">
@@ -92,7 +110,9 @@ export function RecoveryShell({
 
       <div className="absolute right-0 bottom-5 left-0 z-10 flex items-center justify-center gap-2 px-4 text-center text-[11px] text-[var(--sx-muted)] sm:text-xs">
         <ShieldCheck className="size-4 text-[var(--sx-icon-soft)]" />
-        <span className="max-w-[310px] leading-4">{footnote}</span>
+        <span className="max-w-[310px] leading-4">
+          {footnote ?? t.footnote}
+        </span>
       </div>
     </main>
   );

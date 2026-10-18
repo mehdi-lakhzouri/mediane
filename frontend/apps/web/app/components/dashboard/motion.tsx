@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
+import { INTL_LOCALE } from "../../../lib/i18n/config";
+import { useLocale } from "../../../lib/i18n/locale-provider";
 import {
   animate,
   motion,
@@ -253,8 +255,11 @@ export function AnimatedNumber({
   delay?: number;
 }) {
   const reduced = useReducedMotion();
+  const locale = INTL_LOCALE[useLocale()];
   const current = useMotionValue(reduced ? value : 0);
-  const text = useTransform(current, (latest) => format(latest, decimals));
+  const text = useTransform(current, (latest) =>
+    format(latest, decimals, locale),
+  );
 
   useEffect(() => {
     if (reduced) {
@@ -267,7 +272,7 @@ export function AnimatedNumber({
 
   return (
     <>
-      <span className="sr-only">{format(value, decimals)}</span>
+      <span className="sr-only">{format(value, decimals, locale)}</span>
       <motion.span aria-hidden="true" className="tabular-nums">
         {text}
       </motion.span>
@@ -275,8 +280,8 @@ export function AnimatedNumber({
   );
 }
 
-function format(value: number, decimals: number): string {
-  return value.toLocaleString("en-US", {
+function format(value: number, decimals: number, locale: string): string {
+  return value.toLocaleString(locale, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });

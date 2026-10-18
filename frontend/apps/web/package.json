@@ -13,11 +13,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint --max-warnings 0",
-    "check-types": "next typegen && tsc --noEmit"
+    "check-types": "next typegen && tsc --noEmit",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@repo/ui": "workspace:*",
     "@tanstack/react-table": "^8.21.3",
+    "country-flag-icons": "^1.6.20",
     "framer-motion": "^13.4.6",
     "input-otp": "^1.5.0",
     "lucide-react": "^1.49.0",

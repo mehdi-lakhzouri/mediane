@@ -1,7 +1,11 @@
+"use client";
+
 import { Badge } from "@repo/ui/components/ui/badge";
 import { Crown } from "lucide-react";
 import type { AccountState } from "../../../../lib/api/admin-users";
 import type { Role } from "../../../../lib/api/auth";
+import { useMessages } from "../../../../lib/i18n/locale-provider";
+import { labelMessages } from "../labels";
 
 type BadgeVariant =
   "default" | "secondary" | "outline" | "success" | "warning" | "danger";
@@ -10,24 +14,20 @@ type BadgeVariant =
  * The account state is derived server-side from several independent facts, so
  * one badge can say where a person actually is in onboarding.
  */
-const ACCOUNT_STATE: Record<
-  AccountState,
-  { label: string; variant: BadgeVariant }
-> = {
-  INVITED: { label: "Invited", variant: "secondary" },
-  PASSWORD_CHANGE_REQUIRED: {
-    label: "Temporary password",
-    variant: "warning",
-  },
-  MFA_SETUP_REQUIRED: { label: "2-step setup pending", variant: "warning" },
-  PROFILE_SETUP_REQUIRED: { label: "Profile pending", variant: "warning" },
-  ACTIVE: { label: "Active", variant: "success" },
-  SUSPENDED: { label: "Suspended", variant: "danger" },
-  DELETED: { label: "Deleted", variant: "outline" },
+const ACCOUNT_STATE_VARIANT: Record<AccountState, BadgeVariant> = {
+  INVITED: "secondary",
+  PASSWORD_CHANGE_REQUIRED: "warning",
+  MFA_SETUP_REQUIRED: "warning",
+  PROFILE_SETUP_REQUIRED: "warning",
+  ACTIVE: "success",
+  SUSPENDED: "danger",
+  DELETED: "outline",
 };
 
 export function AccountStateBadge({ state }: { state: AccountState }) {
-  const { label, variant } = ACCOUNT_STATE[state];
+  const labels = useMessages(labelMessages);
+  const label = labels.accountState[state];
+  const variant = ACCOUNT_STATE_VARIANT[state];
   return (
     <Badge variant={variant} className="h-7 px-2.5">
       <span
@@ -48,13 +48,14 @@ export function AccountStateBadge({ state }: { state: AccountState }) {
 }
 
 export function RoleBadge({ role }: { role: Role }) {
+  const labels = useMessages(labelMessages);
   return (
     <Badge
       variant={role === "ADMIN" ? "default" : "outline"}
       className="h-7 px-2.5"
     >
       {role === "ADMIN" && <Crown className="size-3" />}
-      {role === "ADMIN" ? "Admin" : "Driver"}
+      {labels.role[role]}
     </Badge>
   );
 }

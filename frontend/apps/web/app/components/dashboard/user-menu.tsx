@@ -19,11 +19,34 @@ import {
   logout,
   type CurrentUser,
 } from "../../../lib/api/auth";
+import { useMessages } from "../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../lib/i18n/messages";
 
-const ROLE_LABEL: Record<CurrentUser["role"], string> = {
-  ADMIN: "Administrator",
-  DRIVER: "Driver",
-};
+export const roleMessages = defineMessages({
+  en: {
+    ADMIN: "Administrator",
+    DRIVER: "Driver",
+  } satisfies Record<CurrentUser["role"], string>,
+  fr: {
+    ADMIN: "Administrateur",
+    DRIVER: "Conducteur",
+  },
+});
+
+const messages = defineMessages({
+  en: {
+    menuFor: (name: string) => `Account menu for ${name}`,
+    profile: "Profile",
+    signOut: "Sign out",
+    signingOut: "Signing out",
+  },
+  fr: {
+    menuFor: (name: string) => `Menu du compte de ${name}`,
+    profile: "Profil",
+    signOut: "Se déconnecter",
+    signingOut: "Déconnexion",
+  },
+});
 
 export function UserMenu({
   user,
@@ -32,6 +55,8 @@ export function UserMenu({
   user: CurrentUser;
   collapsed: boolean;
 }) {
+  const t = useMessages(messages);
+  const roles = useMessages(roleMessages);
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
 
@@ -50,7 +75,7 @@ export function UserMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label={`Account menu for ${fullName(user)}`}
+        aria-label={t.menuFor(fullName(user))}
         className={cn(
           "flex w-full items-center gap-3 rounded-lg p-2 text-left outline-none transition-colors",
           "hover:bg-sidebar-hover focus-visible:ring-2 focus-visible:ring-white/70",
@@ -91,7 +116,7 @@ export function UserMenu({
             {user.email}
           </span>
           <span className="mt-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-primary">
-            {ROLE_LABEL[user.role]}
+            {roles[user.role]}
           </span>
         </DropdownMenuLabel>
 
@@ -100,7 +125,7 @@ export function UserMenu({
         <DropdownMenuItem asChild>
           <Link href="/dashboard/profile">
             <UserRound />
-            Profile
+            {t.profile}
           </Link>
         </DropdownMenuItem>
 
@@ -113,12 +138,8 @@ export function UserMenu({
             void handleSignOut();
           }}
         >
-          {signingOut ? (
-            <LoaderCircle className="animate-spin" />
-          ) : (
-            <LogOut />
-          )}
-          {signingOut ? "Signing out" : "Sign out"}
+          {signingOut ? <LoaderCircle className="animate-spin" /> : <LogOut />}
+          {signingOut ? t.signingOut : t.signOut}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

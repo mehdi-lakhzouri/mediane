@@ -1,17 +1,4 @@
-const DATE_TIME = new Intl.DateTimeFormat("en-GB", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
-
-const DATE = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" });
-
-export function formatDateTime(value: string | null): string {
-  return value ? DATE_TIME.format(new Date(value)) : "Never";
-}
-
-export function formatDate(value: string | null): string {
-  return value ? DATE.format(new Date(value)) : "—";
-}
+// Dates are formatted with useFormatters() (lib/i18n), in the reader's locale.
 
 export function fullName(user: {
   firstName: string;

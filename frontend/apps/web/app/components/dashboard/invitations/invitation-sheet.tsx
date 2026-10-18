@@ -22,8 +22,13 @@ import {
   SheetTitle,
 } from "@repo/ui/components/ui/sheet";
 import type { AdminInvitation } from "../../../../lib/api/admin-invitations";
+import {
+  useFormatters,
+  useMessages,
+} from "../../../../lib/i18n/locale-provider";
 import { useToast } from "../toast-provider";
-import { formatDateTime, fullName, initials } from "../users/format";
+import { invitationsMessages } from "./invitations.messages";
+import { fullName, initials } from "../users/format";
 import { RoleBadge } from "../users/user-badges";
 import { InvitationStatusBadge } from "./invitation-status-badge";
 
@@ -43,6 +48,8 @@ export function InvitationSheet({
   onAction: (action: InvitationAction, invitation: AdminInvitation) => void;
 }) {
   const toast = useToast();
+  const t = useMessages(invitationsMessages).sheet;
+  const format = useFormatters();
   if (!invitation) return null;
 
   const canResend =
@@ -50,14 +57,23 @@ export function InvitationSheet({
   const canRevoke = invitation.status === "PENDING";
   const inviter = invitation.invitedBy
     ? fullName(invitation.invitedBy)
-    : "System administrator";
+    : t.systemAdmin;
+  const lifecycleDate = invitation.acceptedAt
+    ? format.dateTime(invitation.acceptedAt)
+    : invitation.revokedAt
+      ? format.dateTime(invitation.revokedAt)
+      : invitation.status === "EXPIRED"
+        ? format.dateTime(invitation.expiresAt)
+        : invitation.status === "PENDING"
+          ? t.current
+          : t.historical;
 
   async function copyIdentifier() {
     try {
       await navigator.clipboard.writeText(invitation!.invitationId);
-      toast.success("Invitation ID copied.");
+      toast.success(t.copied);
     } catch {
-      toast.error("Could not copy the invitation ID.");
+      toast.error(t.copyFailed);
     }
   }
 
@@ -71,11 +87,9 @@ export function InvitationSheet({
       >
         <SheetHeader className="sticky top-0 z-10 gap-1 border-0 bg-white/95 px-7 pt-7 pb-5 pr-16 backdrop-blur-xl">
           <SheetTitle className="text-[26px] leading-8 tracking-[-0.035em]">
-            Invitation details
+            {t.title}
           </SheetTitle>
-          <p className="text-[14px] leading-5 text-[#536489]">
-            Review the recipient, invitation lifecycle and available actions.
-          </p>
+          <p className="text-[14px] leading-5 text-[#536489]">{t.subtitle}</p>
         </SheetHeader>
 
         <SheetBody className="px-7 pt-0 pb-7">
@@ -95,7 +109,7 @@ export function InvitationSheet({
                   <RoleBadge role={invitation.role} />
                   <InvitationStatusBadge status={invitation.status} />
                   {invitation.userDeletedAt ? (
-                    <Badge variant="outline">Account deleted</Badge>
+                    <Badge variant="outline">{t.accountDeleted}</Badge>
                   ) : null}
                 </div>
               </div>
@@ -105,15 +119,15 @@ export function InvitationSheet({
           <section className="mt-6 grid grid-cols-2 gap-3">
             <InfoCard
               icon={Send}
-              label="Issued"
-              value={formatDateTime(invitation.createdAt)}
+              label={t.issued}
+              value={format.dateTime(invitation.createdAt)}
             />
             <InfoCard
               icon={CalendarClock}
-              label={invitation.status === "EXPIRED" ? "Expired" : "Expires"}
-              value={formatDateTime(invitation.expiresAt)}
+              label={invitation.status === "EXPIRED" ? t.expired : t.expires}
+              value={format.dateTime(invitation.expiresAt)}
             />
-            <InfoCard icon={UserRound} label="Invited by" value={inviter} />
+            <InfoCard icon={UserRound} label={t.invitedBy} value={inviter} />
             <InfoCard
               icon={
                 invitation.status === "ACCEPTED"
@@ -122,26 +136,26 @@ export function InvitationSheet({
                     ? Clock3
                     : RotateCcw
               }
-              label="Lifecycle"
-              value={lifecycleText(invitation)}
+              label={t.lifecycle}
+              value={t.state[invitation.status]}
             />
           </section>
 
           <section className="mt-7">
             <h3 className="text-[16px] font-semibold text-foreground">
-              Invitation timeline
+              {t.timeline}
             </h3>
             <div className="relative mt-4 space-y-5 pl-8 before:absolute before:top-2 before:bottom-2 before:left-[9px] before:w-px before:bg-[#dbe4f2]">
               <TimelineItem
-                title="Invitation issued"
-                detail={`Created by ${inviter}`}
-                date={formatDateTime(invitation.createdAt)}
+                title={t.issuedTitle}
+                detail={t.createdBy(inviter)}
+                date={format.dateTime(invitation.createdAt)}
                 active
               />
               <TimelineItem
-                title={lifecycleText(invitation)}
-                detail={lifecycleDetail(invitation)}
-                date={lifecycleDate(invitation)}
+                title={t.state[invitation.status]}
+                detail={t.stateDetail[invitation.status]}
+                date={lifecycleDate}
                 active={invitation.status !== "PENDING"}
               />
             </div>
@@ -154,11 +168,10 @@ export function InvitationSheet({
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-semibold text-foreground">
-                  Secure single-use invitation
+                  {t.secureTitle}
                 </p>
                 <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                  The invitation token and temporary password are never exposed
-                  in the dashboard. Resending rotates both credentials.
+                  {t.secureBody}
                 </p>
                 <button
                   type="button"
@@ -175,7 +188,7 @@ export function InvitationSheet({
           <div className="mt-7 grid gap-2 sm:grid-cols-2">
             <Button asChild variant="outline" className="h-11 rounded-[9px]">
               <a href={`mailto:${invitation.email}`}>
-                <Mail /> Email recipient
+                <Mail /> {t.email}
               </a>
             </Button>
             {canResend ? (
@@ -185,7 +198,7 @@ export function InvitationSheet({
                 onClick={() => onAction("resend", invitation)}
                 className="h-11 rounded-[9px]"
               >
-                <Send /> Resend invitation
+                <Send /> {t.resend}
               </Button>
             ) : (
               <Button
@@ -194,7 +207,7 @@ export function InvitationSheet({
                 disabled
                 className="h-11 rounded-[9px]"
               >
-                <ShieldCheck /> Account activated
+                <ShieldCheck /> {t.activated}
               </Button>
             )}
             {canRevoke ? (
@@ -205,7 +218,7 @@ export function InvitationSheet({
                 onClick={() => onAction("revoke", invitation)}
                 className="h-11 rounded-[9px] sm:col-span-2"
               >
-                Revoke active invitation
+                {t.revoke}
               </Button>
             ) : null}
           </div>
@@ -263,42 +276,4 @@ function TimelineItem({
       </div>
     </div>
   );
-}
-
-function lifecycleText(invitation: AdminInvitation): string {
-  switch (invitation.status) {
-    case "ACCEPTED":
-      return "Invitation accepted";
-    case "EXPIRED":
-      return "Invitation expired";
-    case "REVOKED":
-      return "Invitation revoked";
-    case "SUPERSEDED":
-      return "Replaced by a newer invitation";
-    default:
-      return "Awaiting acceptance";
-  }
-}
-
-function lifecycleDetail(invitation: AdminInvitation): string {
-  switch (invitation.status) {
-    case "ACCEPTED":
-      return "The email address was verified and the account activated.";
-    case "EXPIRED":
-      return "The link can no longer be used. Send a new invitation.";
-    case "REVOKED":
-      return "An administrator disabled this invitation link.";
-    case "SUPERSEDED":
-      return "A newer link and temporary password replaced this attempt.";
-    default:
-      return "The single-use link remains valid until its expiry time.";
-  }
-}
-
-function lifecycleDate(invitation: AdminInvitation): string {
-  if (invitation.acceptedAt) return formatDateTime(invitation.acceptedAt);
-  if (invitation.revokedAt) return formatDateTime(invitation.revokedAt);
-  if (invitation.status === "EXPIRED")
-    return formatDateTime(invitation.expiresAt);
-  return invitation.status === "PENDING" ? "Current" : "Historical";
 }

@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Manrope } from "next/font/google";
+import { LocaleProvider } from "../lib/i18n/locale-provider";
+import { defineMessages } from "../lib/i18n/messages";
+import { getLocale, getMessages } from "../lib/i18n/server";
 import "./globals.css";
 
 /**
@@ -26,11 +29,21 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
 });
 
-export const metadata: Metadata = {
-  title: "CabinGuard",
-  description:
-    "Driver health monitoring, family safety and emergency response for every journey.",
-};
+const messages = defineMessages({
+  en: {
+    description:
+      "Driver health monitoring, family safety and emergency response for every journey.",
+  },
+  fr: {
+    description:
+      "Surveillance de la santé du conducteur, sécurité familiale et intervention d’urgence à chaque trajet.",
+  },
+});
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getMessages(messages);
+  return { title: "CabinGuard", description: t.description };
+}
 
 // Applies a saved sign-in theme preference to <html> before first paint, so
 // returning dark-mode visitors never see a flash of the light page. Runs on
@@ -44,24 +57,28 @@ export const metadata: Metadata = {
 // guarantee this actually runs before the page is shown.
 const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem("cg.signin.theme");document.documentElement.setAttribute("data-theme",t==="dark"?"dark":"light");}catch(e){}})();`;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Read from the cookie / Accept-Language on every request: the same URL
+  // serves both languages.
+  const locale = await getLocale();
+
   return (
     // The script above mutates this element before React hydrates (that's the
     // whole point: no flash of the wrong theme). React would otherwise warn
     // that the server-rendered attribute doesn't match the DOM it hydrates
     // onto — suppressHydrationWarning silences only that one expected mismatch.
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body
         className={`${manrope.variable} ${geist.variable} ${geistMono.variable}`}
       >
-        {children}
+        <LocaleProvider locale={locale}>{children}</LocaleProvider>
       </body>
     </html>
   );

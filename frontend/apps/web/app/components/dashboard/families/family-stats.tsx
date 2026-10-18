@@ -11,12 +11,49 @@ import {
 } from "lucide-react";
 import type { AdminFamilyStats } from "../../../../lib/api/admin-families";
 import {
+  useFormatters,
+  useMessages,
+} from "../../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../../lib/i18n/messages";
+import {
   AnimatedNumber,
   cardHover,
   stagger,
   statCardMotion,
   statIconMotion,
 } from "../motion";
+
+const messages = defineMessages({
+  en: {
+    label: "Family statistics",
+    loading: "Loading…",
+    total: "Total families",
+    totalHint: "Across CabinGuard",
+    members: "Family members",
+    openPlaces: (count: number) => `${count} open places`,
+    average: "Average size",
+    ofMax: (max: number) => `of ${max} members`,
+    full: "At capacity",
+    ofFamilies: (percent: string) => `${percent} of families`,
+    pending: "Pending requests",
+    pendingHint: "Needs owner review",
+  },
+  fr: {
+    label: "Statistiques des familles",
+    loading: "Chargement…",
+    total: "Familles",
+    totalHint: "Sur CabinGuard",
+    members: "Membres",
+    openPlaces: (count: number) =>
+      `${count} place${count > 1 ? "s" : ""} libre${count > 1 ? "s" : ""}`,
+    average: "Taille moyenne",
+    ofMax: (max: number) => `sur ${max} membres`,
+    full: "Complètes",
+    ofFamilies: (percent: string) => `${percent} des familles`,
+    pending: "Demandes",
+    pendingHint: "À valider",
+  },
+});
 
 type Tone = "blue" | "green" | "purple" | "amber";
 
@@ -27,13 +64,16 @@ const toneClasses: Record<Tone, string> = {
   amber: "bg-[#fff4dc] text-[#c17608]",
 };
 
-function percentage(value: number, total: number): string {
-  return total === 0
-    ? "0% of families"
-    : `${Math.round((value / total) * 100)}% of families`;
-}
-
 export function FamilyStats({ stats }: { stats: AdminFamilyStats | null }) {
+  const t = useMessages(messages);
+  const format = useFormatters();
+  const percentage = (value: number, total: number) =>
+    t.ofFamilies(
+      format.number(total === 0 ? 0 : value / total, {
+        style: "percent",
+        maximumFractionDigits: 0,
+      }),
+    );
   const cards: Array<{
     label: string;
     value: number;
@@ -43,38 +83,38 @@ export function FamilyStats({ stats }: { stats: AdminFamilyStats | null }) {
     tone: Tone;
   }> = [
     {
-      label: "Total families",
+      label: t.total,
       value: stats?.totalFamilies ?? 0,
-      detail: "Across CabinGuard",
+      detail: t.totalHint,
       icon: UsersRound,
       tone: "blue",
     },
     {
-      label: "Family members",
+      label: t.members,
       value: stats?.totalMembers ?? 0,
-      detail: `${stats?.availableSeats ?? 0} open places`,
+      detail: t.openPlaces(stats?.availableSeats ?? 0),
       icon: UserRoundCheck,
       tone: "green",
     },
     {
-      label: "Average size",
+      label: t.average,
       value: stats?.averageMembers ?? 0,
       decimals: 1,
-      detail: `of ${stats?.maxMembersPerFamily ?? 10} members`,
+      detail: t.ofMax(stats?.maxMembersPerFamily ?? 10),
       icon: CircleGauge,
       tone: "purple",
     },
     {
-      label: "At capacity",
+      label: t.full,
       value: stats?.fullFamilies ?? 0,
       detail: percentage(stats?.fullFamilies ?? 0, stats?.totalFamilies ?? 0),
       icon: ShieldCheck,
       tone: "blue",
     },
     {
-      label: "Pending requests",
+      label: t.pending,
       value: stats?.pendingRequests ?? 0,
-      detail: "Needs owner review",
+      detail: t.pendingHint,
       icon: Clock3,
       tone: "amber",
     },
@@ -82,20 +122,20 @@ export function FamilyStats({ stats }: { stats: AdminFamilyStats | null }) {
 
   return (
     <motion.section
-      aria-label="Family statistics"
+      aria-label={t.label}
       aria-busy={stats === null}
       variants={stagger(0.05)}
-      className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5"
+      className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-5"
     >
       {cards.map(
         ({ label, value, decimals, detail, icon: Icon, tone }, index) => (
           <motion.article
-            key={label}
+            key={index}
             // Offset from the middle card: outer cards travel furthest inwards.
             custom={index - (cards.length - 1) / 2}
             variants={statCardMotion.families}
             whileHover={cardHover}
-            className={`flex min-h-[112px] items-start gap-4 rounded-xl border bg-card px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,.02),0_4px_12px_rgba(16,24,40,.025)] ${label === "Total families" ? "border-[#ccd9fb]" : "border-border"}`}
+            className={`flex min-h-[112px] items-start gap-4 rounded-xl border bg-card px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,.02),0_4px_12px_rgba(16,24,40,.025)] ${index === 0 ? "border-[#ccd9fb]" : "border-border"}`}
           >
             <motion.span
               variants={statIconMotion}
@@ -113,7 +153,7 @@ export function FamilyStats({ stats }: { stats: AdminFamilyStats | null }) {
                 )}
               </p>
               <p className="mt-2 truncate text-[11px] text-muted-foreground">
-                {stats === null ? "Loading…" : detail}
+                {stats === null ? t.loading : detail}
               </p>
             </div>
           </motion.article>

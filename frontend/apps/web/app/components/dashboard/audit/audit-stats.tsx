@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Activity,
   CircleX,
@@ -7,6 +9,42 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { AdminAuditStats } from "../../../../lib/api/admin-audit";
+import {
+  useFormatters,
+  useMessages,
+} from "../../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../../lib/i18n/messages";
+
+const messages = defineMessages({
+  en: {
+    label: "Audit statistics",
+    loading: "Loading…",
+    total: "Total events",
+    totalHint: "Immutable log entries",
+    day: "Last 24 hours",
+    dayHint: "Recent activity",
+    security: "Security events",
+    securityHint: "MFA and token activity",
+    failures: "Failed actions",
+    failuresHint: "Requires review",
+    actors: "Known actors",
+    actorsHint: "Identified user accounts",
+  },
+  fr: {
+    label: "Statistiques d’audit",
+    loading: "Chargement…",
+    total: "Événements",
+    totalHint: "Entrées immuables",
+    day: "Dernières 24 h",
+    dayHint: "Activité récente",
+    security: "Sécurité",
+    securityHint: "MFA et jetons",
+    failures: "Échecs",
+    failuresHint: "À examiner",
+    actors: "Acteurs connus",
+    actorsHint: "Comptes identifiés",
+  },
+});
 
 type Tone = "blue" | "green" | "purple" | "amber" | "red";
 
@@ -19,7 +57,10 @@ const toneClasses: Record<Tone, string> = {
 };
 
 export function AuditStats({ stats }: { stats: AdminAuditStats | null }) {
+  const t = useMessages(messages);
+  const format = useFormatters();
   const cards: Array<{
+    key: string;
     label: string;
     value: number;
     detail: string;
@@ -27,37 +68,42 @@ export function AuditStats({ stats }: { stats: AdminAuditStats | null }) {
     tone: Tone;
   }> = [
     {
-      label: "Total events",
+      key: "total",
+      label: t.total,
       value: stats?.total ?? 0,
-      detail: "Immutable log entries",
+      detail: t.totalHint,
       icon: ListChecks,
       tone: "blue",
     },
     {
-      label: "Last 24 hours",
+      key: "day",
+      label: t.day,
       value: stats?.last24Hours ?? 0,
-      detail: "Recent activity",
+      detail: t.dayHint,
       icon: Activity,
       tone: "purple",
     },
     {
-      label: "Security events",
+      key: "security",
+      label: t.security,
       value: stats?.securityEvents ?? 0,
-      detail: "MFA and token activity",
+      detail: t.securityHint,
       icon: ShieldCheck,
       tone: "green",
     },
     {
-      label: "Failed actions",
+      key: "failures",
+      label: t.failures,
       value: stats?.failures ?? 0,
-      detail: "Requires review",
+      detail: t.failuresHint,
       icon: CircleX,
       tone: "red",
     },
     {
-      label: "Known actors",
+      key: "actors",
+      label: t.actors,
       value: stats?.uniqueActors ?? 0,
-      detail: "Identified user accounts",
+      detail: t.actorsHint,
       icon: Fingerprint,
       tone: "amber",
     },
@@ -65,14 +111,14 @@ export function AuditStats({ stats }: { stats: AdminAuditStats | null }) {
 
   return (
     <section
-      aria-label="Audit statistics"
+      aria-label={t.label}
       aria-busy={stats === null}
-      className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5"
+      className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-5"
     >
-      {cards.map(({ label, value, detail, icon: Icon, tone }) => (
+      {cards.map(({ key, label, value, detail, icon: Icon, tone }) => (
         <article
-          key={label}
-          className={`flex min-h-[112px] items-start gap-4 rounded-xl border bg-card px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,.02),0_4px_12px_rgba(16,24,40,.025)] ${label === "Total events" ? "border-[#ccd9fb]" : "border-border"}`}
+          key={key}
+          className={`flex min-h-[112px] items-start gap-4 rounded-xl border bg-card px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,.02),0_4px_12px_rgba(16,24,40,.025)] ${key === "total" ? "border-[#ccd9fb]" : "border-border"}`}
         >
           <span
             className={`grid size-12 shrink-0 place-items-center rounded-xl ${toneClasses[tone]}`}
@@ -82,10 +128,10 @@ export function AuditStats({ stats }: { stats: AdminAuditStats | null }) {
           <div className="min-w-0 pt-0.5">
             <p className="truncate text-[12px] text-[#526180]">{label}</p>
             <p className="mt-0.5 text-[24px] font-bold leading-none tracking-[-0.03em] text-foreground tabular-nums">
-              {stats === null ? "—" : value}
+              {stats === null ? "—" : format.number(value)}
             </p>
             <p className="mt-2 truncate text-[11px] text-muted-foreground">
-              {stats === null ? "Loading…" : detail}
+              {stats === null ? t.loading : detail}
             </p>
           </div>
         </article>

@@ -3,34 +3,52 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useId } from "react";
-import { FEATURES } from "../_lib/content";
+import { useMessages } from "../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../lib/i18n/messages";
+import { useContent } from "../_lib/use-content";
 import { ConsoleLive, LIVE_SIZE } from "./console-live";
 import { Icon } from "./icons";
 import { EASE, Reveal, ScaledCanvas, usePrefersReducedMotion, useSeen } from "./motion";
 
 const TILE = { blue: "", red: "lp-tile-red", violet: "lp-tile-violet" } as const;
 
+const messages = defineMessages({
+  en: {
+    eyebrow: "Features",
+    title: ["Everything needed to", "keep "],
+    accent: "every journey safer.",
+    lead: "CabinGuard gives you a complete view of driver health, family safety, and vehicle incidents — with real-time insights, instant alerts, and powerful tools to keep people safer on the road.",
+  },
+  fr: {
+    eyebrow: "Fonctionnalités",
+    title: ["Tout le nécessaire pour", "rendre "],
+    accent: "chaque trajet plus sûr.",
+    lead: "CabinGuard vous offre une vue complète de la santé des conducteurs, de la sécurité des familles et des incidents de véhicule — avec des analyses en temps réel, des alertes instantanées et des outils puissants pour mieux protéger chacun sur la route.",
+  },
+});
+
 export function Features() {
+  const t = useMessages(messages);
+  const { FEATURES } = useContent();
+  const [firstLine, secondLine] = t.title;
   return (
     <section id="features" className="lp-section-wash relative scroll-mt-20 overflow-hidden" aria-labelledby="features-title">
       <div className="lp-container relative grid gap-12 pb-[clamp(56px,5vw,88px)] pt-[clamp(56px,4.4vw,76px)] xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1fr)] xl:gap-6">
         <div className="relative z-10">
           <Reveal>
-            <p className="lp-eyebrow">Features</p>
+            <p className="lp-eyebrow">{t.eyebrow}</p>
             <h2 id="features-title" className="lp-title mt-[clamp(20px,2.2vw,36px)]">
-              Everything needed to
+              {firstLine}
               <br />
-              keep <span className="lp-accent">every journey safer.</span>
+              {secondLine}
+              <span className="lp-accent">{t.accent}</span>
             </h2>
-            <p className="lp-lead mt-[clamp(14px,1.3vw,22px)] max-w-[640px]">
-              CabinGuard gives you a complete view of driver health, family safety, and vehicle incidents — with
-              real-time insights, instant alerts, and powerful tools to keep people safer on the road.
-            </p>
+            <p className="lp-lead mt-[clamp(14px,1.3vw,22px)] max-w-[640px]">{t.lead}</p>
           </Reveal>
 
           <ul className="mt-[clamp(28px,2.4vw,40px)] grid gap-[14px] sm:grid-cols-2">
             {FEATURES.map((feature, index) => (
-              <li key={feature.title}>
+              <li key={index}>
                 <Reveal delay={0.06 * index} y={22} className="h-full">
                   <article className="group flex h-full gap-[clamp(14px,1.2vw,20px)] rounded-[20px] border border-white/90 bg-white/80 p-[clamp(18px,1.4vw,24px)] shadow-[var(--lp-shadow-card)] backdrop-blur-md transition-[transform,box-shadow,border-color] duration-300 ease-[var(--lp-ease)] hover:-translate-y-1 hover:border-[var(--lp-blue-line)] hover:shadow-[var(--lp-shadow-float)]">
                     <span

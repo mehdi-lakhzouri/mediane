@@ -11,6 +11,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
+import { FR, GB } from "country-flag-icons/react/3x2";
 import PhoneInput, {
   formatPhoneNumberIntl,
   isValidPhoneNumber,
@@ -86,101 +87,81 @@ import {
   type MfaStatus,
   type TotpSetup,
 } from "../../../lib/api/mfa";
+import { isLocale, LOCALE_NAMES, LOCALES } from "../../../lib/i18n/config";
+import { useErrorText } from "../../../lib/i18n/api-errors";
+import {
+  useChangeLocale,
+  useLocale,
+  useMessages,
+} from "../../../lib/i18n/locale-provider";
+import { settingsMessages } from "./security-settings.messages";
 
-function messageFor(error: unknown): string {
-  if (!(error instanceof ApiError))
-    return "Something went wrong. Please try again.";
-  switch (error.code) {
-    case "MFA_CODE_INVALID":
-      return "That code is not valid. Use the current code from your app, or an unused recovery code.";
-    case "MFA_CODE_REQUIRED":
-      return "Enter a code from your authenticator app.";
-    case "INVALID_CURRENT_PASSWORD":
-      return "Your current password is incorrect.";
-    case "WEAK_PASSWORD":
-      return error.details[0]?.message
-        ? `The new password ${error.details[0].message}.`
-        : "Choose a stronger password.";
-    case "PASSWORD_UNCHANGED":
-      return "The new password must be different from the current one.";
-    case "MFA_SETUP_NOT_STARTED":
-      return "The setup expired. Start again.";
-    case "RATE_LIMITED":
-      return "Too many attempts. Wait a few minutes, then try again.";
-    default:
-      return error.message;
-  }
+/** Turns a failed settings call into a message in the reader's language. */
+function useMessageFor(): (error: unknown) => string {
+  const t = useMessages(settingsMessages).errors;
+  const errorText = useErrorText();
+  return (error) => {
+    if (!(error instanceof ApiError)) return t.generic;
+    switch (error.code) {
+      case "MFA_CODE_INVALID":
+        return t.codeInvalid;
+      case "MFA_CODE_REQUIRED":
+        return t.codeRequired;
+      case "INVALID_CURRENT_PASSWORD":
+        return t.wrongPassword;
+      case "WEAK_PASSWORD": {
+        const detail = errorText.detail(error);
+        return detail ? t.weakDetail(detail) : t.weak;
+      }
+      case "PASSWORD_UNCHANGED":
+        return t.unchanged;
+      case "MFA_SETUP_NOT_STARTED":
+        return t.setupExpired;
+      case "RATE_LIMITED":
+        return t.rateLimited;
+      default:
+        return errorText.message(error);
+    }
+  };
 }
 
 const settingTabs = [
-  { id: "general", label: "General", icon: Settings2 },
-  { id: "security", label: "Security", icon: LockKeyhole },
-  { id: "team", label: "Team Access", icon: Users },
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "preferences", label: "Preferences", icon: SlidersHorizontal },
+  { id: "general", icon: Settings2 },
+  { id: "security", icon: LockKeyhole },
+  { id: "team", icon: Users },
+  { id: "notifications", icon: Bell },
+  { id: "preferences", icon: SlidersHorizontal },
 ] as const;
 
 type SettingsTab = (typeof settingTabs)[number]["id"];
 
+/** Sample rows until a sessions API exists; their wording lives in the messages. */
 const sessions = [
   {
     device: "MacBook Pro",
     platform: "Chrome · macOS",
-    location: "New York, USA",
     ip: "192.168.1.24",
-    active: "Active now",
-    status: "Current",
     icon: Laptop,
   },
   {
     device: "iPhone 14",
     platform: "Safari · iOS",
-    location: "New York, USA",
     ip: "192.168.1.24",
-    active: "2 hours ago",
-    status: "Active",
     icon: Smartphone,
   },
   {
     device: "Windows PC",
     platform: "Edge · Windows",
-    location: "Toronto, Canada",
     ip: "192.168.1.35",
-    active: "1 day ago",
-    status: "Active",
     icon: Monitor,
   },
 ] as const;
 
-const activities = [
-  {
-    title: "Updated notification preferences",
-    detail: "Enabled security alerts and product updates.",
-    time: "3 days ago",
-    icon: Settings2,
-  },
-  {
-    title: "Changed password",
-    detail: "Your password was successfully updated.",
-    time: "3 days ago",
-    icon: LockKeyhole,
-  },
-  {
-    title: "New device sign-in",
-    detail: "Chrome on MacBook Pro · New York, USA",
-    time: "5 days ago",
-    icon: Smartphone,
-  },
-  {
-    title: "Team member invited",
-    detail: "You invited sarah@cabinguard.com to the organization.",
-    time: "1 week ago",
-    icon: Users,
-  },
-] as const;
+const activityIcons = [Settings2, LockKeyhole, Smartphone, Users] as const;
 
 /** Account settings surface. Live account and MFA data are used where APIs exist. */
 export function SecuritySettings() {
+  const t = useMessages(settingsMessages).page;
   const [status, setStatus] = useState<MfaStatus | null>(null);
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [phone, setPhone] = useState<PhoneValue | undefined>();
@@ -188,6 +169,11 @@ export function SecuritySettings() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const [profileOpen, setProfileOpen] = useState(false);
   const [dialog, setDialog] = useState<"codes" | "replace" | null>(null);
+
+  const selectTab = useCallback((tab: SettingsTab) => {
+    setActiveTab(tab);
+    window.history.replaceState(null, "", `/dashboard/settings#${tab}`);
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -215,24 +201,36 @@ export function SecuritySettings() {
     }
   }, [user]);
 
+  useEffect(() => {
+    const syncFromHash = () => {
+      const hash = window.location.hash.slice(1);
+      if (settingTabs.some((tab) => tab.id === hash)) {
+        setActiveTab(hash as SettingsTab);
+      }
+    };
+    syncFromHash();
+    window.addEventListener("hashchange", syncFromHash);
+    return () => window.removeEventListener("hashchange", syncFromHash);
+  }, []);
+
   return (
-    <div className="-mt-[14px] flex flex-col gap-[14px] pb-4 xl:-mt-[17px] xl:w-[calc(100%_-_18px)]">
+    <div className="flex flex-col gap-5 pb-5">
       <div>
-        <h1 className="text-[32px] font-bold leading-[1.15] tracking-[-0.035em] text-foreground">
-          Settings
+        <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-primary">
+          <span className="h-px w-6 bg-primary/50" /> CabinGuard
+        </div>
+        <h1 className="text-[30px] font-extrabold leading-[1.15] tracking-[-0.035em] text-foreground">
+          {t.title}
         </h1>
-        <p className="mt-1 text-[15px] text-[#60708f]">
-          Manage your account, security, team access and preferences for
-          CabinGuard.
-        </p>
+        <p className="mt-1 text-[14px] text-muted-foreground">{t.subtitle}</p>
       </div>
 
       <div
         role="tablist"
-        aria-label="Settings sections"
-        className="cg-scroll flex h-[48px] overflow-x-auto overflow-y-hidden rounded-[11px] border border-border bg-white px-1 shadow-[0_1px_2px_rgba(16,24,40,.025)]"
+        aria-label={t.sections}
+        className="cg-scroll flex overflow-x-auto overflow-y-hidden rounded-[14px] border border-border bg-card p-1.5 shadow-[0_1px_3px_rgba(16,24,40,.04)]"
       >
-        {settingTabs.map(({ id, label, icon: Icon }) => {
+        {settingTabs.map(({ id, icon: Icon }) => {
           const active = activeTab === id;
           return (
             <button
@@ -242,17 +240,23 @@ export function SecuritySettings() {
               id={`settings-tab-${id}`}
               aria-selected={active}
               aria-controls={`settings-panel-${id}`}
-              onClick={() => setActiveTab(id)}
+              onClick={() => selectTab(id)}
               className={cn(
-                "relative flex min-w-[148px] flex-1 items-center justify-center gap-3 border-r border-[#edf0f5] text-[13px] font-semibold text-[#14213d] last:border-r-0 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#3563ff] sm:min-w-0",
-                active && "bg-[#f3f6ff] text-[#1545df]",
+                "relative flex h-12 min-w-[148px] flex-1 items-center justify-center gap-2.5 rounded-[10px] text-[12px] font-semibold text-muted-foreground transition focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-w-0",
+                active
+                  ? "bg-secondary text-primary shadow-[0_1px_3px_rgba(31,61,148,.1)]"
+                  : "hover:bg-muted hover:text-foreground",
               )}
             >
-              <Icon className="size-[18px]" strokeWidth={1.9} />
-              {label}
-              {active && (
-                <span className="absolute inset-x-[-1px] bottom-0 h-0.5 bg-[#3563ff]" />
-              )}
+              <span
+                className={cn(
+                  "grid size-8 place-items-center rounded-lg bg-muted transition",
+                  active && "bg-card text-primary shadow-sm",
+                )}
+              >
+                <Icon className="size-[16px]" strokeWidth={1.9} />
+              </span>
+              {t.tabs[id]}
             </button>
           );
         })}
@@ -264,7 +268,7 @@ export function SecuritySettings() {
         aria-labelledby={`settings-tab-${activeTab}`}
       >
         {activeTab === "general" && (
-          <div className="grid items-start gap-[14px] xl:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="grid min-w-0 items-start gap-[14px] 2xl:grid-cols-[minmax(0,1fr)_300px]">
             <div className="grid min-w-0 gap-[14px]">
               <div className="grid gap-[14px] lg:grid-cols-[1.2fr_1fr]">
                 <AccountCard
@@ -290,7 +294,7 @@ export function SecuritySettings() {
 
             <aside className="grid gap-[14px]">
               <SecurityAssurance enabled={status?.enabled ?? true} />
-              <QuickActions onSelectTab={setActiveTab} />
+              <QuickActions onSelectTab={selectTab} />
             </aside>
           </div>
         )}
@@ -417,12 +421,13 @@ function AccountCard({
   phone: PhoneValue | undefined;
   onEdit: () => void;
 }) {
+  const t = useMessages(settingsMessages).account;
   return (
     <SettingsCard>
       <CardHeading
         icon={UserRound}
-        title="Account & Organization"
-        description="Your personal information and organization details."
+        title={t.title}
+        description={t.description}
         action={
           <Button
             variant="outline"
@@ -431,7 +436,7 @@ function AccountCard({
             disabled={!user}
             className="h-[30px] rounded-[7px] border-[#dce4f1] px-3 text-[12px] font-semibold text-[#1451df]"
           >
-            <Pencil className="size-3.5" /> Edit profile
+            <Pencil className="size-3.5" /> {t.edit}
           </Button>
         }
       />
@@ -455,6 +460,8 @@ function EditProfileDialog({
   onSaved: (user: CurrentUser) => void;
   onPhoneSaved: (phone: PhoneValue | undefined) => void;
 }) {
+  const t = useMessages(settingsMessages).profile;
+  const messageFor = useMessageFor();
   const toast = useToast();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -474,11 +481,11 @@ function EditProfileDialog({
     event.preventDefault();
     if (!user) return;
     if (!firstName.trim() || !lastName.trim()) {
-      setError("Enter both your first and last name.");
+      setError(t.nameRequired);
       return;
     }
     if (phoneNumber && !isValidPhoneNumber(phoneNumber)) {
-      setError("Enter a valid international phone number.");
+      setError(t.phoneInvalid);
       return;
     }
     setBusy(true);
@@ -505,10 +512,7 @@ function EditProfileDialog({
       onSaved(current);
       onPhoneSaved(phoneNumber);
       onOpenChange(false);
-      toast.success(
-        "Profile updated.",
-        "Your account details have been saved.",
-      );
+      toast.success(t.saved, t.savedDetail);
     } catch (failure) {
       setError(messageFor(failure));
     } finally {
@@ -520,15 +524,13 @@ function EditProfileDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[480px] overflow-hidden rounded-[18px] border-[#dbe4f2] shadow-[0_24px_70px_rgba(25,42,84,.22)]">
         <DialogHeader className="border-b border-[#e6ebf3] bg-[linear-gradient(135deg,#f7f9ff,#eef3ff)] p-6">
-          <DialogTitle>Edit profile</DialogTitle>
-          <DialogDescription>
-            Update your account identity and contact details.
-          </DialogDescription>
+          <DialogTitle>{t.title}</DialogTitle>
+          <DialogDescription>{t.description}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={submit} className="space-y-4 p-6">
+        <form method="post" onSubmit={submit} className="space-y-4 p-6">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="profile-first-name">First name</Label>
+              <Label htmlFor="profile-first-name">{t.firstName}</Label>
               <Input
                 id="profile-first-name"
                 value={firstName}
@@ -539,7 +541,7 @@ function EditProfileDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="profile-last-name">Last name</Label>
+              <Label htmlFor="profile-last-name">{t.lastName}</Label>
               <Input
                 id="profile-last-name"
                 value={lastName}
@@ -551,19 +553,17 @@ function EditProfileDialog({
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="profile-email">Work email</Label>
+            <Label htmlFor="profile-email">{t.email}</Label>
             <Input
               id="profile-email"
               value={user?.email ?? ""}
               disabled
               className="h-11 rounded-[9px]"
             />
-            <p className="text-[12px] text-muted-foreground">
-              Email changes require a separate verified-email workflow.
-            </p>
+            <p className="text-[12px] text-muted-foreground">{t.emailHint}</p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="profile-phone">Phone number</Label>
+            <Label htmlFor="profile-phone">{t.phone}</Label>
             <PhoneInput
               id="profile-phone"
               international
@@ -576,12 +576,10 @@ function EditProfileDialog({
                 if (error) setError(null);
               }}
               autoComplete="tel"
-              placeholder="Enter phone number"
+              placeholder={t.phonePlaceholder}
               className="cg-phone-input"
             />
-            <p className="text-[12px] text-muted-foreground">
-              Choose a country to apply its flag, dialing prefix and format.
-            </p>
+            <p className="text-[12px] text-muted-foreground">{t.phoneHint}</p>
           </div>
           <ErrorLine message={error} />
           <DialogFooter>
@@ -591,13 +589,13 @@ function EditProfileDialog({
               onClick={() => onOpenChange(false)}
               disabled={busy}
             >
-              Cancel
+              {t.cancel}
             </Button>
             <Button
               type="submit"
               disabled={busy || !firstName.trim() || !lastName.trim()}
             >
-              {busy && <LoaderCircle className="animate-spin" />} Save changes
+              {busy && <LoaderCircle className="animate-spin" />} {t.save}
             </Button>
           </DialogFooter>
         </form>
@@ -613,31 +611,32 @@ function AccountFields({
   user: CurrentUser | null;
   phone: PhoneValue | undefined;
 }) {
+  const t = useMessages(settingsMessages).account;
   return (
     <div className="mt-3 grid grid-cols-1 gap-x-3 gap-y-2.5 sm:grid-cols-2">
-      <FieldShell label="Full name">
-        <span className="truncate">{user ? fullName(user) : "Loading…"}</span>
+      <FieldShell label={t.fullName}>
+        <span className="truncate">{user ? fullName(user) : t.loading}</span>
       </FieldShell>
-      <FieldShell label="Work email">
-        <span className="truncate">{user?.email ?? "Loading…"}</span>
+      <FieldShell label={t.email}>
+        <span className="truncate">{user?.email ?? t.loading}</span>
       </FieldShell>
-      <FieldShell label="Phone number">
+      <FieldShell label={t.phone}>
         <Smartphone className="size-4 text-[#60708f]" />
         <span className={phone ? "text-[#263450]" : "text-[#667596]"}>
-          {phone ? formatPhoneNumberIntl(phone) : "Not configured"}
+          {phone ? formatPhoneNumberIntl(phone) : t.notConfigured}
         </span>
       </FieldShell>
-      <FieldShell label="Role">
-        <span>{user?.role === "DRIVER" ? "Driver" : "Administrator"}</span>
+      <FieldShell label={t.role}>
+        <span>{user?.role === "DRIVER" ? t.driver : t.admin}</span>
         <ChevronDown className="ml-auto size-3 text-[#60708f]" />
       </FieldShell>
-      <FieldShell label="Company / Organization">
+      <FieldShell label={t.organization}>
         <Building2 className="size-4 text-[#60708f]" />
         <span>CabinGuard</span>
       </FieldShell>
-      <FieldShell label="Timezone">
+      <FieldShell label={t.timezone}>
         <Globe2 className="size-4 text-[#60708f]" />
-        <span className="truncate">Browser default</span>
+        <span className="truncate">{t.browserDefault}</span>
         <ChevronDown className="ml-auto size-3 shrink-0 text-[#60708f]" />
       </FieldShell>
     </div>
@@ -655,30 +654,29 @@ function SecurityOverview({
   onReplace: () => void;
   onCodes: () => void;
 }) {
+  const t = useMessages(settingsMessages).overview;
   const enabled = status?.enabled ?? true;
   const rows = [
     {
       icon: ShieldCheck,
-      title: "Two-step verification",
-      detail: enabled
-        ? "Your account is protected with 2FA."
-        : "Add another layer of account protection.",
-      action: "Manage",
+      title: t.mfa,
+      detail: enabled ? t.mfaOn : t.mfaOff,
+      action: t.manage,
       onClick: onReplace,
       green: true,
     },
     {
       icon: Smartphone,
-      title: "Authenticator app",
-      detail: enabled ? "Connected via Google Authenticator" : "Not connected",
-      action: enabled ? "Replace" : "Connect",
+      title: t.app,
+      detail: enabled ? t.appOn : t.appOff,
+      action: enabled ? t.replace : t.connect,
       onClick: onReplace,
     },
     {
       icon: KeyRound,
-      title: "Recovery codes",
-      detail: `${status?.recoveryCodesRemaining ?? 10} of 10 codes remaining`,
-      action: "Generate",
+      title: t.codes,
+      detail: t.codesLeft(status?.recoveryCodesRemaining ?? 10),
+      action: t.generate,
       onClick: onCodes,
     },
   ];
@@ -687,16 +685,12 @@ function SecurityOverview({
     <SettingsCard className="p-[14px]">
       <CardHeading
         icon={ShieldCheck}
-        title="Security Overview"
-        description="Keep your account secure and protected."
+        title={t.title}
+        description={t.description}
         action={
           <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-[#e3f7ea] px-3 text-[10px] font-semibold text-[#15803d]">
             <CheckCircle2 className="size-3 fill-[#16a34a] text-white" />
-            {failed
-              ? "Check status"
-              : enabled
-                ? "Strong security"
-                : "Action needed"}
+            {failed ? t.checkStatus : enabled ? t.strong : t.actionNeeded}
           </span>
         }
       />
@@ -721,7 +715,7 @@ function SecurityOverview({
                 </p>
                 {row.green && (
                   <span className="rounded-full bg-[#def6e7] px-2 py-0.5 text-[10px] font-semibold text-[#168548]">
-                    {enabled ? "On" : "Off"}
+                    {enabled ? t.on : t.off}
                   </span>
                 )}
               </div>
@@ -745,6 +739,8 @@ function SecurityOverview({
 }
 
 function PasswordCard() {
+  const t = useMessages(settingsMessages).password;
+  const messageFor = useMessageFor();
   const toast = useToast();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
@@ -764,9 +760,7 @@ function PasswordCard() {
     /[a-z]/.test(next) && /[A-Z]/.test(next),
     /\d/.test(next) && /[^A-Za-z0-9]/.test(next),
   ].filter(Boolean).length;
-  const strengthLabel = next
-    ? (["Too short", "Weak", "Good", "Strong"] as const)[strengthScore]
-    : "Password strength";
+  const strengthLabel = next ? t.levels[strengthScore] : t.strength;
   const strengthColor =
     strengthScore === 3
       ? "bg-[#16a34a]"
@@ -789,10 +783,7 @@ function PasswordCard() {
         newPassword: next,
         mfaCode,
       });
-      toast.success(
-        "Password changed.",
-        "Your other sessions were signed out.",
-      );
+      toast.success(t.changed, t.changedDetail);
       setCurrent("");
       setNext("");
       setConfirmation("");
@@ -808,35 +799,18 @@ function PasswordCard() {
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (next.length < 12)
-      return setError("The new password needs at least 12 characters.");
-    if (next === current)
-      return setError(
-        "The new password must be different from the current one.",
-      );
-    if (next !== confirmation)
-      return setError("The new passwords do not match.");
+    if (next.length < 12) return setError(t.tooShort);
+    if (next === current) return setError(t.unchanged);
+    if (next !== confirmation) return setError(t.mismatch);
     setError(null);
     setCode("");
     setVerifyOpen(true);
   }
 
   const fields = [
-    [
-      "current",
-      "Current password",
-      current,
-      setCurrent,
-      "Enter your current password",
-    ],
-    ["next", "New password", next, setNext, "Enter a new password"],
-    [
-      "confirm",
-      "Confirm new password",
-      confirmation,
-      setConfirmation,
-      "Confirm your new password",
-    ],
+    ["current", t.current, current, setCurrent, t.currentPlaceholder],
+    ["next", t.next, next, setNext, t.nextPlaceholder],
+    ["confirm", t.confirm, confirmation, setConfirmation, t.confirmPlaceholder],
   ] as const;
 
   return (
@@ -844,10 +818,10 @@ function PasswordCard() {
       <SettingsCard className="p-[14px] pb-[7px]">
         <CardHeading
           icon={LockKeyhole}
-          title="Change Password"
-          description="Use a strong password to keep your account safe."
+          title={t.title}
+          description={t.description}
         />
-        <form onSubmit={submit} className="mt-3 grid gap-[7px]">
+        <form method="post" onSubmit={submit} className="mt-3 grid gap-[7px]">
           {fields.map(([id, label, value, setter, placeholder]) => (
             <div key={id} className="contents">
               <label className="grid gap-1 text-[11px] font-semibold leading-3 text-[#14213d]">
@@ -879,7 +853,7 @@ function PasswordCard() {
                         [id]: !currentVisibility[id],
                       }))
                     }
-                    aria-label={`${visible[id] ? "Hide" : "Show"} ${label.toLowerCase()}`}
+                    aria-label={visible[id] ? t.hide(label) : t.show(label)}
                     aria-pressed={visible[id]}
                     className="absolute inset-y-0 right-0 grid w-9 place-items-center text-[#60708f]"
                   >
@@ -924,9 +898,7 @@ function PasswordCard() {
                     passwordsMatch ? "text-[#15803d]" : "text-danger",
                   )}
                 >
-                  {passwordsMatch
-                    ? "Passwords match"
-                    : "Passwords do not match"}
+                  {passwordsMatch ? t.match : t.noMatch}
                 </p>
               )}
             </div>
@@ -939,7 +911,7 @@ function PasswordCard() {
             disabled={busy || !canSubmit}
             className="mt-0.5 h-[32px] rounded-[6px] text-[12px] font-semibold"
           >
-            {busy && <LoaderCircle className="animate-spin" />} Update password
+            {busy && <LoaderCircle className="animate-spin" />} {t.submit}
           </Button>
         </form>
       </SettingsCard>
@@ -947,13 +919,10 @@ function PasswordCard() {
       <Dialog open={verifyOpen} onOpenChange={setVerifyOpen}>
         <DialogContent className="max-w-[480px] overflow-hidden rounded-[18px] border-[#dbe4f2] shadow-[0_24px_70px_rgba(25,42,84,.22)]">
           <DialogHeader className="border-b border-[#e6ebf3] bg-[linear-gradient(135deg,#f7f9ff,#eef3ff)] p-6">
-            <DialogTitle>Confirm password change</DialogTitle>
-            <DialogDescription>
-              Enter a code from your authenticator app or an unused recovery
-              code.
-            </DialogDescription>
+            <DialogTitle>{t.verifyTitle}</DialogTitle>
+            <DialogDescription>{t.verifyDescription}</DialogDescription>
           </DialogHeader>
-          <form
+          <form method="post"
             className="space-y-4 p-6"
             onSubmit={(event) => {
               event.preventDefault();
@@ -962,16 +931,16 @@ function PasswordCard() {
           >
             <CodeField
               id="password-mfa"
-              label="Verification code"
+              label={t.verifyLabel}
               value={code}
               onChange={setCode}
-              hint="This protects changes to your sign-in credentials."
+              hint={t.verifyHint}
             />
             <ErrorLine message={error} />
             <DialogFooter>
               <Button type="submit" disabled={busy || code.trim().length < 6}>
-                {busy && <LoaderCircle className="animate-spin" />} Confirm &
-                update
+                {busy && <LoaderCircle className="animate-spin" />}{" "}
+                {t.verifySubmit}
               </Button>
             </DialogFooter>
           </form>
@@ -982,6 +951,7 @@ function PasswordCard() {
 }
 
 function NotificationCard({ expanded = false }: { expanded?: boolean }) {
+  const t = useMessages(settingsMessages).notifications;
   const [preferences, setPreferences] = useState([true, true, false]);
   useEffect(() => {
     try {
@@ -1006,31 +976,14 @@ function NotificationCard({ expanded = false }: { expanded?: boolean }) {
       return next;
     });
   }
-  const rows = [
-    {
-      icon: ShieldCheck,
-      title: "Security alerts",
-      detail:
-        "Get notified about new sign-ins, device changes, and security events.",
-    },
-    {
-      icon: Megaphone,
-      title: "Product updates",
-      detail: "Receive updates about new features and improvements.",
-    },
-    {
-      icon: BarChart3,
-      title: "Weekly summary",
-      detail: "Get a weekly summary of account activity.",
-    },
-  ];
+  const icons = [ShieldCheck, Megaphone, BarChart3];
+  const rows = t.rows.map((row, index) => ({
+    ...row,
+    icon: icons[index % icons.length]!,
+  }));
   return (
     <SettingsCard className={expanded ? "p-[18px]" : undefined}>
-      <CardHeading
-        icon={Bell}
-        title="Notification Preferences"
-        description="Choose what you'd like to be notified about."
-      />
+      <CardHeading icon={Bell} title={t.title} description={t.description} />
       <div
         className={cn(
           "mt-2.5 grid gap-1.5",
@@ -1040,7 +993,7 @@ function NotificationCard({ expanded = false }: { expanded?: boolean }) {
       >
         {rows.map((row, index) => (
           <div
-            key={row.title}
+            key={index}
             className={cn(
               "flex items-center gap-2",
               expanded && "min-h-[62px] gap-3 px-4 py-2.5",
@@ -1076,6 +1029,7 @@ function NotificationCard({ expanded = false }: { expanded?: boolean }) {
               type="button"
               role="switch"
               aria-checked={preferences[index]}
+              aria-label={row.title}
               onClick={() => togglePreference(index)}
               className={cn(
                 "relative h-[19px] w-[34px] shrink-0 rounded-full bg-[#bdc8da] transition-colors",
@@ -1111,7 +1065,7 @@ function SecurityTab({
   onCodes: () => void;
 }) {
   return (
-    <div className="grid items-start gap-[14px] xl:grid-cols-[minmax(0,1fr)_300px]">
+    <div className="grid min-w-0 items-start gap-[14px] 2xl:grid-cols-[minmax(0,1fr)_300px]">
       <div className="grid gap-[14px]">
         <SecurityOverview
           status={status}
@@ -1132,10 +1086,13 @@ function SecurityTab({
 }
 
 function TeamAccessTab() {
+  const t = useMessages(settingsMessages).team;
+  const messageFor = useMessageFor();
   const [members, setMembers] = useState<AdminUser[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // The failure, not its text: the message follows a language switch.
+  const [error, setError] = useState<{ cause: unknown } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -1147,7 +1104,7 @@ function TeamAccessTab() {
         setError(null);
       })
       .catch((failure) => {
-        if (active) setError(messageFor(failure));
+        if (active) setError({ cause: failure });
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -1158,24 +1115,24 @@ function TeamAccessTab() {
   }, []);
 
   return (
-    <div className="grid gap-[14px] lg:grid-cols-[minmax(0,1fr)_300px]">
+    <div className="grid min-w-0 gap-[14px] 2xl:grid-cols-[minmax(0,1fr)_300px]">
       <SettingsCard className="p-0">
         <div className="p-[18px]">
           <CardHeading
             icon={Users}
-            title="Team Access"
-            description="Administrators and drivers with access to CabinGuard."
+            title={t.title}
+            description={t.description}
             action={
               <Button asChild className="h-9 rounded-[8px] text-[12px]">
-                <Link href="/dashboard/drivers">Manage all users</Link>
+                <Link href="/dashboard/drivers">{t.manage}</Link>
               </Button>
             }
           />
         </div>
         <div className="grid grid-cols-[1fr_110px_110px] border-y border-[#e5eaf2] bg-[#f7f9fc] px-5 py-2.5 text-[10px] font-semibold uppercase text-[#60708f]">
-          <span>User</span>
-          <span>Role</span>
-          <span>Status</span>
+          {t.columns.map((column) => (
+            <span key={column}>{column}</span>
+          ))}
         </div>
         <div className="divide-y divide-[#e5eaf2]">
           {loading && (
@@ -1185,12 +1142,12 @@ function TeamAccessTab() {
           )}
           {!loading && error && (
             <div className="grid h-40 place-items-center px-6 text-center text-[13px] text-danger">
-              {error}
+              {messageFor(error.cause)}
             </div>
           )}
           {!loading && !error && members.length === 0 && (
             <div className="grid h-40 place-items-center text-[13px] text-muted-foreground">
-              No team members found.
+              {t.empty}
             </div>
           )}
           {!loading &&
@@ -1215,7 +1172,7 @@ function TeamAccessTab() {
                   </div>
                 </div>
                 <span className="text-[#4f5f80]">
-                  {member.role === "ADMIN" ? "Administrator" : "Driver"}
+                  {member.role === "ADMIN" ? t.admin : t.driver}
                 </span>
                 <span
                   className={cn(
@@ -1225,7 +1182,7 @@ function TeamAccessTab() {
                       : "bg-[#fff1d7] text-[#a86100]",
                   )}
                 >
-                  {member.status.toLowerCase()}
+                  {t.status[member.status]}
                 </span>
               </div>
             ))}
@@ -1239,11 +1196,9 @@ function TeamAccessTab() {
           <p className="mt-4 text-[28px] font-bold tracking-[-0.04em] text-[#101a35]">
             {loading ? "—" : total}
           </p>
-          <p className="text-[12px] font-semibold text-[#263450]">
-            Total team members
-          </p>
+          <p className="text-[12px] font-semibold text-[#263450]">{t.total}</p>
           <p className="mt-1 text-[11px] leading-4 text-[#667596]">
-            Live count from the administrator users API.
+            {t.totalHint}
           </p>
         </SettingsCard>
       </div>
@@ -1252,39 +1207,52 @@ function TeamAccessTab() {
 }
 
 function NotificationsTab() {
+  const t = useMessages(settingsMessages).notifications;
   return (
-    <div className="grid gap-[14px] lg:grid-cols-[minmax(0,720px)_300px]">
+    <div className="grid min-w-0 gap-[14px] xl:grid-cols-[minmax(0,720px)_300px]">
       <NotificationCard expanded />
       <SettingsCard>
         <CardHeading
           icon={Bell}
-          title="Delivery status"
-          description="Notification controls are saved on this device."
+          title={t.deliveryTitle}
+          description={t.deliveryDescription}
         />
         <p className="mt-4 text-[12px] leading-5 text-[#667596]">
-          Server-side notification delivery is not exposed by the current API.
-          Your choices will remain in this browser until account preferences are
-          added to the backend.
+          {t.deliveryBody}
         </p>
       </SettingsCard>
     </div>
   );
 }
 
+const TIMEZONES = ["browser", "Africa/Lagos", "UTC", "America/New_York"];
+const DENSITIES = ["comfortable", "compact"] as const;
+
+/** Earlier versions stored display labels; read them as the matching value. */
+const LEGACY_PREFERENCE: Record<string, string> = {
+  "Browser default": "browser",
+  Comfortable: "comfortable",
+  Compact: "compact",
+};
+
 function PreferencesTab() {
+  const t = useMessages(settingsMessages).preferences;
   const toast = useToast();
-  const [language, setLanguage] = useState("English");
-  const [timezone, setTimezone] = useState("Browser default");
-  const [density, setDensity] = useState("Comfortable");
+  const currentLocale = useLocale();
+  const { changeLocale } = useChangeLocale();
+  const [language, setLanguage] = useState<string>(currentLocale);
+  const [timezone, setTimezone] = useState("browser");
+  const [density, setDensity] = useState("comfortable");
 
   useEffect(() => {
     try {
       const saved = JSON.parse(
         localStorage.getItem("cg.dashboard-preferences") ?? "{}",
-      ) as { language?: string; timezone?: string; density?: string };
-      if (saved.language) setLanguage(saved.language);
-      if (saved.timezone) setTimezone(saved.timezone);
-      if (saved.density) setDensity(saved.density);
+      ) as { timezone?: string; density?: string };
+      if (saved.timezone)
+        setTimezone(LEGACY_PREFERENCE[saved.timezone] ?? saved.timezone);
+      if (saved.density)
+        setDensity(LEGACY_PREFERENCE[saved.density] ?? saved.density);
     } catch {
       // Defaults remain usable when browser storage is unavailable.
     }
@@ -1292,73 +1260,141 @@ function PreferencesTab() {
 
   function savePreferences(event: FormEvent) {
     event.preventDefault();
+    // The language lives in its own cookie so the server renders in it too.
+    if (isLocale(language) && language !== currentLocale) {
+      changeLocale(language);
+    }
     try {
       localStorage.setItem(
         "cg.dashboard-preferences",
-        JSON.stringify({ language, timezone, density }),
+        JSON.stringify({ timezone, density }),
       );
-      toast.success(
-        "Preferences saved.",
-        "These settings are stored on this device.",
+      window.dispatchEvent(
+        new CustomEvent("cabinguard:preferences-updated", {
+          detail: { timezone, density },
+        }),
       );
+      toast.success(t.saved, t.savedDetail);
     } catch {
-      toast.error(
-        "Preferences could not be saved.",
-        "Browser storage is unavailable.",
-      );
+      toast.error(t.failed, t.failedDetail);
     }
   }
 
   return (
-    <SettingsCard className="max-w-[760px]">
+    <SettingsCard className="max-w-[900px] p-0">
+      <div className="border-b border-border bg-[linear-gradient(135deg,#fbfcff,#f2f6ff)] p-5">
       <CardHeading
         icon={SlidersHorizontal}
-        title="Dashboard Preferences"
-        description="Customize how the administrator console appears on this device."
+        title={t.title}
+        description={t.description}
       />
-      <form onSubmit={savePreferences} className="mt-6 grid gap-5">
-        {[
-          ["Language", language, setLanguage, ["English", "French", "Arabic"]],
-          [
-            "Timezone",
-            timezone,
-            setTimezone,
-            ["Browser default", "Africa/Lagos", "UTC", "America/New_York"],
-          ],
-          [
-            "Interface density",
-            density,
-            setDensity,
-            ["Comfortable", "Compact"],
-          ],
-        ].map(([label, value, setter, options]) => (
-          <label
-            key={label as string}
-            className="grid gap-2 text-[12px] font-semibold text-[#14213d]"
-          >
-            {label as string}
+      </div>
+      <form method="post" onSubmit={savePreferences} className="grid gap-6 p-5">
+        <fieldset>
+          <legend className="text-[13px] font-bold text-foreground">
+            {t.language}
+          </legend>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            {t.languageHint}
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {LOCALES.map((code) => {
+              const active = language === code;
+              const Flag = code === "en" ? GB : FR;
+              return (
+                <button
+                  key={code}
+                  type="button"
+                  lang={code}
+                  aria-pressed={active}
+                  onClick={() => setLanguage(code)}
+                  className={cn(
+                    "group flex items-center gap-3 rounded-xl border p-3.5 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-ring",
+                    active
+                      ? "border-primary bg-secondary shadow-[0_4px_16px_rgba(48,71,217,.08)]"
+                      : "border-border bg-card hover:border-primary/35 hover:bg-muted/40",
+                  )}
+                >
+                  <span className="overflow-hidden rounded-lg shadow-[0_0_0_1px_rgba(15,23,42,.12),0_3px_8px_rgba(15,23,42,.1)]">
+                    <Flag aria-hidden="true" className="h-8 w-12 object-cover" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13px] font-bold text-foreground">
+                      {LOCALE_NAMES[code]}
+                    </span>
+                    <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                      {code}
+                    </span>
+                  </span>
+                  <span
+                    className={cn(
+                      "grid size-6 place-items-center rounded-full border text-transparent",
+                      active && "border-primary bg-primary text-white",
+                    )}
+                  >
+                    <Check className="size-3.5" strokeWidth={3} />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <div className="grid gap-5 border-t border-border pt-5 md:grid-cols-2">
+          <label className="grid gap-2 text-[12px] font-semibold text-foreground">
+            <span className="flex items-center gap-2">
+              <Globe2 className="size-4 text-primary" /> {t.timezone}
+            </span>
             <select
-              value={value as string}
-              onChange={(event) =>
-                (setter as (value: string) => void)(event.target.value)
-              }
-              className="h-11 rounded-[9px] border border-input bg-white px-3 text-[13px] font-normal outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+              value={timezone}
+              onChange={(event) => setTimezone(event.target.value)}
+              className="h-11 rounded-[9px] border border-input bg-card px-3 text-[13px] font-normal outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
             >
-              {(options as string[]).map((option) => (
-                <option key={option}>{option}</option>
+              {TIMEZONES.map((zone) => (
+                <option key={zone} value={zone}>
+                  {zone === "browser" ? t.browserDefault : zone}
+                </option>
               ))}
             </select>
           </label>
-        ))}
-        <Button type="submit" className="mt-1 w-fit rounded-[8px] px-6">
-          Save preferences
-        </Button>
+
+          <fieldset className="grid gap-2">
+            <legend className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
+              <SlidersHorizontal className="size-4 text-primary" /> {t.density}
+            </legend>
+            <div className="grid h-11 grid-cols-2 rounded-[9px] border border-input bg-muted/50 p-1">
+              {DENSITIES.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={density === value}
+                  onClick={() => setDensity(value)}
+                  className={cn(
+                    "rounded-[6px] text-[12px] font-semibold text-muted-foreground outline-none transition focus-visible:ring-2 focus-visible:ring-ring",
+                    density === value &&
+                      "bg-card text-primary shadow-[0_1px_4px_rgba(16,24,40,.12)]",
+                  )}
+                >
+                  {t[value]}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        </div>
+
+        <div className="flex justify-end border-t border-border pt-5">
+          <Button type="submit" className="rounded-[8px] px-6">
+            <Check /> {t.save}
+          </Button>
+        </div>
       </form>
     </SettingsCard>
   );
 }
 
 function SessionsCard() {
+  const t = useMessages(settingsMessages).sessions;
+  const messageFor = useMessageFor();
   const router = useRouter();
   const toast = useToast();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -1370,7 +1406,7 @@ function SessionsCard() {
       await logoutAll();
       router.replace("/sign-in");
     } catch (failure) {
-      toast.error("Could not sign out all sessions.", messageFor(failure));
+      toast.error(t.failed, messageFor(failure));
       setBusy(false);
       setConfirmOpen(false);
     }
@@ -1382,8 +1418,8 @@ function SessionsCard() {
         <div className="p-[15px] pb-2.5">
           <CardHeading
             icon={Monitor}
-            title="Active Sessions & Devices"
-            description="Manage your active sessions across different devices."
+            title={t.title}
+            description={t.description}
             action={
               <Button
                 variant="outline"
@@ -1391,71 +1427,72 @@ function SessionsCard() {
                 onClick={() => setConfirmOpen(true)}
                 className="h-[30px] rounded-[7px] border-[#dce4f1] px-3 text-[10px] font-semibold text-[#1451df]"
               >
-                <LogOutMini /> Sign out all
+                <LogOutMini /> {t.signOutAll}
               </Button>
             }
           />
         </div>
         <div className="mx-[15px] grid grid-cols-[1.35fr_1.15fr_1fr_.65fr_24px] rounded-t-[9px] bg-[#f7f9fc] px-3 py-2 text-[9px] font-semibold uppercase text-[#4f5f80]">
-          <span>Device</span>
-          <span>Location</span>
-          <span>Last active</span>
-          <span>Status</span>
+          {t.columns.map((column) => (
+            <span key={column}>{column}</span>
+          ))}
           <span />
         </div>
         <div className="mx-[15px] mb-2 divide-y divide-[#e7ebf2]">
-          {sessions.map((session, index) => (
-            <div
-              key={session.device}
-              className="grid min-h-[44px] grid-cols-[1.35fr_1.15fr_1fr_.65fr_24px] items-center px-3 text-[10px]"
-            >
-              <div className="flex min-w-0 items-center gap-2.5">
-                <session.icon className="size-[18px] shrink-0 text-[#111a32]" />
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-[#14213d]">
-                    {session.device}
-                  </p>
-                  <p className="truncate text-[#667596]">{session.platform}</p>
-                </div>
-              </div>
-              <div className="flex min-w-0 items-start gap-2">
-                <MapPin className="mt-0.5 size-3.5 shrink-0 text-[#52688f]" />
-                <div className="min-w-0">
-                  <p className="truncate text-[#25334e]">{session.location}</p>
-                  <p className="text-[#667596]">{session.ip}</p>
-                </div>
-              </div>
-              <span
-                className={cn(
-                  "text-[#60708f]",
-                  index === 0 && "font-medium text-[#159447]",
-                )}
+          {sessions.map((session, index) => {
+            const copy = t.demo[index];
+            return (
+              <div
+                key={session.device}
+                className="grid min-h-[44px] grid-cols-[1.35fr_1.15fr_1fr_.65fr_24px] items-center px-3 text-[10px]"
               >
-                {session.active}
-              </span>
-              <span className="w-fit rounded-full bg-[#dff5e7] px-2.5 py-1 font-semibold text-[#168548]">
-                {session.status}
-              </span>
-              <button
-                type="button"
-                aria-label={`Actions for ${session.device}`}
-                className="grid size-6 place-items-center"
-              >
-                <MoreVertical className="size-4" />
-              </button>
-            </div>
-          ))}
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <session.icon className="size-[18px] shrink-0 text-[#111a32]" />
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-[#14213d]">
+                      {session.device}
+                    </p>
+                    <p className="truncate text-[#667596]">
+                      {session.platform}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex min-w-0 items-start gap-2">
+                  <MapPin className="mt-0.5 size-3.5 shrink-0 text-[#52688f]" />
+                  <div className="min-w-0">
+                    <p className="truncate text-[#25334e]">{copy?.location}</p>
+                    <p className="text-[#667596]">{session.ip}</p>
+                  </div>
+                </div>
+                <span
+                  className={cn(
+                    "text-[#60708f]",
+                    index === 0 && "font-medium text-[#159447]",
+                  )}
+                >
+                  {copy?.active}
+                </span>
+                <span className="w-fit rounded-full bg-[#dff5e7] px-2.5 py-1 font-semibold text-[#168548]">
+                  {copy?.status}
+                </span>
+                <button
+                  type="button"
+                  aria-label={t.actionsFor(session.device)}
+                  className="grid size-6 place-items-center"
+                >
+                  <MoreVertical className="size-4" />
+                </button>
+              </div>
+            );
+          })}
         </div>
       </SettingsCard>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="max-w-[480px] overflow-hidden rounded-[18px] border-[#dbe4f2] shadow-[0_24px_70px_rgba(25,42,84,.22)]">
           <DialogHeader className="border-b border-[#e6ebf3] bg-[linear-gradient(135deg,#f7f9ff,#eef3ff)] p-6">
-            <DialogTitle>Sign out on every device?</DialogTitle>
-            <DialogDescription>
-              This revokes all web and mobile sessions, including this one. You
-              will return to the sign-in page.
-            </DialogDescription>
+            <DialogTitle>{t.confirmTitle}</DialogTitle>
+            <DialogDescription>{t.confirmDescription}</DialogDescription>
           </DialogHeader>
           <DialogFooter className="p-6">
             <Button
@@ -1463,10 +1500,10 @@ function SessionsCard() {
               onClick={() => setConfirmOpen(false)}
               disabled={busy}
             >
-              Cancel
+              {t.cancel}
             </Button>
             <Button onClick={() => void signOutEverywhere()} disabled={busy}>
-              {busy && <LoaderCircle className="animate-spin" />} Sign out all
+              {busy && <LoaderCircle className="animate-spin" />} {t.signOutAll}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1480,12 +1517,17 @@ function LogOutMini() {
 }
 
 function ActivityCard() {
+  const t = useMessages(settingsMessages).activity;
+  const activities = t.demo.map((activity, index) => ({
+    ...activity,
+    icon: activityIcons[index % activityIcons.length]!,
+  }));
   return (
     <SettingsCard>
       <CardHeading
         icon={Clock3}
-        title="Recent Activity"
-        description="A log of recent changes to your account."
+        title={t.title}
+        description={t.description}
         action={
           <Button
             asChild
@@ -1493,14 +1535,14 @@ function ActivityCard() {
             size="sm"
             className="h-[30px] rounded-[7px] px-4 text-[10px] text-[#1451df]"
           >
-            <Link href="/dashboard/audit">View all</Link>
+            <Link href="/dashboard/audit">{t.viewAll}</Link>
           </Button>
         }
       />
       <div className="relative mt-3 grid grid-cols-2 gap-x-6 gap-y-4 pl-8 before:absolute before:top-2 before:bottom-2 before:left-[10px] before:w-px before:bg-[#d9e1ef]">
-        {activities.map((activity) => (
+        {activities.map((activity, index) => (
           <div
-            key={activity.title}
+            key={index}
             className="relative flex min-w-0 gap-2.5 before:absolute before:top-2 before:left-[-31px] before:size-2 before:rounded-full before:bg-[#2862f5] before:ring-4 before:ring-white"
           >
             <span className="grid size-8 shrink-0 place-items-center rounded-[9px] bg-[#eef3ff] text-[#2762f4]">
@@ -1527,6 +1569,7 @@ function ActivityCard() {
 }
 
 function SecurityAssurance({ enabled }: { enabled: boolean }) {
+  const t = useMessages(settingsMessages).assurance;
   return (
     <SettingsCard className="p-[10px]">
       <div className="rounded-[12px] bg-[linear-gradient(145deg,#f4f8ff,#edf4ff)] px-5 pt-4 pb-5 text-center">
@@ -1537,20 +1580,13 @@ function SecurityAssurance({ enabled }: { enabled: boolean }) {
             <ShieldCheck className="size-9" strokeWidth={2.3} />
           </span>
         </div>
-        <h2 className="mt-1 text-[15px] font-bold text-[#101a35]">
-          Your account is secure
-        </h2>
+        <h2 className="mt-1 text-[15px] font-bold text-[#101a35]">{t.title}</h2>
         <p className="mx-auto mt-1 max-w-[230px] text-[12px] leading-5 text-[#6374a0]">
-          Two-step verification is {enabled ? "enabled" : "available"} and your
-          account is protected.
+          {enabled ? t.enabled : t.available}
         </p>
         <div className="my-3 h-px bg-[#dce4f1]" />
         <ul className="grid gap-2 text-left text-[12px] text-[#283650]">
-          {[
-            "Strong password",
-            "Two-step verification",
-            "No recent security issues",
-          ].map((label) => (
+          {t.checks.map((label) => (
             <li key={label} className="flex items-center gap-2">
               <CheckCircle2 className="size-4 fill-[#16a34a] text-white" />
               {label}
@@ -1567,11 +1603,12 @@ function QuickActions({
 }: {
   onSelectTab: (tab: SettingsTab) => void;
 }) {
+  const t = useMessages(settingsMessages).quick;
   const items = [
-    { label: "Download my data", icon: FileDown },
-    { label: "Manage team access", icon: Users, tab: "team" as const },
-    { label: "View audit log", icon: Building2, href: "/dashboard/audit" },
-    { label: "Contact support", icon: Headphones },
+    { label: t.download, icon: FileDown },
+    { label: t.team, icon: Users, tab: "team" as const },
+    { label: t.audit, icon: Building2, href: "/dashboard/audit" },
+    { label: t.support, icon: Headphones },
   ];
   return (
     <SettingsCard className="p-0">
@@ -1579,7 +1616,7 @@ function QuickActions({
         <span className="grid size-8 place-items-center rounded-[9px] bg-[#fff4dc] text-[#f59e0b]">
           <Zap className="size-4 fill-current" />
         </span>
-        <h2 className="text-[14px] font-bold text-[#101a35]">Quick actions</h2>
+        <h2 className="text-[14px] font-bold text-[#101a35]">{t.title}</h2>
       </div>
       <div className="divide-y divide-[#e5eaf2]">
         {items.map((item) => {
@@ -1629,6 +1666,7 @@ function CodeField({
   hint: string;
   allowRecovery?: boolean;
 }) {
+  const t = useMessages(settingsMessages).code;
   const [recoveryMode, setRecoveryMode] = useState(false);
 
   function switchMode() {
@@ -1642,9 +1680,7 @@ function CodeField({
         <div>
           <Label htmlFor={recoveryMode ? id : undefined}>{label}</Label>
           <p className="mt-1 text-[11px] text-muted-foreground">
-            {recoveryMode
-              ? "Enter one of your saved recovery codes."
-              : "Enter the current six-digit code."}
+            {recoveryMode ? t.recoveryHint : t.appHint}
           </p>
         </div>
         <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-[#e9efff] text-[#245cf0]">
@@ -1689,7 +1725,7 @@ function CodeField({
             onClick={switchMode}
             className="shrink-0 text-[11px] font-semibold text-[#2456d8] hover:underline"
           >
-            {recoveryMode ? "Use authenticator code" : "Use recovery code"}
+            {recoveryMode ? t.useApp : t.useRecovery}
           </button>
         )}
       </div>
@@ -1714,9 +1750,10 @@ function RecoveryCodesPanel({
   codes: string[];
   onDone: () => void;
 }) {
+  const t = useMessages(settingsMessages).codes;
   const [stored, setStored] = useState(false);
   const [copied, setCopied] = useState(false);
-  const text = `CabinGuard recovery codes\nEach code works once. Keep them private.\n\n${codes.join("\n")}\n`;
+  const text = `${t.fileHeader}\n${t.fileNote}\n\n${codes.join("\n")}\n`;
 
   return (
     <>
@@ -1740,7 +1777,7 @@ function RecoveryCodesPanel({
             }
           }}
         >
-          {copied ? <Check /> : <Copy />} {copied ? "Copied" : "Copy all"}
+          {copied ? <Check /> : <Copy />} {copied ? t.copied : t.copyAll}
         </Button>
         <Button
           variant="outline"
@@ -1756,7 +1793,7 @@ function RecoveryCodesPanel({
             URL.revokeObjectURL(url);
           }}
         >
-          <Download /> Download .txt
+          <Download /> {t.download}
         </Button>
       </div>
       <label className="flex items-center gap-2.5 text-[13px] text-foreground">
@@ -1766,11 +1803,11 @@ function RecoveryCodesPanel({
           onChange={(event) => setStored(event.target.checked)}
           className="size-4 accent-[var(--color-primary)]"
         />
-        I have stored these codes somewhere safe.
+        {t.stored}
       </label>
       <DialogFooter>
         <Button disabled={!stored} onClick={onDone} className="rounded-[9px]">
-          Done
+          {t.done}
         </Button>
       </DialogFooter>
     </>
@@ -1786,6 +1823,8 @@ function RegenerateCodesDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const t = useMessages(settingsMessages).regenerate;
+  const messageFor = useMessageFor();
   const toast = useToast();
   const [code, setCode] = useState("");
   const [codes, setCodes] = useState<string[] | null>(null);
@@ -1806,10 +1845,7 @@ function RegenerateCodesDialog({
     setError(null);
     try {
       setCodes((await regenerateRecoveryCodes(code.trim())).recoveryCodes);
-      toast.success(
-        "New recovery codes generated.",
-        "The previous ones no longer work.",
-      );
+      toast.success(t.generated, t.generatedDetail);
     } catch (failure) {
       setError(messageFor(failure));
     } finally {
@@ -1825,26 +1861,22 @@ function RegenerateCodesDialog({
     >
       <DialogContent className="max-w-[480px] overflow-hidden rounded-[18px] border-[#dbe4f2] shadow-[0_24px_70px_rgba(25,42,84,.22)]">
         <DialogHeader className="border-b border-[#e6ebf3] bg-[linear-gradient(135deg,#f7f9ff,#eef3ff)] p-6">
-          <DialogTitle>
-            {codes ? "Your new recovery codes" : "Generate new recovery codes"}
-          </DialogTitle>
+          <DialogTitle>{codes ? t.newTitle : t.title}</DialogTitle>
           <DialogDescription>
-            {codes
-              ? "Shown only once. Your previous codes no longer work."
-              : "Your current recovery codes will stop working."}
+            {codes ? t.shownOnce : t.warning}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 p-6">
           {codes ? (
             <RecoveryCodesPanel codes={codes} onDone={onClose} />
           ) : (
-            <form onSubmit={submit} className="space-y-4">
+            <form method="post" onSubmit={submit} className="space-y-4">
               <CodeField
                 id="regen-code"
-                label="Confirm with a code"
+                label={t.label}
                 value={code}
                 onChange={setCode}
-                hint="From your authenticator app, or an unused recovery code."
+                hint={t.hint}
               />
               <ErrorLine message={error} />
               <DialogFooter>
@@ -1854,7 +1886,7 @@ function RegenerateCodesDialog({
                   className="rounded-[9px]"
                 >
                   {busy && <LoaderCircle className="animate-spin" />}
-                  Generate
+                  {t.submit}
                 </Button>
               </DialogFooter>
             </form>
@@ -1872,6 +1904,8 @@ function ReplaceAuthenticatorDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const t = useMessages(settingsMessages).replace;
+  const messageFor = useMessageFor();
   const toast = useToast();
   const [step, setStep] = useState<"verify" | "scan" | "codes">("verify");
   const [proof, setProof] = useState("");
@@ -1899,15 +1933,11 @@ function ReplaceAuthenticatorDialog({
     let active = true;
     QRCode.toDataURL(setup.otpauthUri, { width: 360, margin: 1 })
       .then((url) => active && setQr(url))
-      .catch(
-        () =>
-          active &&
-          setError("The QR code could not be drawn. Use the setup key."),
-      );
+      .catch(() => active && setError(t.qrFailed));
     return () => {
       active = false;
     };
-  }, [setup]);
+  }, [setup, t.qrFailed]);
 
   async function verify(event: FormEvent) {
     event.preventDefault();
@@ -1930,10 +1960,7 @@ function ReplaceAuthenticatorDialog({
     try {
       setCodes((await confirmTotpSetup(newCode.trim())).recoveryCodes);
       setStep("codes");
-      toast.success(
-        "Authenticator replaced.",
-        "Only the new app works from now on.",
-      );
+      toast.success(t.replaced, t.replacedDetail);
     } catch (failure) {
       setError(messageFor(failure));
     } finally {
@@ -1949,28 +1976,25 @@ function ReplaceAuthenticatorDialog({
       <DialogContent className="max-w-md">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle>
-            {step === "verify" && "Replace your authenticator"}
-            {step === "scan" && "Scan with the new app"}
-            {step === "codes" && "Your new recovery codes"}
+            {step === "verify" && t.verifyTitle}
+            {step === "scan" && t.scanTitle}
+            {step === "codes" && t.codesTitle}
           </DialogTitle>
           <DialogDescription>
-            {step === "verify" &&
-              "Prove it's you with your current app. Lost the phone? Use a recovery code."}
-            {step === "scan" &&
-              "Your current app keeps working until you confirm the new one."}
-            {step === "codes" &&
-              "Shown only once. Your previous codes no longer work."}
+            {step === "verify" && t.verifyDescription}
+            {step === "scan" && t.scanDescription}
+            {step === "codes" && t.codesDescription}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 p-6">
           {step === "verify" && (
-            <form onSubmit={verify} className="space-y-4">
+            <form method="post" onSubmit={verify} className="space-y-4">
               <CodeField
                 id="replace-proof"
-                label="Current code or recovery code"
+                label={t.proofLabel}
                 value={proof}
                 onChange={setProof}
-                hint="6 digits from your current app, or XXXXX-XXXXX."
+                hint={t.proofHint}
               />
               <ErrorLine message={error} />
               <DialogFooter>
@@ -1980,18 +2004,18 @@ function ReplaceAuthenticatorDialog({
                   className="rounded-[9px]"
                 >
                   {busy && <LoaderCircle className="animate-spin" />}
-                  Continue
+                  {t.next}
                 </Button>
               </DialogFooter>
             </form>
           )}
           {step === "scan" && setup && (
-            <form onSubmit={confirm} className="space-y-4">
+            <form method="post" onSubmit={confirm} className="space-y-4">
               <div className="mx-auto w-fit rounded-xl border border-border bg-white p-2">
                 {qr ? (
                   <Image
                     src={qr}
-                    alt="QR code for the new authenticator"
+                    alt={t.qrAlt}
                     width={180}
                     height={180}
                     unoptimized
@@ -2007,10 +2031,10 @@ function ReplaceAuthenticatorDialog({
               </p>
               <CodeField
                 id="replace-new-code"
-                label="Code from the new app"
+                label={t.newLabel}
                 value={newCode}
                 onChange={setNewCode}
-                hint="The 6 digits now shown in the app you just set up."
+                hint={t.newHint}
                 allowRecovery={false}
               />
               <ErrorLine message={error} />
@@ -2021,7 +2045,7 @@ function ReplaceAuthenticatorDialog({
                   className="rounded-[9px]"
                 >
                   {busy && <LoaderCircle className="animate-spin" />}
-                  <KeyRound /> Confirm new app
+                  <KeyRound /> {t.confirm}
                 </Button>
               </DialogFooter>
             </form>

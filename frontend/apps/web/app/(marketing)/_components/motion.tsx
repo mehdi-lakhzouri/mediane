@@ -10,6 +10,8 @@ import {
   useSyncExternalStore,
 } from "react";
 import { useInView } from "react-intersection-observer";
+import { INTL_LOCALE } from "../../../lib/i18n/config";
+import { useLocale } from "../../../lib/i18n/locale-provider";
 
 export const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -182,6 +184,7 @@ export function CountUp({
   duration?: number;
 }) {
   const reduced = usePrefersReducedMotion();
+  const locale = useLocale();
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.6 });
   const [shown, setShown] = useState(value);
   const started = useRef(false);
@@ -197,7 +200,7 @@ export function CountUp({
     return () => controls.stop();
   }, [inView, reduced, value, duration]);
 
-  const formatted = shown.toLocaleString("en-US", {
+  const formatted = shown.toLocaleString(INTL_LOCALE[locale], {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });

@@ -46,11 +46,7 @@ import {
   AccountStateBadge,
   RoleBadge,
 } from "../../components/dashboard/users/user-badges";
-import {
-  formatDateTime,
-  fullName,
-  initials,
-} from "../../components/dashboard/users/format";
+import { fullName, initials } from "../../components/dashboard/users/format";
 import { InviteUserSheet } from "../../components/dashboard/users/invite-user-sheet";
 import { UserSheet } from "../../components/dashboard/users/user-sheet";
 import type { UserDrawerAction } from "../../components/dashboard/users/user-sheet";
@@ -86,6 +82,13 @@ import {
 } from "../../../lib/api/admin-users";
 import { getCurrentUser, type Role } from "../../../lib/api/auth";
 import { ApiError } from "../../../lib/api/client";
+import { useErrorText } from "../../../lib/i18n/api-errors";
+import { useFormatters, useMessages } from "../../../lib/i18n/locale-provider";
+import {
+  usersMessages,
+  type BulkKind,
+  type UsersMessages,
+} from "./users-screen.messages";
 
 type RoleFilter = Role | "ALL";
 type StatusFilter = UserStatus | "ALL";
@@ -105,11 +108,15 @@ function toSortField(id: string | undefined): UserSortField {
 }
 
 export function UsersScreen() {
+  const t = useMessages(usersMessages);
+  const format = useFormatters();
+  const errorText = useErrorText();
   const toast = useToast();
   const [rows, setRows] = useState<AdminUser[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  // The failure, not its text: the message follows a language switch.
+  const [loadError, setLoadError] = useState<{ error: unknown } | null>(null);
   const [busy, setBusy] = useState(false);
   const [stats, setStats] = useState<UserStatsValue>({
     total: 0,
@@ -183,11 +190,7 @@ export function UsersScreen() {
       setLoadError(null);
     } catch (err) {
       if (id !== requestId.current) return;
-      setLoadError(
-        err instanceof ApiError
-          ? err.message
-          : "Could not load users. Please try again.",
-      );
+      setLoadError({ error: err });
       setRows([]);
       setTotalItems(0);
     } finally {
@@ -245,7 +248,7 @@ export function UsersScreen() {
   /** Runs one action over many rows and reports how it went, in one message. */
   const runBulk = useCallback(
     async (
-      label: string,
+      kind: BulkKind,
       ids: string[],
       action: (id: string) => Promise<unknown>,
     ) => {
@@ -258,14 +261,13 @@ export function UsersScreen() {
       const reason = firstError?.reason;
 
       if (failed === 0) {
-        toast.success(
-          `${label} ${ok} account${ok === 1 ? "" : "s"}.`,
-          "The user list and statistics have been refreshed.",
-        );
+        toast.success(t.bulk.done[kind](ok), t.bulk.refreshed);
       } else {
         toast.error(
-          `${label} ${ok} of ${results.length}.`,
-          reason instanceof ApiError ? reason.message : "Some actions failed.",
+          t.bulk.partial[kind](ok, results.length),
+          reason instanceof ApiError
+            ? errorText.message(reason)
+            : t.bulk.someFailed,
         );
       }
       setRowSelection({});
@@ -273,14 +275,14 @@ export function UsersScreen() {
       await load();
       await loadStats();
     },
-    [load, loadStats, toast],
+    [errorText, load, loadStats, t, toast],
   );
 
   const runSingle = useCallback(
     async (
       label: string,
       action: () => Promise<unknown>,
-      detail = "The change is now reflected in the user list.",
+      detail: string = t.done.default,
     ) => {
       setBusy(true);
       try {
@@ -288,8 +290,8 @@ export function UsersScreen() {
         toast.success(label, detail);
       } catch (err) {
         toast.error(
-          "The action could not be completed.",
-          err instanceof ApiError ? err.message : "Please try again.",
+          t.done.failed,
+          err instanceof ApiError ? errorText.message(err) : t.done.retry,
         );
       } finally {
         setBusy(false);
@@ -297,7 +299,7 @@ export function UsersScreen() {
         await loadStats();
       }
     },
-    [load, loadStats, toast],
+    [errorText, load, loadStats, t, toast],
   );
 
   const columns = useMemo<ColumnDef<AdminUser>[]>(
@@ -308,7 +310,7 @@ export function UsersScreen() {
         enableSorting: false,
         header: ({ table }) => (
           <Checkbox
-            aria-label="Select all rows on this page"
+            aria-label={t.columns.selectAll}
             checked={
               table.getIsAllPageRowsSelected()
                 ? true
@@ -323,7 +325,7 @@ export function UsersScreen() {
         ),
         cell: ({ row }) => (
           <Checkbox
-            aria-label={`Select ${fullName(row.original)}`}
+            aria-label={t.columns.select(fullName(row.original))}
             checked={row.getIsSelected()}
             onCheckedChange={(value) => row.toggleSelected(value === true)}
           />
@@ -332,7 +334,7 @@ export function UsersScreen() {
       {
         id: "lastName",
         size: 310,
-        header: "User",
+        header: t.columns.user,
         enableSorting: true,
         cell: ({ row }) => (
           <div className="flex items-center gap-3">
@@ -353,14 +355,14 @@ export function UsersScreen() {
       {
         id: "role",
         size: 105,
-        header: "Role",
+        header: t.columns.role,
         enableSorting: false,
         cell: ({ row }) => <RoleBadge role={row.original.role} />,
       },
       {
         id: "status",
         size: 125,
-        header: "State",
+        header: t.columns.state,
         enableSorting: true,
         cell: ({ row }) => (
           <AccountStateBadge state={row.original.accountState} />
@@ -369,22 +371,22 @@ export function UsersScreen() {
       {
         id: "lastLoginAt",
         size: 150,
-        header: "Last sign-in",
+        header: t.columns.lastLogin,
         enableSorting: true,
         cell: ({ row }) => (
           <span className="whitespace-nowrap text-muted-foreground tabular-nums">
-            {formatDateTime(row.original.lastLoginAt)}
+            {format.dateTime(row.original.lastLoginAt)}
           </span>
         ),
       },
       {
         id: "createdAt",
         size: 150,
-        header: "Created",
+        header: t.columns.created,
         enableSorting: true,
         cell: ({ row }) => (
           <span className="whitespace-nowrap text-muted-foreground tabular-nums">
-            {formatDateTime(row.original.createdAt)}
+            {format.dateTime(row.original.createdAt)}
           </span>
         ),
       },
@@ -392,9 +394,10 @@ export function UsersScreen() {
         id: "actions",
         size: 56,
         enableSorting: false,
-        header: () => <span className="sr-only">Actions</span>,
+        header: () => <span className="sr-only">{t.columns.actions}</span>,
         cell: ({ row }) => (
           <RowActions
+            t={t}
             user={row.original}
             isSelf={row.original.id === selfId}
             disabled={busy}
@@ -405,7 +408,7 @@ export function UsersScreen() {
         ),
       },
     ],
-    [selfId, busy, runSingle],
+    [selfId, busy, runSingle, t, format],
   );
 
   const allSelectedDeleted =
@@ -418,51 +421,54 @@ export function UsersScreen() {
   const handleDrawerAction = useCallback(
     (action: UserDrawerAction, user: AdminUser) => {
       if (action === "resend") {
-        void runSingle("Invitation resent.", () => resendInvitation(user.id));
+        void runSingle(t.done.resent, () => resendInvitation(user.id));
         return;
       }
       if (action === "revoke") {
-        void runSingle("Invitation revoked.", () => revokeInvitation(user.id));
+        void runSingle(t.done.revoked, () => revokeInvitation(user.id));
         return;
       }
       if (action === "suspend") {
-        void runSingle("Account suspended.", () => suspendUser(user.id));
+        void runSingle(t.done.suspended, () => suspendUser(user.id));
         return;
       }
       if (action === "reactivate") {
-        void runSingle("Account reactivated.", () => reactivateUser(user.id));
+        void runSingle(t.done.reactivated, () => reactivateUser(user.id));
         return;
       }
       if (action === "restore") {
-        void runSingle("Account restored.", () => restoreUser(user.id));
+        void runSingle(t.done.restored, () => restoreUser(user.id));
         return;
       }
 
       setConfirm({
         title:
           action === "hard-delete"
-            ? "Delete permanently?"
-            : `Delete ${fullName(user)}?`,
+            ? t.confirm.hardTitle
+            : t.confirm.deleteTitle(fullName(user)),
         description:
           action === "hard-delete"
-            ? "This permanently erases the profile, sessions, invitations, family links, health events, incidents, and notifications. A paired device is unlinked and the immutable audit trail is kept. Type the email address to confirm."
-            : "They lose access immediately and all their sessions end. You can restore this account afterwards.",
-        actionLabel: action === "hard-delete" ? "Delete permanently" : "Delete",
+            ? t.confirm.hardDescription
+            : t.confirm.deleteDescription,
+        actionLabel:
+          action === "hard-delete"
+            ? t.confirm.hardAction
+            : t.confirm.deleteAction,
         destructive: true,
         confirmText: action === "hard-delete" ? user.email : undefined,
         run: () =>
           action === "hard-delete"
-            ? runSingle("Account permanently deleted.", () =>
+            ? runSingle(t.done.hardDeleted, () =>
                 hardDeleteUser(user.id, user.email),
               )
             : runSingle(
-                "Account soft deleted.",
+                t.done.softDeleted,
                 () => softDeleteUser(user.id),
-                "Open the Deleted accounts filter to restore it or delete it permanently.",
+                t.done.softDeletedHint,
               ),
       });
     },
-    [runSingle],
+    [runSingle, t],
   );
 
   return (
@@ -475,11 +481,9 @@ export function UsersScreen() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <motion.div variants={headerMotion.drivers.title}>
           <h1 className="text-[32px] font-bold leading-tight tracking-[-0.035em] text-foreground">
-            Users
+            {t.title}
           </h1>
-          <p className="mt-1 text-[14px] text-muted-foreground">
-            Invite drivers and administrators, and manage their access.
-          </p>
+          <p className="mt-1 text-[14px] text-muted-foreground">{t.subtitle}</p>
         </motion.div>
         <motion.div
           variants={headerMotion.drivers.actions}
@@ -492,7 +496,7 @@ export function UsersScreen() {
               className="h-[46px] rounded-[9px] px-6 shadow-[0_5px_14px_rgba(48,71,217,.18)]"
             >
               <UserPlus />
-              Invite user
+              {t.invite}
             </Button>
           </motion.div>
         </motion.div>
@@ -523,8 +527,8 @@ export function UsersScreen() {
                 <Input
                   value={searchInput}
                   onChange={(event) => setSearchInput(event.target.value)}
-                  placeholder="Search name or email..."
-                  aria-label="Search users"
+                  placeholder={t.search}
+                  aria-label={t.searchLabel}
                   className="h-11 rounded-[9px] bg-white pl-11"
                 />
               </div>
@@ -537,15 +541,15 @@ export function UsersScreen() {
                 }}
               >
                 <SelectTrigger
-                  aria-label="Filter by role"
+                  aria-label={t.filters.role}
                   className="h-11 w-[165px] rounded-[9px]"
                 >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">All roles</SelectItem>
-                  <SelectItem value="DRIVER">Drivers</SelectItem>
-                  <SelectItem value="ADMIN">Admins</SelectItem>
+                  <SelectItem value="ALL">{t.filters.allRoles}</SelectItem>
+                  <SelectItem value="DRIVER">{t.filters.drivers}</SelectItem>
+                  <SelectItem value="ADMIN">{t.filters.admins}</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -557,16 +561,18 @@ export function UsersScreen() {
                 }}
               >
                 <SelectTrigger
-                  aria-label="Filter by status"
+                  aria-label={t.filters.status}
                   className="h-11 w-[170px] rounded-[9px]"
                 >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">Any status</SelectItem>
-                  <SelectItem value="INVITED">Invited</SelectItem>
-                  <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                  <SelectItem value="ALL">{t.filters.anyStatus}</SelectItem>
+                  <SelectItem value="INVITED">{t.filters.invited}</SelectItem>
+                  <SelectItem value="ACTIVE">{t.filters.active}</SelectItem>
+                  <SelectItem value="SUSPENDED">
+                    {t.filters.suspended}
+                  </SelectItem>
                 </SelectContent>
               </Select>
 
@@ -579,15 +585,19 @@ export function UsersScreen() {
                 }}
               >
                 <SelectTrigger
-                  aria-label="Deleted accounts"
+                  aria-label={t.filters.deletion}
                   className="h-11 w-[190px] rounded-[9px]"
                 >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ACTIVE">Active accounts</SelectItem>
-                  <SelectItem value="DELETED">Deleted accounts</SelectItem>
-                  <SelectItem value="ALL">All accounts</SelectItem>
+                  <SelectItem value="ACTIVE">
+                    {t.filters.activeAccounts}
+                  </SelectItem>
+                  <SelectItem value="DELETED">
+                    {t.filters.deletedAccounts}
+                  </SelectItem>
+                  <SelectItem value="ALL">{t.filters.allAccounts}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -596,7 +606,7 @@ export function UsersScreen() {
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-1.5">
               <Badge variant="default">{selectedIds.length}</Badge>
               <span className="text-[13px] font-medium text-foreground">
-                selected
+                {t.bulk.selected(selectedIds.length)}
               </span>
               <div className="ml-auto flex flex-wrap items-center gap-2">
                 {allSelectedActive && (
@@ -606,22 +616,22 @@ export function UsersScreen() {
                       variant="outline"
                       disabled={busy}
                       onClick={() =>
-                        void runBulk("Suspended", selectedIds, suspendUser)
+                        void runBulk("suspended", selectedIds, suspendUser)
                       }
                     >
                       <ShieldBan />
-                      Suspend
+                      {t.bulk.suspend}
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       disabled={busy}
                       onClick={() =>
-                        void runBulk("Reactivated", selectedIds, reactivateUser)
+                        void runBulk("reactivated", selectedIds, reactivateUser)
                       }
                     >
                       <ShieldCheck />
-                      Reactivate
+                      {t.bulk.reactivate}
                     </Button>
                     <Button
                       size="sm"
@@ -629,18 +639,17 @@ export function UsersScreen() {
                       disabled={busy}
                       onClick={() =>
                         setConfirm({
-                          title: `Delete ${selectedIds.length} account${selectedIds.length === 1 ? "" : "s"}?`,
-                          description:
-                            "They lose access immediately and all their sessions end. You can restore them from the Deleted accounts filter.",
-                          actionLabel: "Soft delete",
+                          title: t.bulk.deleteTitle(selectedIds.length),
+                          description: t.bulk.deleteDescription,
+                          actionLabel: t.bulk.softDelete,
                           destructive: true,
                           run: () =>
-                            runBulk("Deleted", selectedIds, softDeleteUser),
+                            runBulk("deleted", selectedIds, softDeleteUser),
                         })
                       }
                     >
                       <Trash2 />
-                      Soft delete
+                      {t.bulk.softDelete}
                     </Button>
                   </>
                 )}
@@ -650,11 +659,11 @@ export function UsersScreen() {
                     variant="outline"
                     disabled={busy}
                     onClick={() =>
-                      void runBulk("Restored", selectedIds, restoreUser)
+                      void runBulk("restored", selectedIds, restoreUser)
                     }
                   >
                     <RotateCcw />
-                    Restore
+                    {t.bulk.restore}
                   </Button>
                 )}
                 {allSelectedDeleted && selectedRows.length === 1 && (
@@ -666,26 +675,25 @@ export function UsersScreen() {
                       const user = selectedRows[0];
                       if (!user) return;
                       setConfirm({
-                        title: `Permanently delete ${fullName(user)}?`,
-                        description:
-                          "This permanently erases all user-owned information and cannot be undone. A paired device is unlinked; the immutable audit trail is retained. Type the email address to confirm.",
-                        actionLabel: "Delete permanently",
+                        title: t.confirm.hardTitleNamed(fullName(user)),
+                        description: t.confirm.hardDescriptionShort,
+                        actionLabel: t.confirm.hardAction,
                         destructive: true,
                         confirmText: user.email,
                         run: () =>
-                          runSingle("Account permanently deleted.", () =>
+                          runSingle(t.done.hardDeleted, () =>
                             hardDeleteUser(user.id, user.email),
                           ),
                       });
                     }}
                   >
                     <Trash2 />
-                    Delete permanently
+                    {t.bulk.deletePermanently}
                   </Button>
                 )}
                 {!allSelectedActive && !allSelectedDeleted && (
                   <span className="text-[12px] text-muted-foreground">
-                    Select only active or only deleted accounts.
+                    {t.bulk.mixed}
                   </span>
                 )}
                 <Button
@@ -693,7 +701,7 @@ export function UsersScreen() {
                   variant="ghost"
                   onClick={() => setRowSelection({})}
                 >
-                  Clear
+                  {t.bulk.clear}
                 </Button>
               </div>
             </div>
@@ -705,12 +713,14 @@ export function UsersScreen() {
                   <Users className="size-5 text-primary" />
                 </span>
                 <p className="mt-3 text-[14px] font-semibold text-foreground">
-                  {loadError ?? "No users match these filters"}
+                  {loadError
+                    ? loadError.error instanceof ApiError
+                      ? errorText.message(loadError.error)
+                      : t.loadFailed
+                    : t.empty}
                 </p>
                 <p className="mt-1 text-[13px] text-muted-foreground">
-                  {loadError
-                    ? "Check that the API is reachable and try again."
-                    : "Adjust the search or filters, or invite someone new."}
+                  {loadError ? t.errorHint : t.emptyHint}
                 </p>
               </div>
             </div>
@@ -725,10 +735,7 @@ export function UsersScreen() {
         onOpenChange={(open) => !open && setEditing(null)}
         onSaved={(user) => {
           setEditing(user);
-          toast.success(
-            "User updated.",
-            `${fullName(user)}’s identity information was saved.`,
-          );
+          toast.success(t.done.updated, t.done.updatedDetail(fullName(user)));
           void load();
         }}
         onAction={handleDrawerAction}
@@ -738,10 +745,7 @@ export function UsersScreen() {
         open={inviteOpen}
         onOpenChange={setInviteOpen}
         onCreated={(user) => {
-          toast.success(
-            "Invitation sent.",
-            `${user.email} can now activate the account from the invitation email.`,
-          );
+          toast.success(t.done.invited, t.done.invitedDetail(user.email));
           void load();
         }}
       />
@@ -752,6 +756,7 @@ export function UsersScreen() {
 }
 
 function RowActions({
+  t,
   user,
   isSelf,
   disabled,
@@ -759,6 +764,7 @@ function RowActions({
   onAction,
   onConfirm,
 }: {
+  t: UsersMessages;
   user: AdminUser;
   isSelf: boolean;
   disabled: boolean;
@@ -775,7 +781,7 @@ function RowActions({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label={`Actions for ${fullName(user)}`}
+        aria-label={t.row.actionsFor(fullName(user))}
         disabled={disabled}
         onClick={(event) => event.stopPropagation()}
         className="grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none data-[state=open]:bg-accent"
@@ -792,54 +798,50 @@ function RowActions({
         <DropdownMenuGroup>
           <DropdownMenuItem onSelect={onEdit}>
             <Pencil />
-            View &amp; edit
+            {t.row.edit}
           </DropdownMenuItem>
 
           {!deleted && user.status === "INVITED" && (
             <DropdownMenuItem
               onSelect={() =>
-                void onAction("Invitation resent.", () =>
-                  resendInvitation(user.id),
-                )
+                void onAction(t.done.resent, () => resendInvitation(user.id))
               }
             >
               <Send />
-              Resend invitation
+              {t.row.resend}
             </DropdownMenuItem>
           )}
 
           {!deleted && user.status !== "SUSPENDED" && !isSelf && (
             <DropdownMenuItem
               onSelect={() =>
-                void onAction("Account suspended.", () => suspendUser(user.id))
+                void onAction(t.done.suspended, () => suspendUser(user.id))
               }
             >
               <ShieldBan />
-              Suspend
+              {t.row.suspend}
             </DropdownMenuItem>
           )}
 
           {!deleted && user.status === "SUSPENDED" && (
             <DropdownMenuItem
               onSelect={() =>
-                void onAction("Account reactivated.", () =>
-                  reactivateUser(user.id),
-                )
+                void onAction(t.done.reactivated, () => reactivateUser(user.id))
               }
             >
               <ShieldCheck />
-              Reactivate
+              {t.row.reactivate}
             </DropdownMenuItem>
           )}
 
           {deleted && (
             <DropdownMenuItem
               onSelect={() =>
-                void onAction("Account restored.", () => restoreUser(user.id))
+                void onAction(t.done.restored, () => restoreUser(user.id))
               }
             >
               <RotateCcw />
-              Restore
+              {t.row.restore}
             </DropdownMenuItem>
           )}
 
@@ -847,19 +849,17 @@ function RowActions({
             <DropdownMenuItem
               onSelect={() =>
                 onConfirm({
-                  title: "Reset two-step verification?",
-                  description: `Only when ${fullName(user)} has lost both their phone and their recovery codes. Their authenticator is removed and every session ends; they set up a new one at their next sign-in.`,
-                  actionLabel: "Reset",
+                  title: t.confirm.mfaTitle,
+                  description: t.confirm.mfaDescription(fullName(user)),
+                  actionLabel: t.confirm.mfaAction,
                   destructive: true,
                   run: () =>
-                    onAction("Two-step verification reset.", () =>
-                      resetUserMfa(user.id),
-                    ),
+                    onAction(t.done.mfaReset, () => resetUserMfa(user.id)),
                 })
               }
             >
               <KeyRound />
-              Reset 2-step verification
+              {t.row.resetMfa}
             </DropdownMenuItem>
           )}
         </DropdownMenuGroup>
@@ -872,43 +872,41 @@ function RowActions({
                 variant="destructive"
                 onSelect={() =>
                   onConfirm({
-                    title: `Soft delete ${fullName(user)}?`,
-                    description:
-                      "They lose access immediately and all their sessions end. You can restore the account from the Deleted accounts filter, or permanently delete it there.",
-                    actionLabel: "Soft delete",
+                    title: t.confirm.softTitle(fullName(user)),
+                    description: t.confirm.softDescription,
+                    actionLabel: t.confirm.softAction,
                     destructive: true,
                     run: () =>
                       onAction(
-                        "Account soft deleted.",
+                        t.done.softDeleted,
                         () => softDeleteUser(user.id),
-                        "Open the Deleted accounts filter to restore it or delete it permanently.",
+                        t.done.softDeletedHint,
                       ),
                   })
                 }
               >
                 <Trash2 />
-                Soft delete
+                {t.row.softDelete}
               </DropdownMenuItem>
             ) : (
               <DropdownMenuItem
                 variant="destructive"
                 onSelect={() =>
                   onConfirm({
-                    title: "Delete permanently?",
-                    description:
-                      "This permanently erases the profile, sessions, invitations, family links, health events, incidents, and notifications. A paired device is unlinked and the immutable audit trail is kept. Type the email address to confirm.",
-                    actionLabel: "Delete permanently",
+                    title: t.confirm.hardTitle,
+                    description: t.confirm.hardDescription,
+                    actionLabel: t.confirm.hardAction,
                     destructive: true,
                     confirmText: user.email,
                     run: () =>
-                      onAction("Account permanently deleted.", () =>
+                      onAction(t.done.hardDeleted, () =>
                         hardDeleteUser(user.id, user.email),
                       ),
                   })
                 }
               >
                 <Trash2 />
-                Delete permanently
+                {t.row.deletePermanently}
               </DropdownMenuItem>
             )}
           </>

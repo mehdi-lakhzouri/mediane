@@ -11,12 +11,50 @@ import {
 } from "lucide-react";
 import type { AdminInvitationStats } from "../../../../lib/api/admin-invitations";
 import {
+  useFormatters,
+  useMessages,
+} from "../../../../lib/i18n/locale-provider";
+import { defineMessages } from "../../../../lib/i18n/messages";
+import {
   AnimatedNumber,
   cardHover,
   stagger,
   statCardMotion,
   statIconMotion,
 } from "../motion";
+
+const messages = defineMessages({
+  en: {
+    label: "Invitation statistics",
+    loading: "Loading…",
+    total: "Total issued",
+    totalHint: "All invitation attempts",
+    pending: "Pending",
+    pendingHint: "Links still active",
+    accepted: "Accepted",
+    acceptance: (percent: string) => `${percent} acceptance rate`,
+    expired: "Expired",
+    expiredHint: "Can be sent again",
+    closed: "Closed",
+    closedHint: (revoked: number, replaced: number) =>
+      `${revoked} revoked · ${replaced} replaced`,
+  },
+  fr: {
+    label: "Statistiques des invitations",
+    loading: "Chargement…",
+    total: "Total envoyé",
+    totalHint: "Toutes les tentatives d’invitation",
+    pending: "En attente",
+    pendingHint: "Liens encore actifs",
+    accepted: "Acceptées",
+    acceptance: (percent: string) => `${percent} d’acceptation`,
+    expired: "Expirées",
+    expiredHint: "Peuvent être renvoyées",
+    closed: "Clôturées",
+    closedHint: (revoked: number, replaced: number) =>
+      `${revoked} révoquée${revoked > 1 ? "s" : ""} · ${replaced} remplacée${replaced > 1 ? "s" : ""}`,
+  },
+});
 
 type Tone = "blue" | "green" | "purple" | "amber" | "red";
 
@@ -33,6 +71,8 @@ export function InvitationStats({
 }: {
   stats: AdminInvitationStats | null;
 }) {
+  const t = useMessages(messages);
+  const format = useFormatters();
   const cards: Array<{
     label: string;
     value: number;
@@ -41,37 +81,42 @@ export function InvitationStats({
     tone: Tone;
   }> = [
     {
-      label: "Total issued",
+      label: t.total,
       value: stats?.total ?? 0,
-      detail: "All invitation attempts",
+      detail: t.totalHint,
       icon: MailCheck,
       tone: "blue",
     },
     {
-      label: "Pending",
+      label: t.pending,
       value: stats?.pending ?? 0,
-      detail: "Links still active",
+      detail: t.pendingHint,
       icon: Clock3,
       tone: "purple",
     },
     {
-      label: "Accepted",
+      label: t.accepted,
       value: stats?.accepted ?? 0,
-      detail: `${stats?.acceptanceRate ?? 0}% acceptance rate`,
+      detail: t.acceptance(
+        format.number((stats?.acceptanceRate ?? 0) / 100, {
+          style: "percent",
+          maximumFractionDigits: 1,
+        }),
+      ),
       icon: CircleCheckBig,
       tone: "green",
     },
     {
-      label: "Expired",
+      label: t.expired,
       value: stats?.expired ?? 0,
-      detail: "Can be sent again",
+      detail: t.expiredHint,
       icon: TimerOff,
       tone: "amber",
     },
     {
-      label: "Closed",
+      label: t.closed,
       value: (stats?.revoked ?? 0) + (stats?.superseded ?? 0),
-      detail: `${stats?.revoked ?? 0} revoked · ${stats?.superseded ?? 0} replaced`,
+      detail: t.closedHint(stats?.revoked ?? 0, stats?.superseded ?? 0),
       icon: Ban,
       tone: "red",
     },
@@ -79,18 +124,18 @@ export function InvitationStats({
 
   return (
     <motion.section
-      aria-label="Invitation statistics"
+      aria-label={t.label}
       aria-busy={stats === null}
       variants={stagger(0.08)}
-      className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5"
+      className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-5"
     >
-      {cards.map(({ label, value, detail, icon: Icon, tone }) => (
+      {cards.map(({ label, value, detail, icon: Icon, tone }, index) => (
         <motion.article
-          key={label}
+          key={index}
           variants={statCardMotion.invitations}
           whileHover={cardHover}
           style={{ transformOrigin: "top center" }}
-          className={`flex min-h-[112px] items-start gap-4 rounded-xl border bg-card px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,.02),0_4px_12px_rgba(16,24,40,.025)] ${label === "Total issued" ? "border-[#ccd9fb]" : "border-border"}`}
+          className={`flex min-h-[112px] items-start gap-4 rounded-xl border bg-card px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,.02),0_4px_12px_rgba(16,24,40,.025)] ${index === 0 ? "border-[#ccd9fb]" : "border-border"}`}
         >
           <motion.span
             variants={statIconMotion}
@@ -104,7 +149,7 @@ export function InvitationStats({
               {stats === null ? "—" : <AnimatedNumber value={value} />}
             </p>
             <p className="mt-2 truncate text-[11px] text-muted-foreground">
-              {stats === null ? "Loading…" : detail}
+              {stats === null ? t.loading : detail}
             </p>
           </div>
         </motion.article>

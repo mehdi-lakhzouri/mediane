@@ -11,6 +11,9 @@ import {
   RangePill,
   StatPanel,
 } from "./console-chrome";
+import { Lines } from "../../../lib/i18n/lines";
+import { useMessages } from "../../../lib/i18n/locale-provider";
+import { consoleMessages } from "../_lib/console.messages";
 import { EASE, useSeen } from "./motion";
 
 /** Design size of the overview console, in pixels. */
@@ -20,6 +23,7 @@ const ACTIVE = [52, 64, 60, 78, 86, 82, 96, 104, 100, 112, 122, 118, 132, 146, 1
 const NEW = [18, 20, 19, 24, 22, 26, 25, 28, 24, 27, 30, 26, 29, 31, 28, 30, 27, 29, 31, 30, 28, 32, 30, 29, 31, 30, 32, 31, 30, 32];
 
 export function ConsoleOverview() {
+  const t = useMessages(consoleMessages);
   return (
     <div className="lp-console relative h-full w-full">
       <ConsoleSidebar items={OVERVIEW_NAV} />
@@ -28,26 +32,24 @@ export function ConsoleOverview() {
         <div className="mt-6 flex items-end justify-between">
           <div>
             <h3 className="text-[26px] font-extrabold leading-none tracking-[-0.035em] text-[#0b1533]">
-              Overview
+              {t.overview.title}
             </h3>
-            <p className="mt-1.5 text-[11.5px] text-[#6e7c98]">
-              Monitor drivers, family safety, incidents, and platform activity at a glance.
-            </p>
+            <p className="mt-1.5 text-[11.5px] text-[#6e7c98]">{t.overview.subtitle}</p>
           </div>
           <RangePill />
         </div>
 
         <div className="mt-4 grid grid-cols-4 gap-2.5">
-          <StatPanel icon={<Users size={15} />} label="Active drivers" value="248" delta="12%" trend="up" good note="+26 from last month">
+          <StatPanel icon={<Users size={15} />} label={t.stats.activeDrivers} value="248" delta="12%" trend="up" good note={t.fromLastMonth("+26")}>
             <Sparkline values={[10, 14, 12, 18, 16, 22, 20, 28, 34, 30]} width={66} height={30} delay={0.9} />
           </StatPanel>
-          <StatPanel icon={<UsersRound size={15} />} label="Monitored families" value="184" delta="8%" trend="up" good note="+14 from last month">
+          <StatPanel icon={<UsersRound size={15} />} label={t.stats.families} value="184" delta="8%" trend="up" good note={t.fromLastMonth("+14")}>
             <Sparkline values={[8, 12, 10, 14, 13, 18, 17, 20, 22, 26]} width={66} height={30} delay={1} />
           </StatPanel>
-          <StatPanel icon={<HeartPulse size={15} />} label="Open incidents" value="7" delta="30%" trend="down" good note="-3 from last month">
+          <StatPanel icon={<HeartPulse size={15} />} label={t.stats.openIncidents} value="7" delta="30%" trend="down" good note={t.fromLastMonth("-3")}>
             <Sparkline values={[4, 6, 5, 7, 6, 9, 8, 12, 10, 9]} color="amber" width={66} height={30} delay={1.1} jagged />
           </StatPanel>
-          <StatPanel icon={<Siren size={15} />} tone="red" label="Health alerts" value="12" delta="50%" trend="up" good={false} note="+4 from last month">
+          <StatPanel icon={<Siren size={15} />} tone="red" label={t.stats.healthAlerts} value="12" delta="50%" trend="up" good={false} note={t.fromLastMonth("+4")}>
             <Sparkline values={[3, 5, 4, 7, 6, 9, 8, 12, 10, 11]} color="red" width={66} height={30} delay={1.2} jagged />
           </StatPanel>
         </div>
@@ -63,6 +65,7 @@ export function ConsoleOverview() {
 }
 
 function ActivityPanel() {
+  const t = useMessages(consoleMessages).overview;
   const { ref, seen } = useSeen<HTMLDivElement>(0.2);
   const w = 268;
   const h = 132;
@@ -82,17 +85,16 @@ function ActivityPanel() {
             <Users size={14} />
           </span>
           <div>
-            <p className="text-[12px] font-bold text-[#14203f]">Driver activity overview</p>
+            <p className="text-[12px] font-bold text-[#14203f]">{t.activity}</p>
             <p className="text-[9.5px] leading-tight text-[#8592ab]">
-              New drivers, active drivers, and total
-              <br /> registered over time.
+              <Lines lines={t.activityHint} />
             </p>
           </div>
         </div>
         <div className="flex rounded-[9px] border border-[#e6edf8] p-0.5 text-[9.5px] text-[#6e7c98]">
-          <span className="px-1.5 py-1">7 days</span>
-          <span className="rounded-[7px] bg-[#1253fd] px-1.5 py-1 font-semibold text-white">30 days</span>
-          <span className="px-1.5 py-1">90 days</span>
+          <span className="px-1.5 py-1">{t.days(7)}</span>
+          <span className="rounded-[7px] bg-[#1253fd] px-1.5 py-1 font-semibold text-white">{t.days(30)}</span>
+          <span className="px-1.5 py-1">{t.days(90)}</span>
         </div>
       </div>
       <div className="relative mt-2 flex">
@@ -146,38 +148,43 @@ function ActivityPanel() {
           animate={show ? { opacity: 1, y: 0 } : undefined}
           transition={{ duration: 0.5, delay: 2.2, ease: EASE }}
         >
-          <p className="mb-1 font-bold text-[#14203f]">Apr 30, 2025</p>
+          <p className="mb-1 font-bold text-[#14203f]">{t.tipDate}</p>
           <p className="flex items-center gap-1.5 text-[#55627e]">
-            <span className="size-1.5 rounded-full bg-[#1d5cff]" /> Active drivers
+            <span className="size-1.5 rounded-full bg-[#1d5cff]" /> {t.active}
             <b className="ml-3 text-[#14203f]">248</b>
           </p>
           <p className="flex items-center gap-1.5 text-[#55627e]">
-            <span className="size-1.5 rounded-full bg-[#b9ccff]" /> New drivers
+            <span className="size-1.5 rounded-full bg-[#b9ccff]" /> {t.added}
             <b className="ml-auto text-[#14203f]">32</b>
           </p>
         </motion.div>
       </div>
       <div className="mt-1 flex justify-between pl-5 text-[8.5px] text-[#9aa6bd]">
-        {["Apr 1", "Apr 5", "Apr 10", "Apr 15", "Apr 20", "Apr 25", "Apr 30"].map((d) => (
+        {t.axis.map((d) => (
           <span key={d}>{d}</span>
         ))}
       </div>
       <div className="mt-1.5 flex justify-center gap-5 text-[9.5px] text-[#55627e]">
-        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-[#1d5cff]" /> Active drivers</span>
-        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-[#8fb0ff]" /> New drivers</span>
+        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-[#1d5cff]" /> {t.active}</span>
+        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-[#8fb0ff]" /> {t.added}</span>
       </div>
     </div>
   );
 }
 
 const BREAKDOWN = [
-  { label: "Critical", value: 6, color: "#ef3b45" },
-  { label: "Warning", value: 9, color: "#f7a531" },
-  { label: "Info", value: 5, color: "#3b7bff" },
-  { label: "Resolved", value: 4, color: "#d5dcea" },
+  { value: 6, color: "#ef3b45" },
+  { value: 9, color: "#f7a531" },
+  { value: 5, color: "#3b7bff" },
+  { value: 4, color: "#d5dcea" },
 ];
 
 function IncidentsPanel() {
+  const t = useMessages(consoleMessages).overview;
+  const breakdown = BREAKDOWN.map((item, index) => ({
+    ...item,
+    label: t.breakdown[index] ?? "",
+  }));
   return (
     <div className="lp-panel p-3">
       <div className="flex items-start justify-between gap-2">
@@ -186,24 +193,24 @@ function IncidentsPanel() {
             <HeartPulse size={14} />
           </span>
           <div>
-            <p className="text-[12px] font-bold text-[#14203f]">Health & incidents</p>
-            <p className="text-[9px] leading-tight text-[#8592ab]">Breakdown of alerts and incidents.</p>
+            <p className="text-[12px] font-bold text-[#14203f]">{t.health}</p>
+            <p className="text-[9px] leading-tight text-[#8592ab]">{t.healthHint}</p>
           </div>
         </div>
         <span className="flex items-center gap-0.5 rounded-[8px] border border-[#dbe5fb] px-1.5 py-1 text-[9px] font-semibold text-[#1253fd]">
-          View all <ChevronRight size={10} />
+          {t.viewAll} <ChevronRight size={10} />
         </span>
       </div>
       <div className="mt-4 flex items-center gap-3">
-        <Donut segments={BREAKDOWN} size={98} thickness={13}>
+        <Donut segments={breakdown} size={98} thickness={13}>
           <span>
             <span className="block text-[19px] font-extrabold leading-none text-[#0b1533]">24</span>
-            <span className="block text-[9px] text-[#7a87a3]">Total</span>
+            <span className="block text-[9px] text-[#7a87a3]">{t.total}</span>
           </span>
         </Donut>
         <ul className="flex-1 space-y-2.5 text-[10px]">
-          {BREAKDOWN.map((item) => (
-            <li key={item.label} className="flex items-center justify-between text-[#3b4a6b]">
+          {breakdown.map((item) => (
+            <li key={item.color} className="flex items-center justify-between text-[#3b4a6b]">
               <span className="flex items-center gap-1.5">
                 <span className="size-2 rounded-full" style={{ background: item.color }} />
                 {item.label}
@@ -217,22 +224,22 @@ function IncidentsPanel() {
   );
 }
 
-const SERVICES = [
-  { name: "Authentication", status: "Operational" },
-  { name: "Data services", status: "Operational" },
-  { name: "Notifications", status: "Operational" },
-  { name: "Driver management", status: "Monitoring" },
-  { name: "Health monitoring", status: "Operational" },
-];
+/** Index of the one service shown as under watch in the mockup. */
+const MONITORED_SERVICE = 3;
 
 function StatusPanel() {
+  const t = useMessages(consoleMessages).overview;
+  const services = t.services.map((name, index) => ({
+    name,
+    ok: index !== MONITORED_SERVICE,
+  }));
   return (
     <div className="lp-panel p-3">
-      <p className="text-[12px] font-bold text-[#14203f]">System status</p>
-      <p className="text-[9px] text-[#8592ab]">Live status of core services.</p>
+      <p className="text-[12px] font-bold text-[#14203f]">{t.system}</p>
+      <p className="text-[9px] text-[#8592ab]">{t.systemHint}</p>
       <ul className="mt-3 space-y-2">
-        {SERVICES.map((service) => {
-          const ok = service.status === "Operational";
+        {services.map((service) => {
+          const ok = service.ok;
           return (
             <li key={service.name} className="flex items-center justify-between gap-2 text-[9.5px] text-[#3b4a6b]">
               <span className="flex items-center gap-1.5">
@@ -240,7 +247,7 @@ function StatusPanel() {
                 {service.name}
               </span>
               <span className={`lp-pill text-[8.5px] ${ok ? "lp-pill-green" : "lp-pill-amber"}`}>
-                {service.status}
+                {ok ? t.operational : t.monitoring}
               </span>
             </li>
           );

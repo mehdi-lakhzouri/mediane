@@ -1,14 +1,22 @@
-import type { Metadata } from "next";
+import { localizedMetadata } from "../../lib/i18n/server";
 import { HeroPanel } from "../components/hero-panel";
 import { LoginCard } from "../components/login-card";
 import { DayStatus } from "../components/day-status";
+import { LanguageSwitch } from "../components/language-switch";
 import { ThemeToggle } from "../components/theme-toggle";
 import { BrandLogo } from "../components/brand-logo";
 
-export const metadata: Metadata = {
-  title: "Sign in | CabinGuard",
-  description: "Secure access to your CabinGuard journey and health data.",
-};
+export const generateMetadata = localizedMetadata({
+  en: {
+    title: "Sign in | CabinGuard",
+    description: "Secure access to your CabinGuard journey and health data.",
+  },
+  fr: {
+    title: "Connexion | CabinGuard",
+    description:
+      "Accès sécurisé à vos trajets et à vos données de santé CabinGuard.",
+  },
+});
 
 export default function SignInPage() {
   return (
@@ -18,6 +26,7 @@ export default function SignInPage() {
     >
       <div className="hero-background" aria-hidden="true" />
       <div className="hero-shade" aria-hidden="true" />
+      <LanguageSwitch variant="auth" />
       <ThemeToggle />
 
       <div className="relative z-10 mx-auto grid min-h-svh w-full max-w-[1800px] grid-cols-1 items-center gap-10 px-5 py-6 sm:px-8 lg:px-10 xl:grid-cols-[minmax(0,1fr)_minmax(520px,602px)] xl:items-stretch xl:gap-12 xl:px-[3.8vw] xl:pt-[clamp(48px,8.5vh,80px)] xl:pb-[clamp(42px,7.35vh,69px)]">

@@ -26,23 +26,26 @@ import {
   RangePill,
   StatPanel,
 } from "./console-chrome";
+import { useMessages } from "../../../lib/i18n/locale-provider";
+import { consoleMessages } from "../_lib/console.messages";
 import { EASE, usePrefersReducedMotion, useSeen } from "./motion";
 
 /** Design size of the live console in the Features section, in pixels. */
 export const LIVE_SIZE = { width: 880, height: 530 } as const;
 
 const LIVE_NAV: ConsoleNavItem[] = [
-  { label: "Overview", icon: LayoutGrid },
-  { label: "Drivers", icon: UserRound },
-  { label: "Families", icon: Users },
-  { label: "Incidents", icon: ClipboardList },
-  { label: "Analytics", icon: ChartColumn },
-  { label: "Health", icon: ShieldCheck },
-  { label: "Organization", icon: Building2 },
-  { label: "Settings", icon: Settings },
+  { key: "overview", icon: LayoutGrid },
+  { key: "drivers", icon: UserRound },
+  { key: "families", icon: Users },
+  { key: "incidents", icon: ClipboardList },
+  { key: "analytics", icon: ChartColumn },
+  { key: "health", icon: ShieldCheck },
+  { key: "organization", icon: Building2 },
+  { key: "settings", icon: Settings },
 ];
 
 export function ConsoleLive() {
+  const t = useMessages(consoleMessages);
   return (
     <div className="lp-console relative h-full w-full">
       <ConsoleSidebar items={LIVE_NAV} width={132} gap={41} />
@@ -52,16 +55,16 @@ export function ConsoleLive() {
           <RangePill />
         </div>
         <div className="mt-3 grid grid-cols-4 gap-2.5">
-          <StatPanel icon={<Users size={15} />} label="Active drivers" value="248" delta="12%" trend="up" good note="vs last month">
+          <StatPanel icon={<Users size={15} />} label={t.stats.activeDrivers} value="248" delta="12%" trend="up" good note={t.vsLastMonth}>
             <Sparkline values={[6, 9, 8, 12, 11, 15, 13, 18, 22, 26]} width={70} height={32} delay={0.6} />
           </StatPanel>
-          <StatPanel icon={<Siren size={15} />} tone="red" label="Health alerts" value="12" delta="54%" trend="up" good={false} note="vs last month">
+          <StatPanel icon={<Siren size={15} />} tone="red" label={t.stats.healthAlerts} value="12" delta="54%" trend="up" good={false} note={t.vsLastMonth}>
             <Sparkline values={[4, 7, 5, 9, 7, 11, 9, 14, 12, 16]} color="red" width={70} height={32} delay={0.7} jagged />
           </StatPanel>
-          <StatPanel icon={<ShieldCheck size={15} />} label="Incidents" value="8" delta="27%" trend="down" good note="vs last month">
+          <StatPanel icon={<ShieldCheck size={15} />} label={t.stats.incidents} value="8" delta="27%" trend="down" good note={t.vsLastMonth}>
             <Sparkline values={[3, 6, 5, 8, 7, 11, 9, 13, 12, 16]} color="green" width={70} height={32} delay={0.8} jagged />
           </StatPanel>
-          <StatPanel icon={<UsersRound size={15} />} label="Families notified" value="184" delta="18%" trend="up" good note="vs last month">
+          <StatPanel icon={<UsersRound size={15} />} label={t.stats.familiesNotified} value="184" delta="18%" trend="up" good note={t.vsLastMonth}>
             <Sparkline values={[8, 11, 10, 14, 12, 16, 15, 19, 18, 24]} width={70} height={32} delay={0.9} />
           </StatPanel>
         </div>
@@ -75,10 +78,10 @@ export function ConsoleLive() {
 }
 
 const DRIVERS = [
-  { name: "Mike Taylor", avatar: "/landing/avatar-mike.webp", ago: "2 min ago", bpm: 72, status: "Normal" },
-  { name: "Sarah Chen", avatar: "/landing/avatar-sarah.webp", ago: "5 min ago", bpm: 68, status: "Normal" },
-  { name: "James Wilson", avatar: "/landing/avatar-james.webp", ago: "12 min ago", bpm: 91, status: "Elevated" },
-  { name: "Emma Davis", avatar: "/landing/avatar-emma.webp", ago: "18 min ago", bpm: 76, status: "Normal" },
+  { name: "Mike Taylor", avatar: "/landing/avatar-mike.webp", minutesAgo: 2, bpm: 72, elevated: false },
+  { name: "Sarah Chen", avatar: "/landing/avatar-sarah.webp", minutesAgo: 5, bpm: 68, elevated: false },
+  { name: "James Wilson", avatar: "/landing/avatar-james.webp", minutesAgo: 12, bpm: 91, elevated: true },
+  { name: "Emma Davis", avatar: "/landing/avatar-emma.webp", minutesAgo: 18, bpm: 76, elevated: false },
 ] as const;
 
 /**
@@ -98,6 +101,7 @@ function useLiveReading(base: number, running: boolean) {
 }
 
 function LiveDriversPanel() {
+  const t = useMessages(consoleMessages).live;
   const reduced = usePrefersReducedMotion();
   const { ref, seen } = useSeen<HTMLDivElement>(0.2);
   return (
@@ -113,12 +117,12 @@ function LiveDriversPanel() {
             <span className="size-2.5 rounded-full border-2 border-white bg-[#19b26b] shadow" />
           </span>
           <div>
-            <p className="text-[13px] font-bold text-[#14203f]">Live driver health</p>
-            <p className="text-[9.5px] text-[#8592ab]">Real-time data from connected drivers</p>
+            <p className="text-[13px] font-bold text-[#14203f]">{t.title}</p>
+            <p className="text-[9.5px] text-[#8592ab]">{t.subtitle}</p>
           </div>
         </div>
         <span className="rounded-[8px] border border-[#dbe5fb] px-2 py-1 text-[9.5px] font-semibold text-[#1253fd]">
-          View all
+          {t.viewAll}
         </span>
       </div>
       <ul className="mt-2.5 divide-y divide-[#eef2f9]">
@@ -131,14 +135,15 @@ function LiveDriversPanel() {
 }
 
 function DriverRow({ driver, live }: { driver: (typeof DRIVERS)[number]; live: boolean }) {
+  const t = useMessages(consoleMessages).live;
   const bpm = useLiveReading(driver.bpm, live);
-  const elevated = driver.status === "Elevated";
+  const elevated = driver.elevated;
   return (
     <li className="flex items-center gap-2.5 py-[7px]">
       <Image src={driver.avatar} alt="" width={36} height={36} className="size-9 rounded-full object-cover" />
       <span className="min-w-0 flex-1 leading-tight">
         <span className="block text-[12px] font-bold text-[#14203f]">{driver.name}</span>
-        <span className="block text-[9.5px] text-[#8592ab]">On the road • {driver.ago}</span>
+        <span className="block text-[9.5px] text-[#8592ab]">{t.onTheRoad(t.minutesAgo(driver.minutesAgo))}</span>
       </span>
       <span className="flex w-[62px] items-center gap-1 text-[11px] font-semibold text-[#3b4a6b]">
         <motion.span
@@ -151,7 +156,7 @@ function DriverRow({ driver, live }: { driver: (typeof DRIVERS)[number]; live: b
         <span className="lp-tabular">{bpm}</span> bpm
       </span>
       <span className={`lp-pill w-[54px] justify-center text-[8.5px] font-semibold ${elevated ? "lp-pill-amber" : "lp-pill-green"}`}>
-        {driver.status}
+        {elevated ? t.elevated : t.normal}
       </span>
     </li>
   );
@@ -163,6 +168,7 @@ const ROUTE =
   "M18 196 C 34 176, 44 158, 70 156 S 112 170, 132 146 S 160 118, 190 124 S 236 120, 258 98 S 300 70, 318 60";
 
 function TripMapPanel() {
+  const t = useMessages(consoleMessages).live;
   const reduced = usePrefersReducedMotion();
   const { ref, seen } = useSeen<HTMLDivElement>(0.3);
   const show = seen;
@@ -171,9 +177,9 @@ function TripMapPanel() {
     <div ref={ref} className="lp-panel relative p-3.5">
       <div className="flex items-center justify-between">
         <p className="flex items-center gap-2 text-[13px] font-bold text-[#14203f]">
-          <ShieldCheck size={15} className="text-[#1253fd]" /> Trip map & activity
+          <ShieldCheck size={15} className="text-[#1253fd]" /> {t.map}
         </p>
-        <span className="text-[10px] font-semibold text-[#1253fd]">View trip details</span>
+        <span className="text-[10px] font-semibold text-[#1253fd]">{t.tripDetails}</span>
       </div>
       <div className="relative mt-2.5 overflow-hidden rounded-[12px]" style={{ width: MAP.width, height: MAP.height }}>
         <svg width={MAP.width} height={MAP.height} viewBox={`0 0 ${MAP.width} ${MAP.height}`} aria-hidden="true">
@@ -248,8 +254,8 @@ function TripMapPanel() {
             <CarFront size={15} />
           </span>
           <span className="flex-1 leading-tight">
-            <span className="block text-[11px] font-bold text-[#14203f]">Potential fatigue detected</span>
-            <span className="block text-[9.5px] text-[#7a87a3]">Apr 30, 2025 • 10:24 AM</span>
+            <span className="block text-[11px] font-bold text-[#14203f]">{t.fatigue}</span>
+            <span className="block text-[9.5px] text-[#7a87a3]">{t.fatigueWhen}</span>
           </span>
           <ChevronRight size={14} className="text-[#3b4a6b]" />
         </motion.div>

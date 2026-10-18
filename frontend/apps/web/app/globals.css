@@ -1059,19 +1059,6 @@ label[for] {
   flex: 0 0 auto;
 }
 
-.mfa-language {
-  display: inline-flex;
-  height: 28px;
-  align-items: center;
-  gap: 3px;
-  border: 1px solid rgba(109, 189, 239, 0.38);
-  border-radius: 7px;
-  padding: 0 8px;
-  color: #f5faff;
-  font-size: 10px;
-  font-weight: 800;
-  background: rgba(3, 21, 39, 0.5);
-}
 
 .mfa-feature-icon {
   display: grid;

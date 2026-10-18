@@ -29,7 +29,10 @@ import {
   SelectValue,
 } from "@repo/ui/components/ui/select";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
-import { formatAuditAction } from "../components/dashboard/audit/audit-badges";
+import {
+  auditActionLabel,
+  labelMessages,
+} from "../components/dashboard/labels";
 import {
   ctaMotion,
   EASE,
@@ -43,11 +46,7 @@ import {
   StatCard,
   type StatCardProps,
 } from "../components/dashboard/stat-card";
-import {
-  formatDateTime,
-  fullName,
-  initials,
-} from "../components/dashboard/users/format";
+import { fullName, initials } from "../components/dashboard/users/format";
 import {
   listAdminAudit,
   type AdminAuditEntry,
@@ -66,6 +65,157 @@ import {
 import { listUsers } from "../../lib/api/admin-users";
 import { getApiHealth, type ApiHealth } from "../../lib/api/health";
 import { getUnreadNotificationCount } from "../../lib/api/notifications";
+import { useFormatters, useMessages } from "../../lib/i18n/locale-provider";
+import { defineMessages } from "../../lib/i18n/messages";
+
+const messages = defineMessages({
+  en: {
+    title: "Overview",
+    subtitle:
+      "Monitor drivers, family safety, incidents, and platform activity at a glance.",
+    range: (days: number) => `Last ${days} days`,
+    viewAudit: "View audit log",
+    inviteDriver: "Invite driver",
+    keyMetrics: "Key metrics",
+    stats: {
+      activeDrivers: "Active drivers",
+      pendingInvitations: "Pending invitations",
+      families: "Monitored families",
+      openIncidents: "Open incidents",
+      healthAlerts: "Health alerts",
+      noAdminApi: "No admin API",
+      unavailable: "Unavailable",
+      live: "Live API",
+    },
+    panels: {
+      driverActivity: "Driver activity overview",
+      driverActivityHint: "Historical driver totals need a time-series API.",
+      health: "Health & incidents",
+      healthHint: "Administrator medical aggregates are not exposed.",
+      system: "System status",
+      systemHint: "Live responses from core services.",
+      recent: "Recent activity",
+      recentHint: (days: string) =>
+        `Latest administrative actions from the last ${days} days.`,
+      refresh: "Refresh overview",
+      priority: "Priority incidents",
+      priorityHint: "Incidents requiring attention.",
+      noIncidentFeed: "No administrator incident feed",
+      invitations: "Recent invitations",
+      invitationsHint: "Latest driver invitations.",
+      view: "View",
+      viewAll: "View all",
+    },
+    chart: {
+      empty: "No historical series available",
+      emptyHint:
+        "Current totals remain live; the API does not yet expose daily snapshots.",
+    },
+    breakdown: {
+      noData: "No data",
+      critical: "Critical",
+      warning: "Warning",
+      info: "Info",
+      resolved: "Resolved",
+    },
+    checks: {
+      api: "API service",
+      data: "Data services",
+      notifications: "Notifications",
+      drivers: "Driver management",
+      devices: "Device monitoring",
+      unread: (count: number) => `${count} unread`,
+      units: (count: number) => `${count} units`,
+      operational: "Operational",
+      unavailable: "Unavailable",
+    },
+    activity: {
+      empty: "No activity in this date range",
+      columns: ["Activity", "Actor", "Target", "Time", "Status"],
+      noTarget: "No target",
+      completed: "Completed",
+      failed: "Failed",
+      view: "View audit event",
+    },
+    noInvitations: "No invitations yet",
+    invited: (when: string) => `Invited ${when}`,
+  },
+  fr: {
+    title: "Vue d’ensemble",
+    subtitle:
+      "Suivez d’un coup d’œil les conducteurs, la sécurité des familles, les incidents et l’activité de la plateforme.",
+    range: (days: number) => `${days} derniers jours`,
+    viewAudit: "Voir le journal d’audit",
+    inviteDriver: "Inviter un conducteur",
+    keyMetrics: "Indicateurs clés",
+    stats: {
+      activeDrivers: "Conducteurs actifs",
+      pendingInvitations: "Invitations en attente",
+      families: "Familles suivies",
+      openIncidents: "Incidents ouverts",
+      healthAlerts: "Alertes santé",
+      noAdminApi: "Pas d’API admin",
+      unavailable: "Indisponible",
+      live: "API en direct",
+    },
+    panels: {
+      driverActivity: "Activité des conducteurs",
+      driverActivityHint:
+        "L’historique des conducteurs nécessite une API de séries temporelles.",
+      health: "Santé et incidents",
+      healthHint:
+        "Les agrégats médicaux ne sont pas exposés aux administrateurs.",
+      system: "État du système",
+      systemHint: "Réponses en direct des services principaux.",
+      recent: "Activité récente",
+      recentHint: (days: string) =>
+        `Dernières actions administratives des ${days} derniers jours.`,
+      refresh: "Actualiser la vue d’ensemble",
+      priority: "Incidents prioritaires",
+      priorityHint: "Incidents nécessitant une attention.",
+      noIncidentFeed: "Aucun flux d’incidents pour les administrateurs",
+      invitations: "Invitations récentes",
+      invitationsHint: "Dernières invitations de conducteurs.",
+      view: "Voir",
+      viewAll: "Tout voir",
+    },
+    chart: {
+      empty: "Aucun historique disponible",
+      emptyHint:
+        "Les totaux actuels restent en direct ; l’API n’expose pas encore d’instantanés quotidiens.",
+    },
+    breakdown: {
+      noData: "Aucune donnée",
+      critical: "Critique",
+      warning: "Avertissement",
+      info: "Info",
+      resolved: "Résolu",
+    },
+    checks: {
+      api: "Service API",
+      data: "Services de données",
+      notifications: "Notifications",
+      drivers: "Gestion des conducteurs",
+      devices: "Suivi des appareils",
+      unread: (count: number) => `${count} non lue${count > 1 ? "s" : ""}`,
+      units: (count: number) => `${count} appareil${count > 1 ? "s" : ""}`,
+      operational: "Opérationnel",
+      unavailable: "Indisponible",
+    },
+    activity: {
+      empty: "Aucune activité sur cette période",
+      columns: ["Activité", "Acteur", "Cible", "Heure", "Statut"],
+      noTarget: "Aucune cible",
+      completed: "Terminé",
+      failed: "Échec",
+      view: "Voir l’événement d’audit",
+    },
+    noInvitations: "Aucune invitation pour l’instant",
+    invited: (when: string) => `Invité ${when}`,
+  },
+});
+
+type OverviewMessages = (typeof messages)["en"];
 
 type RangeDays = "7" | "30" | "90";
 
@@ -103,6 +253,7 @@ const EMPTY_DATA: OverviewData = {
 };
 
 export function DashboardOverview() {
+  const t = useMessages(messages);
   const [range, setRange] = useState<RangeDays>("30");
   const [data, setData] = useState<OverviewData>(EMPTY_DATA);
   const [loading, setLoading] = useState(true);
@@ -181,40 +332,40 @@ export function DashboardOverview() {
   const stats = useMemo<StatCardProps[]>(
     () => [
       {
-        label: "Active drivers",
+        label: t.stats.activeDrivers,
         value: data.activeDrivers,
         icon: Users,
         loading,
-        status: sourceStatus(data.activeDrivers),
+        status: sourceStatus(data.activeDrivers, t),
       },
       {
-        label: "Pending invitations",
+        label: t.stats.pendingInvitations,
         value: data.invitationStats?.pending ?? null,
         icon: MailPlus,
         loading,
-        status: sourceStatus(data.invitationStats),
+        status: sourceStatus(data.invitationStats, t),
       },
       {
-        label: "Monitored families",
+        label: t.stats.families,
         value: data.familyStats?.totalFamilies ?? null,
         icon: HeartPulse,
         loading,
-        status: sourceStatus(data.familyStats),
+        status: sourceStatus(data.familyStats, t),
       },
       {
-        label: "Open incidents",
+        label: t.stats.openIncidents,
         value: null,
         icon: Siren,
-        status: { text: "No admin API", variant: "outline" },
+        status: { text: t.stats.noAdminApi, variant: "outline" },
       },
       {
-        label: "Health alerts",
+        label: t.stats.healthAlerts,
         value: null,
         icon: HeartPulse,
-        status: { text: "No admin API", variant: "outline" },
+        status: { text: t.stats.noAdminApi, variant: "outline" },
       },
     ],
-    [data, loading],
+    [data, loading, t],
   );
 
   return (
@@ -227,11 +378,10 @@ export function DashboardOverview() {
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <motion.div variants={headerMotion.overview.title}>
           <h1 className="text-[30px] font-extrabold leading-tight tracking-[-0.035em] text-foreground">
-            Overview
+            {t.title}
           </h1>
           <p className="mt-0.5 text-[14px] text-muted-foreground">
-            Monitor drivers, family safety, incidents, and platform activity at
-            a glance.
+            {t.subtitle}
           </p>
         </motion.div>
         <motion.div
@@ -248,9 +398,9 @@ export function DashboardOverview() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="7">Last 7 days</SelectItem>
-                <SelectItem value="30">Last 30 days</SelectItem>
-                <SelectItem value="90">Last 90 days</SelectItem>
+                <SelectItem value="7">{t.range(7)}</SelectItem>
+                <SelectItem value="30">{t.range(30)}</SelectItem>
+                <SelectItem value="90">{t.range(90)}</SelectItem>
               </SelectContent>
             </Select>
           </motion.div>
@@ -261,7 +411,7 @@ export function DashboardOverview() {
               className="h-10 rounded-[9px] bg-white px-4 text-[12px]"
             >
               <Link href="/dashboard/audit">
-                <ClipboardList /> View audit log
+                <ClipboardList /> {t.viewAudit}
               </Link>
             </Button>
           </motion.div>
@@ -269,7 +419,7 @@ export function DashboardOverview() {
             <motion.div {...ctaMotion} className="inline-flex">
               <Button asChild className="h-10 rounded-[9px] px-4 text-[12px]">
                 <Link href="/dashboard/invitations">
-                  <UserPlus /> Invite driver
+                  <UserPlus /> {t.inviteDriver}
                 </Link>
               </Button>
             </motion.div>
@@ -278,9 +428,9 @@ export function DashboardOverview() {
       </header>
 
       <motion.section
-        aria-label="Key metrics"
+        aria-label={t.keyMetrics}
         variants={stagger(0.07)}
-        className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5"
+        className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5"
       >
         {stats.map((stat) => (
           <StatCard key={stat.label} {...stat} />
@@ -289,46 +439,48 @@ export function DashboardOverview() {
 
       <motion.section
         variants={stagger(0.09)}
-        className="grid grid-cols-1 gap-3 xl:grid-cols-12"
+        className="grid grid-cols-1 gap-3 2xl:grid-cols-12"
       >
-        <Panel className="min-h-[270px] xl:col-span-6">
+        <Panel className="min-h-[270px] 2xl:col-span-6">
           <PanelHeading
             icon={Users}
-            title="Driver activity overview"
-            description="Historical driver totals need a time-series API."
+            title={t.panels.driverActivity}
+            description={t.panels.driverActivityHint}
           />
-          <UnavailableChart />
+          <UnavailableChart t={t.chart} />
         </Panel>
 
-        <Panel className="min-h-[270px] xl:col-span-3">
+        <Panel className="min-h-[270px] 2xl:col-span-3">
           <PanelHeading
             icon={HeartPulse}
-            title="Health & incidents"
-            description="Administrator medical aggregates are not exposed."
-            action={<SmallLink href="/dashboard/health" label="View" />}
+            title={t.panels.health}
+            description={t.panels.healthHint}
+            action={
+              <SmallLink href="/dashboard/health" label={t.panels.view} />
+            }
           />
-          <HealthIncidentBreakdown />
+          <HealthIncidentBreakdown t={t.breakdown} />
         </Panel>
 
-        <Panel className="min-h-[270px] xl:col-span-3">
+        <Panel className="min-h-[270px] 2xl:col-span-3">
           <PanelHeading
             icon={Database}
-            title="System status"
-            description="Live responses from core services."
+            title={t.panels.system}
+            description={t.panels.systemHint}
           />
-          <SystemStatus data={data} loading={loading} />
+          <SystemStatus data={data} loading={loading} t={t.checks} />
         </Panel>
       </motion.section>
 
       <motion.section
         variants={stagger(0.09)}
-        className="grid grid-cols-1 gap-3 xl:grid-cols-12"
+        className="grid grid-cols-1 gap-3 2xl:grid-cols-12"
       >
-        <Panel className="min-h-[340px] xl:col-span-8 xl:h-[340px]">
+        <Panel className="min-h-[340px] 2xl:col-span-8 2xl:h-[340px]">
           <PanelHeading
             icon={ClipboardList}
-            title="Recent activity"
-            description={`Latest administrative actions from the last ${range} days.`}
+            title={t.panels.recent}
+            description={t.panels.recentHint(range)}
             action={
               <Button
                 type="button"
@@ -336,7 +488,7 @@ export function DashboardOverview() {
                 size="icon-sm"
                 onClick={() => void load(true)}
                 disabled={refreshing}
-                aria-label="Refresh overview"
+                aria-label={t.panels.refresh}
               >
                 <RefreshCcw
                   className={refreshing ? "animate-spin" : undefined}
@@ -344,41 +496,48 @@ export function DashboardOverview() {
               </Button>
             }
           />
-          <RecentActivity rows={data.audit} loading={loading} />
+          <RecentActivity rows={data.audit} loading={loading} t={t.activity} />
         </Panel>
 
         <motion.div
           variants={stagger(0.09)}
-          className="grid gap-3 xl:col-span-4 xl:grid-rows-[198px_130px]"
+          className="grid gap-3 2xl:col-span-4 2xl:grid-rows-[198px_130px]"
         >
-          <Panel className="min-h-[177px] xl:min-h-0">
+          <Panel className="min-h-[177px] 2xl:min-h-0">
             <PanelHeading
               icon={Siren}
-              title="Priority incidents"
-              description="Incidents requiring attention."
+              title={t.panels.priority}
+              description={t.panels.priorityHint}
               action={
-                <SmallLink href="/dashboard/incidents" label="View all" />
+                <SmallLink
+                  href="/dashboard/incidents"
+                  label={t.panels.viewAll}
+                />
               }
               danger
               compact
             />
-            <EmptyInline
-              icon={Siren}
-              title="No administrator incident feed"
-            />
+            <EmptyInline icon={Siren} title={t.panels.noIncidentFeed} />
           </Panel>
 
-          <Panel className="min-h-[150px] overflow-hidden xl:min-h-0">
+          <Panel className="min-h-[150px] overflow-hidden 2xl:min-h-0">
             <PanelHeading
               icon={MailPlus}
-              title="Recent invitations"
-              description="Latest driver invitations."
+              title={t.panels.invitations}
+              description={t.panels.invitationsHint}
               action={
-                <SmallLink href="/dashboard/invitations" label="View all" />
+                <SmallLink
+                  href="/dashboard/invitations"
+                  label={t.panels.viewAll}
+                />
               }
               compact
             />
-            <RecentInvitations rows={data.invitations} loading={loading} />
+            <RecentInvitations
+              rows={data.invitations}
+              loading={loading}
+              t={t}
+            />
           </Panel>
         </motion.div>
       </motion.section>
@@ -452,7 +611,7 @@ function SmallLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-function UnavailableChart() {
+function UnavailableChart({ t }: { t: OverviewMessages["chart"] }) {
   const reduced = useReducedMotion();
   return (
     <div className="relative mx-4 mb-4 flex flex-1 items-center justify-center overflow-hidden rounded-[9px] border border-dashed border-[#dce3ed] bg-[#fbfcfe]">
@@ -514,23 +673,22 @@ function UnavailableChart() {
           <Inbox className="size-5" />
         </motion.span>
         <p className="mt-2 text-[12px] font-semibold text-foreground">
-          No historical series available
+          {t.empty}
         </p>
         <p className="mt-1 text-[10px] leading-4 text-muted-foreground">
-          Current totals remain live; the API does not yet expose daily
-          snapshots.
+          {t.emptyHint}
         </p>
       </div>
     </div>
   );
 }
 
-function HealthIncidentBreakdown() {
+function HealthIncidentBreakdown({ t }: { t: OverviewMessages["breakdown"] }) {
   const categories = [
-    { label: "Critical", color: "bg-danger" },
-    { label: "Warning", color: "bg-warning" },
-    { label: "Info", color: "bg-primary" },
-    { label: "Resolved", color: "bg-[#cbd5e1]" },
+    { label: t.critical, color: "bg-danger" },
+    { label: t.warning, color: "bg-warning" },
+    { label: t.info, color: "bg-primary" },
+    { label: t.resolved, color: "bg-[#cbd5e1]" },
   ];
   return (
     <div className="flex flex-1 items-center justify-center gap-5 px-4 pb-5">
@@ -549,7 +707,7 @@ function HealthIncidentBreakdown() {
           <p className="font-mono text-xl font-bold text-muted-foreground/55">
             —
           </p>
-          <p className="text-[10px] text-muted-foreground">No data</p>
+          <p className="text-[10px] text-muted-foreground">{t.noData}</p>
         </div>
       </motion.div>
       <ul className="min-w-[82px] space-y-3">
@@ -579,13 +737,15 @@ function HealthIncidentBreakdown() {
 function SystemStatus({
   data,
   loading,
+  t,
 }: {
   data: OverviewData;
   loading: boolean;
+  t: OverviewMessages["checks"];
 }) {
   const checks = [
     {
-      label: "API service",
+      label: t.api,
       value:
         data.apiHealth?.status === "ok"
           ? true
@@ -594,7 +754,7 @@ function SystemStatus({
             : false,
     },
     {
-      label: "Data services",
+      label: t.data,
       value:
         data.apiHealth?.database === "up"
           ? true
@@ -603,19 +763,18 @@ function SystemStatus({
             : false,
     },
     {
-      label: "Notifications",
+      label: t.notifications,
       value: data.unreadNotifications !== null,
       detail:
         data.unreadNotifications === null
           ? undefined
-          : `${data.unreadNotifications} unread`,
+          : t.unread(data.unreadNotifications),
     },
-    { label: "Driver management", value: data.serviceChecks.drivers },
+    { label: t.drivers, value: data.serviceChecks.drivers },
     {
-      label: "Device monitoring",
+      label: t.devices,
       value: data.serviceChecks.devices,
-      detail:
-        data.deviceCount === null ? undefined : `${data.deviceCount} units`,
+      detail: data.deviceCount === null ? undefined : t.units(data.deviceCount),
     },
   ];
 
@@ -650,11 +809,7 @@ function SystemStatus({
               variant={check.value ? "success" : "danger"}
               className="h-6 px-2 py-0 text-[9px]"
             >
-              {check.value
-                ? check.detail
-                  ? check.detail
-                  : "Operational"
-                : "Unavailable"}
+              {check.value ? (check.detail ?? t.operational) : t.unavailable}
             </Badge>
           )}
         </motion.li>
@@ -666,27 +821,24 @@ function SystemStatus({
 function RecentActivity({
   rows,
   loading,
+  t,
 }: {
   rows: AdminAuditEntry[];
   loading: boolean;
+  t: OverviewMessages["activity"];
 }) {
+  const labels = useMessages(labelMessages);
+  const format = useFormatters();
   if (loading) return <RowsSkeleton rows={5} />;
   if (rows.length === 0) {
-    return (
-      <EmptyInline
-        icon={ClipboardList}
-        title="No activity in this date range"
-      />
-    );
+    return <EmptyInline icon={ClipboardList} title={t.empty} />;
   }
   return (
     <div className="mx-4 overflow-hidden rounded-[9px] border border-border">
       <div className="grid grid-cols-[minmax(150px,1.1fr)_minmax(140px,1fr)_minmax(150px,1.1fr)_130px_90px_34px] gap-3 bg-[#f3f6fb] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.04em] text-[#61708c] max-lg:hidden">
-        <span>Activity</span>
-        <span>Actor</span>
-        <span>Target</span>
-        <span>Time</span>
-        <span>Status</span>
+        {t.columns.map((column) => (
+          <span key={column}>{column}</span>
+        ))}
         <span />
       </div>
       {rows.map((entry, index) => (
@@ -703,13 +855,15 @@ function RecentActivity({
               <ClipboardList className="size-3.5" />
             </span>
             <span className="truncate text-[10px] font-medium text-foreground">
-              {formatAuditAction(entry.action)}
+              {auditActionLabel(labels, entry.action)}
             </span>
           </div>
-          <Actor entry={entry} />
+          <Actor entry={entry} actorType={labels.actorType[entry.actorType]} />
           <div className="min-w-0 max-lg:hidden">
             <p className="truncate text-[10px] font-medium text-foreground">
-              {entry.targetType ?? "No target"}
+              {entry.targetType
+                ? labels.targetType[entry.targetType]
+                : t.noTarget}
             </p>
             <p className="truncate font-mono text-[9px] text-muted-foreground">
               {entry.targetId ?? entry.requestId ?? "—"}
@@ -717,24 +871,19 @@ function RecentActivity({
           </div>
           <div className="max-lg:hidden">
             <p className="text-[10px] text-foreground">
-              {relativeTime(entry.createdAt)}
+              {format.ago(entry.createdAt)}
             </p>
             <p className="text-[9px] text-muted-foreground">
-              {formatDateTime(entry.createdAt)}
+              {format.dateTime(entry.createdAt)}
             </p>
           </div>
           <Badge
             variant={entry.outcome === "SUCCESS" ? "success" : "danger"}
             className="h-6 px-2 py-0 text-[9px] max-lg:hidden"
           >
-            {entry.outcome === "SUCCESS" ? "Completed" : "Failed"}
+            {entry.outcome === "SUCCESS" ? t.completed : t.failed}
           </Badge>
-          <Button
-            asChild
-            variant="ghost"
-            size="icon-xs"
-            aria-label="View audit event"
-          >
+          <Button asChild variant="ghost" size="icon-xs" aria-label={t.view}>
             <Link href="/dashboard/audit">
               <MoreVertical />
             </Link>
@@ -745,11 +894,17 @@ function RecentActivity({
   );
 }
 
-function Actor({ entry }: { entry: AdminAuditEntry }) {
+function Actor({
+  entry,
+  actorType,
+}: {
+  entry: AdminAuditEntry;
+  actorType: string;
+}) {
   if (!entry.actor) {
     return (
       <span className="truncate text-[10px] text-muted-foreground max-lg:hidden">
-        {entry.actorType.toLowerCase()}
+        {actorType}
       </span>
     );
   }
@@ -773,13 +928,17 @@ function Actor({ entry }: { entry: AdminAuditEntry }) {
 function RecentInvitations({
   rows,
   loading,
+  t,
 }: {
   rows: AdminInvitation[];
   loading: boolean;
+  t: OverviewMessages;
 }) {
+  const labels = useMessages(labelMessages);
+  const format = useFormatters();
   if (loading) return <RowsSkeleton rows={2} />;
   if (rows.length === 0) {
-    return <EmptyInline icon={MailPlus} title="No invitations yet" compact />;
+    return <EmptyInline icon={MailPlus} title={t.noInvitations} compact />;
   }
   return (
     <div className="px-4 pb-1">
@@ -801,14 +960,14 @@ function RecentInvitations({
               {invitation.email}
             </p>
             <p className="truncate text-[9px] text-muted-foreground">
-              Invited {relativeTime(invitation.createdAt)}
+              {t.invited(format.ago(invitation.createdAt))}
             </p>
           </div>
           <Badge
             variant={invitationVariant(invitation.status)}
             className="h-6 px-2 py-0 text-[9px]"
           >
-            {titleCase(invitation.status)}
+            {labels.invitationStatus[invitation.status]}
           </Badge>
           <ChevronRight className="size-3.5 text-primary" />
         </MotionLink>
@@ -868,10 +1027,13 @@ function isFulfilled<T>(result: PromiseSettledResult<T>): boolean {
   return result.status === "fulfilled";
 }
 
-function sourceStatus(value: unknown): StatCardProps["status"] {
+function sourceStatus(
+  value: unknown,
+  t: OverviewMessages,
+): StatCardProps["status"] {
   return value === null
-    ? { text: "Unavailable", variant: "outline" }
-    : { text: "Live API", variant: "success" };
+    ? { text: t.stats.unavailable, variant: "outline" }
+    : { text: t.stats.live, variant: "success" };
 }
 
 function invitationVariant(
@@ -880,19 +1042,4 @@ function invitationVariant(
   if (status === "ACCEPTED") return "success";
   if (status === "PENDING") return "warning";
   return "outline";
-}
-
-function titleCase(value: string): string {
-  return value.charAt(0) + value.slice(1).toLowerCase();
-}
-
-function relativeTime(value: string): string {
-  const elapsed = Date.now() - new Date(value).getTime();
-  const minutes = Math.max(0, Math.floor(elapsed / 60_000));
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hr${hours === 1 ? "" : "s"} ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} day${days === 1 ? "" : "s"} ago`;
 }
