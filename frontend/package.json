@@ -13,8 +13,8 @@
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
-    "prettier": "3.9.6",
-    "turbo": "^2.11.5",
+    "prettier": "3.9.10",
+    "turbo": "^2.11.7",
     "typescript": "7.0.2"
   },
   "engines": {
