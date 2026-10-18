@@ -117,10 +117,16 @@ jobs:
           SECURITY_GATE_MODE: ${{ vars.SECURITY_GATE_MODE || 'audit' }}
         run: python3 -I .github/dast/zap_scan.py
 
+      # Code scanning only accepts repository files as locations, not URLs.
+      - name: Prepare the SARIF for Code scanning
+        if: always() && hashFiles('zap-reports/zap-report.sarif.json') != ''
+        run: >-
+          python3 -I .github/dast/sarif_for_code_scanning.py
+          zap-reports/zap-report.sarif.json zap-reports/zap-code-scanning.sarif.json
       - uses: ./.github/actions/publish-sarif
         if: always()
         with:
-          sarif-file: zap-reports/zap-report.sarif.json
+          sarif-file: zap-reports/zap-code-scanning.sarif.json
           category: zap
           code-scanning: ${{ needs.repo.outputs.code-scanning }}
       - name: Collect container logs

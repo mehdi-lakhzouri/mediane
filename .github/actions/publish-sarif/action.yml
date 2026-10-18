@@ -26,7 +26,7 @@ runs:
         category: ${{ inputs.category }}
 
     - name: Summarize findings
-      if: hashFiles(inputs.sarif-file) != ''
+      if: always() && hashFiles(inputs.sarif-file) != ''
       shell: python3 {0}
       env:
         SARIF_FILE: ${{ inputs.sarif-file }}
@@ -52,7 +52,7 @@ runs:
             fh.write("\n".join(lines) + "\n\n")
 
     - name: Keep the report
-      if: hashFiles(inputs.sarif-file) != ''
+      if: always() && hashFiles(inputs.sarif-file) != ''
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: sarif-${{ inputs.category }}
