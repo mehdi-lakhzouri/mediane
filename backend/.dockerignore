@@ -1,0 +1,19 @@
+# Secrets never enter the build context
+.env
+.env.*
+!.env.example
+
+# Rebuilt inside the image
+node_modules
+dist
+src/generated
+*.tsbuildinfo
+
+# Not needed at runtime
+coverage
+test
+uploads
+*.log
+Dockerfile
+.dockerignore
+README.md
