@@ -50,3 +50,41 @@ test("session cookies are HttpOnly and SameSite=Strict", async ({ page }) => {
     expect(cookie.sameSite, cookie.name).toBe("Strict");
   }
 });
+
+test("inactivity warning becomes a countdown and can extend the session", async ({
+  page,
+}) => {
+  await page.goto("/dashboard");
+  await expect(
+    page.getByRole("button", { name: /account menu for/i }),
+  ).toBeVisible();
+
+  const setLastActivity = (inactiveForMs: number) =>
+    page.evaluate((at) => {
+      const key = Object.keys(localStorage).find((item) =>
+        item.startsWith("cg.dashboard.last-activity."),
+      );
+      if (!key)
+        throw new Error("Idle-session activity key was not initialized");
+      window.dispatchEvent(
+        new StorageEvent("storage", { key, newValue: String(at) }),
+      );
+    }, Date.now() - inactiveForMs);
+
+  await setLastActivity(29 * 60 * 1000 + 41_000);
+  const dialog = page.getByRole("alertdialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("Are you still there?")).toBeVisible();
+  await expect(dialog.getByRole("timer")).toHaveCount(0);
+
+  await setLastActivity(29 * 60 * 1000 + 51_000);
+  await expect(dialog.getByRole("timer")).toContainText(
+    /Signing out in [1-9] seconds/,
+  );
+
+  await dialog.getByRole("button", { name: "Stay signed in" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(
+    page.getByRole("button", { name: /account menu for/i }),
+  ).toBeVisible();
+});

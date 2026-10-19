@@ -9,6 +9,7 @@ import {
   ArrowRight,
   Check,
   CheckCircle2,
+  Clock3,
   Eye,
   EyeOff,
   LoaderCircle,
@@ -43,6 +44,9 @@ const messages = defineMessages({
     title: "Welcome back",
     eyebrow: "Secure portal",
     subtitle: "Sign in to your CabinGuard account",
+    expiredTitle: "Session ended safely",
+    expiredMessage:
+      "You were signed out after 30 minutes without activity. Sign in again to continue.",
     email: "Email address",
     emailPlaceholder: "you@company.com",
     password: "Password",
@@ -78,6 +82,9 @@ const messages = defineMessages({
     title: "Bon retour",
     eyebrow: "Portail sécurisé",
     subtitle: "Connectez-vous à votre compte CabinGuard",
+    expiredTitle: "Session terminée en toute sécurité",
+    expiredMessage:
+      "Vous avez été déconnecté après 30 minutes d’inactivité. Reconnectez-vous pour continuer.",
     email: "Adresse e-mail",
     emailPlaceholder: "vous@entreprise.com",
     password: "Mot de passe",
@@ -125,7 +132,11 @@ function loginErrorMessage(
   }
 }
 
-export function LoginCard() {
+export function LoginCard({
+  sessionExpired = false,
+}: {
+  sessionExpired?: boolean;
+}) {
   const t = useMessages(messages);
   const errorText = useErrorText();
   const router = useRouter();
@@ -227,7 +238,44 @@ export function LoginCard() {
         </p>
       </div>
 
-      <form method="post" className="mt-7" onSubmit={handleSubmit} aria-busy={submitting}>
+      {sessionExpired && (
+        <div
+          role="status"
+          className="mt-5 flex items-start gap-3 rounded-[14px] border px-4 py-3.5"
+          style={{
+            borderColor: "var(--sx-badge-border)",
+            background: "var(--sx-input-bg)",
+            color: "var(--sx-body)",
+          }}
+        >
+          <span
+            className="grid size-9 shrink-0 place-items-center rounded-full"
+            style={{ background: "var(--sx-badge-bg)" }}
+          >
+            <Clock3
+              className="size-[18px]"
+              style={{ color: "var(--sx-badge-icon)" }}
+              strokeWidth={2}
+            />
+          </span>
+          <span className="min-w-0 text-sm leading-5">
+            <span
+              className="block font-bold"
+              style={{ color: "var(--sx-ink)" }}
+            >
+              {t.expiredTitle}
+            </span>
+            <span className="mt-0.5 block">{t.expiredMessage}</span>
+          </span>
+        </div>
+      )}
+
+      <form
+        method="post"
+        className={sessionExpired ? "mt-5" : "mt-7"}
+        onSubmit={handleSubmit}
+        aria-busy={submitting}
+      >
         <label
           htmlFor="email"
           className="text-sm font-semibold"

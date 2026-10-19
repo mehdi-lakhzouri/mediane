@@ -25,6 +25,20 @@ export class SessionOpenedResponse extends SessionPrincipalResponse {
   csrfToken!: string;
 }
 
+export class WebSessionPolicyResponse {
+  @ApiProperty({ example: 1800 })
+  idleTimeoutSeconds!: number;
+
+  @ApiProperty({ example: 20 })
+  warningSeconds!: number;
+
+  @ApiProperty({ example: 10 })
+  countdownSeconds!: number;
+
+  @ApiProperty({ example: 60 })
+  activityHeartbeatSeconds!: number;
+}
+
 /**
  * The caller's own identity. Only ever describes the authenticated user, so the
  * email is theirs to see; it is never returned for anyone else here.
@@ -38,6 +52,14 @@ export class CurrentUserResponse extends SessionPrincipalResponse {
 
   @ApiProperty()
   lastName!: string;
+
+  @ApiProperty({ type: () => WebSessionPolicyResponse })
+  sessionPolicy!: WebSessionPolicyResponse;
+}
+
+export class SessionActivityResponse {
+  @ApiProperty({ type: Date })
+  expiresAt!: Date;
 }
 
 /** Web login, no second factor needed: cookies are set. */

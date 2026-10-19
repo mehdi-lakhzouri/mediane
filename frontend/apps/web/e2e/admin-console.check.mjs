@@ -79,6 +79,12 @@ page.on("console", (m) => {
   }
 });
 const dialog = () => page.getByRole("dialog");
+const hold = async (button) => {
+  await button.hover();
+  await page.mouse.down();
+  await page.waitForTimeout(1_300);
+  await page.mouse.up();
+};
 
 // --- first sign-in: authenticator setup -------------------------------------
 await page.goto(`${WEB}/sign-in`, { waitUntil: "networkidle" });
@@ -232,17 +238,18 @@ await sheet
   .getByRole("button", { name: new RegExp(`actions for ${ADD_DRIVER}`, "i") })
   .click();
 await page.getByRole("menuitem", { name: /remove from family/i }).click();
-await page
-  .getByRole("alertdialog")
-  .getByRole("button", { name: /^remove$/i })
-  .click();
+await hold(
+  page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: /hold to remove/i }),
+);
 await sheet.getByText("2 / 10 members").waitFor();
 check("a member was removed", true);
 
 await sheet.getByRole("button", { name: /dissolve family/i }).click();
 const confirmBox = page.getByRole("alertdialog");
 await confirmBox.locator("input").fill(FAMILY_NAME);
-await confirmBox.getByRole("button", { name: /^dissolve$/i }).click();
+await hold(confirmBox.getByRole("button", { name: /hold to dissolve/i }));
 await page
   .getByText(/family dissolved/i)
   .first()

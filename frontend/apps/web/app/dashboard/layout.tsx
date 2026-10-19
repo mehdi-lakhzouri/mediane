@@ -9,6 +9,7 @@ import { Sidebar } from "../components/dashboard/sidebar";
 import { DashboardSearch } from "../components/dashboard/dashboard-search";
 import { Topbar } from "../components/dashboard/topbar";
 import { ToastProvider } from "../components/dashboard/toast-provider";
+import { IdleSessionGuard } from "../components/dashboard/idle-session-guard";
 import {
   destinationFor,
   getCurrentUser,
@@ -25,7 +26,9 @@ const messages = defineMessages({
 });
 
 const COLLAPSE_KEY = "cg.sidebar.collapsed";
+const NAVIGATION_MODE_KEY = "cg.dashboard.navigation-mode";
 type DashboardDensity = "comfortable" | "compact";
+type DashboardNavigationMode = "sidebar" | "navbar";
 
 type AuthState =
   | { kind: "loading" }
@@ -51,6 +54,16 @@ function readDensity(): DashboardDensity {
   }
 }
 
+function readNavigationMode(): DashboardNavigationMode {
+  try {
+    return localStorage.getItem(NAVIGATION_MODE_KEY) === "navbar"
+      ? "navbar"
+      : "sidebar";
+  } catch {
+    return "sidebar";
+  }
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -65,6 +78,8 @@ export default function DashboardLayout({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [density, setDensity] = useState<DashboardDensity>("comfortable");
+  const [navigationMode, setNavigationMode] =
+    useState<DashboardNavigationMode>("sidebar");
 
   // Server-side guards remain authoritative; this only avoids rendering the
   // shell for a visitor without a session (sent to sign in) or an
@@ -91,6 +106,7 @@ export default function DashboardLayout({
   useEffect(() => {
     setCollapsed(readCollapsed());
     setDensity(readDensity());
+    setNavigationMode(readNavigationMode());
   }, []);
 
   useEffect(() => {
@@ -158,6 +174,15 @@ export default function DashboardLayout({
     });
   }, []);
 
+  const changeNavigationMode = useCallback((next: DashboardNavigationMode) => {
+    setNavigationMode(next);
+    try {
+      localStorage.setItem(NAVIGATION_MODE_KEY, next);
+    } catch {
+      // The selected mode remains active for this page view.
+    }
+  }, []);
+
   if (auth.kind !== "authenticated") {
     return (
       <div className="cg-dash grid min-h-svh place-items-center bg-background">
@@ -172,6 +197,10 @@ export default function DashboardLayout({
     // animation: transforms are skipped, opacity fades remain.
     <MotionConfig reducedMotion="user">
       <ToastProvider>
+        <IdleSessionGuard
+          userId={auth.user.userId}
+          policy={auth.user.sessionPolicy}
+        />
         <div
           data-density={density}
           className={cn(
@@ -183,6 +212,7 @@ export default function DashboardLayout({
           <Sidebar
             user={auth.user}
             collapsed={collapsed}
+            desktopEnabled={navigationMode === "sidebar"}
             mobileOpen={mobileOpen}
             onCloseMobile={() => setMobileOpen(false)}
             onOpenSearch={() => {
@@ -194,14 +224,20 @@ export default function DashboardLayout({
           <div
             className={cn(
               "flex min-h-svh min-w-0 flex-col transition-[padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-              collapsed ? "lg:pl-[72px]" : "lg:pl-[272px]",
+              navigationMode === "navbar"
+                ? "lg:pl-0"
+                : collapsed
+                  ? "lg:pl-[72px]"
+                  : "lg:pl-[272px]",
             )}
           >
             <Topbar
               section={nav.items[navKey(pathname)]}
               user={auth.user}
               collapsed={collapsed}
+              navigationMode={navigationMode}
               onToggleCollapsed={toggleCollapsed}
+              onNavigationModeChange={changeNavigationMode}
               onOpenMobile={() => setMobileOpen(true)}
               onOpenSearch={() => setSearchOpen(true)}
             />

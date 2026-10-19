@@ -10,6 +10,7 @@ import {
   RefreshSessionRepository,
   RotationData,
   SessionSummary,
+  TouchSessionData,
 } from '../domain/refresh-session.repository';
 
 type SessionRow = Omit<RefreshSessionRecord, 'tokenHash' | 'previousTokenHash'>;
@@ -85,6 +86,19 @@ export class PrismaRefreshSessionRepository implements RefreshSessionRepository 
       },
     });
     return count === 1 ? this.findById(data.sessionId) : null;
+  }
+
+  async touch(data: TouchSessionData): Promise<boolean> {
+    const { count } = await this.db.client.refreshSession.updateMany({
+      where: {
+        id: data.sessionId,
+        revokedAt: null,
+        expiresAt: { gt: data.now },
+        absoluteExpiresAt: { gt: data.now },
+      },
+      data: { expiresAt: data.expiresAt, lastUsedAt: data.now },
+    });
+    return count === 1;
   }
 
   async revoke(

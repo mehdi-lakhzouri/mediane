@@ -37,6 +37,7 @@ const messages = defineMessages({
 interface SidebarProps {
   user: CurrentUser;
   collapsed: boolean;
+  desktopEnabled: boolean;
   mobileOpen: boolean;
   onCloseMobile: () => void;
   onOpenSearch: () => void;
@@ -45,6 +46,7 @@ interface SidebarProps {
 export function Sidebar({
   user,
   collapsed,
+  desktopEnabled,
   mobileOpen,
   onCloseMobile,
   onOpenSearch,
@@ -70,6 +72,7 @@ export function Sidebar({
           "cg-scroll-invert fixed inset-y-0 left-0 z-40 flex w-[272px] flex-col overflow-y-auto overflow-x-hidden bg-sidebar text-sidebar-foreground before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_-10%_45%,rgba(65,91,196,.28),transparent_48%)]",
           "transition-[width,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:translate-x-0",
           collapsed ? "lg:w-[72px]" : "lg:w-[272px]",
+          !desktopEnabled && "lg:pointer-events-none lg:-translate-x-full",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -127,7 +130,12 @@ export function Sidebar({
             )}
           >
             <Search className="size-[18px] shrink-0" />
-            <span className={cn("min-w-0 flex-1 truncate text-[12px] font-medium", collapsed && "lg:hidden")}>
+            <span
+              className={cn(
+                "min-w-0 flex-1 truncate text-[12px] font-medium",
+                collapsed && "lg:hidden",
+              )}
+            >
               {t.search}
             </span>
             <kbd

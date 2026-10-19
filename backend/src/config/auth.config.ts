@@ -3,6 +3,7 @@ import { readEnv } from './env.validation';
 
 export const authConfig = registerAs('auth', () => {
   const env = readEnv();
+  const webIdleTtlSeconds = env.WEB_SESSION_IDLE_TTL_SECONDS;
   return {
     jwt: {
       accessSecret: env.JWT_ACCESS_SECRET,
@@ -13,7 +14,17 @@ export const authConfig = registerAs('auth', () => {
     },
     refreshSession: {
       idleTtlSeconds: env.REFRESH_SESSION_IDLE_TTL_SECONDS,
+      webIdleTtlSeconds,
       absoluteTtlSeconds: env.REFRESH_SESSION_ABSOLUTE_TTL_SECONDS,
+    },
+    webSession: {
+      idleTimeoutSeconds: webIdleTtlSeconds,
+      warningSeconds: 20,
+      countdownSeconds: 10,
+      activityHeartbeatSeconds: Math.max(
+        15,
+        Math.min(60, Math.floor(webIdleTtlSeconds / 3)),
+      ),
     },
     tokenHashSecret: env.TOKEN_HASH_SECRET,
     invitationTtlSeconds: env.INVITATION_TTL_SECONDS,

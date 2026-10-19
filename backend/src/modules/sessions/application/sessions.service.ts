@@ -76,6 +76,12 @@ export class SessionsService {
     return session?.isActive(now) ? session : null;
   }
 
+  private idleTtlSeconds(channel: SessionChannel): number {
+    return channel === SessionChannel.WEB
+      ? this.auth.refreshSession.webIdleTtlSeconds
+      : this.auth.refreshSession.idleTtlSeconds;
+  }
+
   async open(
     userId: string,
     client: ClientContext,
@@ -86,7 +92,7 @@ export class SessionsService {
     const { expiresAt, absoluteExpiresAt } = RefreshSession.initialExpiries(
       now,
       {
-        idleSeconds: this.auth.refreshSession.idleTtlSeconds,
+        idleSeconds: this.idleTtlSeconds(options.channel),
         absoluteSeconds: this.auth.refreshSession.absoluteTtlSeconds,
       },
     );
@@ -127,10 +133,7 @@ export class SessionsService {
     }
 
     const refreshToken = this.tokens.generateToken();
-    const expiresAt = session.nextExpiry(
-      now,
-      this.auth.refreshSession.idleTtlSeconds,
-    );
+    const expiresAt = session.nextExpiry(now, this.idleTtlSeconds(channel));
     const rotated = await this.sessions.rotate({
       sessionId: session.id,
       currentTokenHash: presentedHash,
@@ -142,6 +145,23 @@ export class SessionsService {
     if (!rotated) throw new InvalidRefreshTokenError();
 
     return { session: rotated, refreshToken, refreshTokenExpiresAt: expiresAt };
+  }
+
+  /**
+   * Records meaningful client activity without rotating the refresh token.
+   * The conditional repository update prevents an expired or revoked session
+   * from being revived by a request racing with its deadline.
+   */
+  async touch(
+    sessionId: string,
+    channel: SessionChannel,
+    now = new Date(),
+  ): Promise<Date | null> {
+    const session = await this.sessions.findById(sessionId);
+    if (!session?.isActive(now) || session.channel !== channel) return null;
+    const expiresAt = session.nextExpiry(now, this.idleTtlSeconds(channel));
+    const touched = await this.sessions.touch({ sessionId, expiresAt, now });
+    return touched ? expiresAt : null;
   }
 
   /** Logout of one device. Returns the revoked session, or null if nothing to revoke. */

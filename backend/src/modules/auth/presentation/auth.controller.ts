@@ -53,6 +53,7 @@ import {
   MfaChallengeResponse,
   SessionOpenedResponse,
   SessionPrincipalResponse,
+  SessionActivityResponse,
   WebSessionLoginResponse,
 } from './dto/auth-response.dto';
 
@@ -249,6 +250,21 @@ export class AuthController {
   @ApiErrorResponses(HttpStatus.UNAUTHORIZED)
   me(@CurrentUser() principal: AuthenticatedUser): Promise<CurrentUserView> {
     return this.auth.getCurrentUser(principal);
+  }
+
+  @Post('activity')
+  @HttpCode(HttpStatus.OK)
+  @ApiSessionAuth()
+  @ApiCsrf()
+  @ApiOperation({
+    summary: 'Record dashboard activity and extend the web inactivity window',
+  })
+  @ApiEnvelopeResponse(SessionActivityResponse)
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
+  activity(
+    @CurrentUser() principal: AuthenticatedUser,
+  ): Promise<SessionActivityResponse> {
+    return this.auth.recordWebActivity(principal);
   }
 
   @Post('password/change')

@@ -11,6 +11,7 @@ import {
   NewRefreshSessionData,
   RefreshSessionRepository,
   RotationData,
+  TouchSessionData,
 } from '../domain/refresh-session.repository';
 import {
   CurrentSessionRevocationError,
@@ -83,6 +84,20 @@ class InMemorySessions implements RefreshSessionRepository {
     return Promise.resolve(this.toDomain(row));
   }
 
+  touch(data: TouchSessionData): Promise<boolean> {
+    const row = this.rows.find(
+      (r) =>
+        r.id === data.sessionId &&
+        r.revokedAt === null &&
+        r.expiresAt > data.now &&
+        r.absoluteExpiresAt > data.now,
+    );
+    if (!row) return Promise.resolve(false);
+    row.expiresAt = data.expiresAt;
+    row.lastUsedAt = data.now;
+    return Promise.resolve(true);
+  }
+
   revoke(id: string, reason: SessionRevocationReason, now: Date) {
     const row = this.rows.find((r) => r.id === id && r.revokedAt === null);
     if (row) Object.assign(row, { revokedAt: now, revokedReason: reason });
@@ -139,7 +154,11 @@ class InMemorySessions implements RefreshSessionRepository {
 
 const authConfig = {
   tokenHashSecret: 'unit-test-token-hash-secret-32-chars-min',
-  refreshSession: { idleTtlSeconds: 3600, absoluteTtlSeconds: 7200 },
+  refreshSession: {
+    idleTtlSeconds: 3600,
+    webIdleTtlSeconds: 3600,
+    absoluteTtlSeconds: 7200,
+  },
 } as AuthConfig;
 
 const client: ClientContext = {
@@ -204,6 +223,36 @@ describe('SessionsService', () => {
       at(6000_000),
     );
     expect(second.refreshTokenExpiresAt).toEqual(at(7200_000));
+  });
+
+  it('extends active web sessions without rotating their token', async () => {
+    const opened = await service.open(
+      'u1',
+      client,
+      { persistent: true, channel: 'WEB' },
+      at(0),
+    );
+
+    await expect(
+      service.touch(opened.session.id, 'WEB', at(1000)),
+    ).resolves.toEqual(at(3_601_000));
+    expect(repo.rows[0].lastUsedAt).toEqual(at(1000));
+    expect(repo.rows[0].tokenHash).toBe(
+      new SecureTokenService(authConfig).hashToken(opened.refreshToken),
+    );
+  });
+
+  it('does not revive an expired session through activity', async () => {
+    const opened = await service.open(
+      'u1',
+      client,
+      { persistent: true, channel: 'WEB' },
+      at(0),
+    );
+
+    await expect(
+      service.touch(opened.session.id, 'WEB', at(3_600_000)),
+    ).resolves.toBeNull();
   });
 
   it('rejects a just-rotated token without revoking (concurrent tabs)', async () => {

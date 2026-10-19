@@ -92,6 +92,16 @@ export interface CurrentUserView {
   lastName: string;
   role: AuthenticatedUser['role'];
   accountState: AuthenticatedUser['accountState'];
+  sessionPolicy: {
+    idleTimeoutSeconds: number;
+    warningSeconds: number;
+    countdownSeconds: number;
+    activityHeartbeatSeconds: number;
+  };
+}
+
+export interface SessionActivityView {
+  expiresAt: Date;
 }
 
 /**
@@ -371,7 +381,19 @@ export class AuthService {
       lastName: user.lastName,
       role: user.role,
       accountState: user.accountState,
+      sessionPolicy: this.auth.webSession,
     };
+  }
+
+  async recordWebActivity(
+    principal: AuthenticatedUser,
+  ): Promise<SessionActivityView> {
+    const expiresAt = await this.sessions.touch(
+      principal.sessionId,
+      SessionChannel.WEB,
+    );
+    if (!expiresAt) throw new SessionInvalidError();
+    return { expiresAt };
   }
 
   async logoutAllDevices(

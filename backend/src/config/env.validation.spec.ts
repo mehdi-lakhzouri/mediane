@@ -49,4 +49,22 @@ describe('validateEnv in production', () => {
       }),
     ).toThrow(/COOKIE_SECURE must be true in production/);
   });
+
+  it('accepts the 30 minute browser inactivity policy', () => {
+    expect(() =>
+      validateEnv({ ...production(), WEB_SESSION_IDLE_TTL_SECONDS: '1800' }),
+    ).not.toThrow();
+  });
+
+  it('refuses a browser inactivity policy longer than absolute session life', () => {
+    expect(() =>
+      validateEnv({
+        ...production(),
+        WEB_SESSION_IDLE_TTL_SECONDS: '7200',
+        REFRESH_SESSION_ABSOLUTE_TTL_SECONDS: '3600',
+      }),
+    ).toThrow(
+      /WEB_SESSION_IDLE_TTL_SECONDS must be <= REFRESH_SESSION_ABSOLUTE_TTL_SECONDS/,
+    );
+  });
 });

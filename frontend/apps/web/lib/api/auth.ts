@@ -20,6 +20,14 @@ export interface CurrentUser extends SessionPrincipal {
   email: string;
   firstName: string;
   lastName: string;
+  sessionPolicy: WebSessionPolicy;
+}
+
+export interface WebSessionPolicy {
+  idleTimeoutSeconds: number;
+  warningSeconds: number;
+  countdownSeconds: number;
+  activityHeartbeatSeconds: number;
 }
 
 interface SessionOpened extends SessionPrincipal {
@@ -131,6 +139,11 @@ export async function logoutAll(): Promise<void> {
 
 export function getCurrentUser(): Promise<CurrentUser> {
   return api.get<CurrentUser>("/auth/me");
+}
+
+/** Extend the server-side web inactivity window without rotating tokens. */
+export function recordDashboardActivity(): Promise<{ expiresAt: string }> {
+  return api.post<{ expiresAt: string }>("/auth/activity");
 }
 
 export function fullName(user: CurrentUser): string {

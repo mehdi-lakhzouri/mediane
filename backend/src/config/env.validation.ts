@@ -174,6 +174,13 @@ export class EnvironmentVariables {
   @Min(3600)
   REFRESH_SESSION_IDLE_TTL_SECONDS = 7 * 24 * 3600;
 
+  /** Sliding inactivity limit for browser dashboard sessions. */
+  @Transform(toInt)
+  @IsInt()
+  @Min(60)
+  @Max(24 * 3600)
+  WEB_SESSION_IDLE_TTL_SECONDS = 30 * 60;
+
   @Transform(toInt)
   @IsInt()
   @Min(3600)
@@ -415,6 +422,13 @@ function crossFieldErrors(env: EnvironmentVariables): string[] {
   ) {
     errors.push(
       'REFRESH_SESSION_IDLE_TTL_SECONDS must be <= REFRESH_SESSION_ABSOLUTE_TTL_SECONDS',
+    );
+  }
+  if (
+    env.WEB_SESSION_IDLE_TTL_SECONDS > env.REFRESH_SESSION_ABSOLUTE_TTL_SECONDS
+  ) {
+    errors.push(
+      'WEB_SESSION_IDLE_TTL_SECONDS must be <= REFRESH_SESSION_ABSOLUTE_TTL_SECONDS',
     );
   }
   if (env.STORAGE_DRIVER === 's3' && (!env.S3_BUCKET || !env.S3_REGION)) {

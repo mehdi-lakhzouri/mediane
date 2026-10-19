@@ -24,6 +24,12 @@ export interface RotationData {
   now: Date;
 }
 
+export interface TouchSessionData {
+  sessionId: string;
+  expiresAt: Date;
+  now: Date;
+}
+
 /** A signed-in device as its owner sees it in "active devices". */
 export interface SessionSummary {
   id: string;
@@ -51,6 +57,9 @@ export abstract class RefreshSessionRepository {
    * Returns null when another request rotated or revoked the session first.
    */
   abstract rotate(data: RotationData): Promise<RefreshSession | null>;
+
+  /** Extend an active session without rotating or exposing its refresh token. */
+  abstract touch(data: TouchSessionData): Promise<boolean>;
 
   /** Returns false if the session was already revoked. */
   abstract revoke(

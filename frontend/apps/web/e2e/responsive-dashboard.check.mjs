@@ -50,6 +50,12 @@ const user = {
   role: "ADMIN",
   status: "ACTIVE",
   accountState: "ACTIVE",
+  sessionPolicy: {
+    idleTimeoutSeconds: 1800,
+    warningSeconds: 20,
+    countdownSeconds: 10,
+    activityHeartbeatSeconds: 60,
+  },
   mfaEnabled: true,
   lastLoginAt: NOW,
   createdAt: "2026-01-12T08:00:00.000Z",
@@ -160,7 +166,9 @@ await context.route(API_PATTERN, async (route) => {
   let pagination;
 
   if (path === "/auth/me") data = user;
-  else if (path === "/auth/mfa") {
+  else if (path === "/auth/activity") {
+    data = { expiresAt: "2026-10-08T10:00:00.000Z" };
+  } else if (path === "/auth/mfa") {
     data = {
       enabled: true,
       enabledAt: NOW,
@@ -219,10 +227,12 @@ await context.route(API_PATTERN, async (route) => {
     return route.fulfill({
       status: 503,
       contentType: "application/json",
-      body: JSON.stringify(envelope(null, undefined, {
-        code: "SERVICE_UNAVAILABLE",
-        message: `No responsive fixture for ${path}`,
-      })),
+      body: JSON.stringify(
+        envelope(null, undefined, {
+          code: "SERVICE_UNAVAILABLE",
+          message: `No responsive fixture for ${path}`,
+        }),
+      ),
     });
   }
 
@@ -238,7 +248,10 @@ const page = await context.newPage();
 page.on("pageerror", (error) => failures.push(`pageerror: ${error.message}`));
 
 for (const viewport of viewports) {
-  await page.setViewportSize({ width: viewport.width, height: viewport.height });
+  await page.setViewportSize({
+    width: viewport.width,
+    height: viewport.height,
+  });
   for (const path of paths) {
     await page.goto(`${WEB}${path}`, { waitUntil: "domcontentloaded" });
     await page.waitForSelector("main", { timeout: 10_000 });
@@ -259,8 +272,11 @@ for (const viewport of viewports) {
           )
             return false;
           const rect = element.getBoundingClientRect();
-          if (rect.width < 1 || rect.height < 1 || rect.right <= 0) return false;
-          if (element.closest("[data-slot='table-container'], [role='tablist']"))
+          if (rect.width < 1 || rect.height < 1 || rect.right <= 0)
+            return false;
+          if (
+            element.closest("[data-slot='table-container'], [role='tablist']")
+          )
             return false;
           return rect.left < viewportWidth && rect.right > viewportWidth + 2;
         })
@@ -289,10 +305,7 @@ for (const viewport of viewports) {
       auditResult.offenders.length > 0;
     const status = overflow || mainOverflow ? "FAIL" : "PASS";
     console.log(`${status} ${viewport.label.padEnd(6)} ${path}`);
-    if (
-      SHOT_DIR &&
-      (path === "/dashboard" || path === "/dashboard/settings")
-    ) {
+    if (SHOT_DIR && (path === "/dashboard" || path === "/dashboard/settings")) {
       const routeName = path === "/dashboard" ? "overview" : "settings";
       await page.screenshot({
         path: `${SHOT_DIR}/${viewport.label.replace("%", "")}-${routeName}.png`,
@@ -307,6 +320,42 @@ for (const viewport of viewports) {
   }
 }
 
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.goto(`${WEB}/dashboard`, { waitUntil: "domcontentloaded" });
+await page.waitForSelector("main");
+await page.getByRole("button", { name: "Switch to top navigation" }).click();
+await page.waitForTimeout(400);
+
+const topNavigation = page.getByRole("navigation", {
+  name: "Dashboard navigation",
+});
+const navbarVisible = await topNavigation.isVisible();
+const savedNavbarMode = await page.evaluate(
+  () => localStorage.getItem("cg.dashboard.navigation-mode") === "navbar",
+);
+console.log(
+  `${navbarVisible && savedNavbarMode ? "PASS" : "FAIL"} desktop navigation mode switch`,
+);
+if (!navbarVisible || !savedNavbarMode) {
+  failures.push("top navigation did not become visible or persist its mode");
+}
+
+await topNavigation.getByRole("link", { name: "Users" }).click();
+await page.waitForURL("**/dashboard/drivers");
+await page.reload({ waitUntil: "domcontentloaded" });
+await page.waitForSelector("main");
+const navbarRestored = await page
+  .getByRole("button", { name: "Switch to sidebar navigation" })
+  .isVisible();
+console.log(`${navbarRestored ? "PASS" : "FAIL"} navigation mode persistence`);
+if (!navbarRestored)
+  failures.push("top navigation was not restored after reload");
+
+await page
+  .getByRole("button", { name: "Switch to sidebar navigation" })
+  .click();
+await page.waitForTimeout(400);
+
 await page.setViewportSize({ width: 1152, height: 720 });
 await page.goto(`${WEB}/dashboard`, { waitUntil: "domcontentloaded" });
 await page.waitForSelector("main");
@@ -316,7 +365,10 @@ await page.waitForSelector('[role="dialog"]');
 console.log("PASS shortcut Ctrl+K opens dashboard search");
 
 for (const viewport of [viewports[2], viewports[3], viewports[4]]) {
-  await page.setViewportSize({ width: viewport.width, height: viewport.height });
+  await page.setViewportSize({
+    width: viewport.width,
+    height: viewport.height,
+  });
   await page.goto(`${WEB}/dashboard`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector("main");
   await page.waitForTimeout(350);
@@ -333,7 +385,8 @@ for (const viewport of [viewports[2], viewports[3], viewports[4]]) {
   console.log(
     `${fits ? "PASS" : "FAIL"} ${viewport.label.padEnd(6)} search dialog`,
   );
-  if (!fits) failures.push(`${viewport.label}: search dialog is outside viewport`);
+  if (!fits)
+    failures.push(`${viewport.label}: search dialog is outside viewport`);
   await page.keyboard.press("Escape");
 }
 

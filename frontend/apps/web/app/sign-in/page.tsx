@@ -18,7 +18,13 @@ export const generateMetadata = localizedMetadata({
   },
 });
 
-export default function SignInPage() {
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reason?: string | string[] }>;
+}) {
+  const reason = (await searchParams).reason;
+  const inactive = reason === "inactive";
   return (
     <main
       className="relative min-h-svh overflow-x-hidden"
@@ -41,7 +47,7 @@ export default function SignInPage() {
             <BrandLogo compact />
           </div>
           <DayStatus />
-          <LoginCard />
+          <LoginCard sessionExpired={inactive} />
         </section>
       </div>
     </main>
