@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Crown,
   LoaderCircle,
   MoreVertical,
+  RefreshCcw,
   Search,
   Trash2,
   UserMinus,
@@ -80,31 +81,38 @@ export function FamilySheet({
   const toast = useToast();
   const [details, setDetails] = useState<AdminFamily | null>(null);
   const [loading, setLoading] = useState(false);
+  // The failure, not its text: the message follows a language switch.
+  const [loadError, setLoadError] = useState<{ cause: unknown } | null>(null);
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const [adding, setAdding] = useState(false);
+  const requestId = useRef(0);
 
   const familyId = family?.id;
+  // Depends on the family only, so the effect below fetches once per opening.
   const load = useCallback(async () => {
     if (!familyId) return;
+    const id = ++requestId.current;
     setLoading(true);
+    setLoadError(null);
     try {
-      setDetails(await getFamily(familyId));
+      const data = await getFamily(familyId);
+      if (id === requestId.current) setDetails(data);
     } catch (error) {
-      toast.error(
-        t.loadFailed,
-        error instanceof ApiError ? errorText.message(error) : t.retry,
-      );
+      if (id === requestId.current) setLoadError({ cause: error });
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
-  }, [errorText, familyId, t, toast]);
+  }, [familyId]);
 
   useEffect(() => {
-    if (open) {
-      setDetails(null);
-      setAdding(false);
-      void load();
+    if (!open) {
+      // Drop any response still in flight for a sheet that was closed.
+      requestId.current++;
+      return;
     }
+    setDetails(null);
+    setAdding(false);
+    void load();
   }, [open, load]);
 
   const current = details ?? family;
@@ -256,11 +264,30 @@ export function FamilySheet({
             )}
 
             <ul className="mt-3 divide-y divide-[#e6ecf6] rounded-[12px] border border-[#e1e8f4]">
-              {members.length === 0 && (
-                <li className="px-4 py-6 text-center text-[13px] text-muted-foreground">
-                  {loading ? t.loadingMembers : t.noMembers}
-                </li>
-              )}
+              {members.length === 0 &&
+                (loadError && !loading ? (
+                  <li className="flex flex-col items-center px-4 py-6 text-center">
+                    <p className="text-[13px] font-medium text-foreground">
+                      {t.loadFailed}
+                    </p>
+                    <p className="mt-1 text-[13px] text-muted-foreground">
+                      {errorMessage(loadError.cause, t.retry)}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 rounded-[8px]"
+                      onClick={() => void load()}
+                    >
+                      <RefreshCcw /> {t.reload}
+                    </Button>
+                  </li>
+                ) : (
+                  <li className="px-4 py-6 text-center text-[13px] text-muted-foreground">
+                    {loading ? t.loadingMembers : t.noMembers}
+                  </li>
+                ))}
               {members.map((member) => (
                 <li
                   key={member.userId}

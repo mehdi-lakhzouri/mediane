@@ -78,6 +78,7 @@ export const familiesMessages = defineMessages({
       loadFailed: "Could not load the family.",
       failed: "That didn't work.",
       retry: "Please try again.",
+      reload: "Try again",
       dissolvedEmpty: "The family no longer has members and was dissolved.",
       ownerTitle: (name: string) => `Make ${name} the owner?`,
       ownerDescription:
@@ -178,6 +179,7 @@ export const familiesMessages = defineMessages({
       loadFailed: "Impossible de charger la famille.",
       failed: "L’opération a échoué.",
       retry: "Veuillez réessayer.",
+      reload: "Réessayer",
       dissolvedEmpty: "La famille n’a plus de membres et a été dissoute.",
       ownerTitle: (name: string) => `Nommer ${name} propriétaire ?`,
       ownerDescription:

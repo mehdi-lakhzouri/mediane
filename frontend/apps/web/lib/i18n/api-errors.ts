@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { ApiError, type ApiErrorDetail } from "../api/client";
 import { useMessages } from "./locale-provider";
 import { defineMessages } from "./messages";
@@ -261,5 +261,6 @@ export function useErrorText(): ErrorText {
     [t],
   );
 
-  return { message, detail };
+  // Stable identity: callers list it in hook dependencies.
+  return useMemo(() => ({ message, detail }), [message, detail]);
 }
