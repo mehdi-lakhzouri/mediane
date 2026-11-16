@@ -89,9 +89,6 @@ void main() {
     await pumpCabinGuard(tester, backend: backend);
 
     expect(find.text('A quick safety update'), findsOneWidget);
-    expect(
-      find.text('Mediane is receiving a safety update.'),
-      findsOneWidget,
-    );
+    expect(find.text('Mediane is receiving a safety update.'), findsOneWidget);
   });
 }

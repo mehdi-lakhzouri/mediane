@@ -180,10 +180,7 @@ class _InviteBody extends ConsumerWidget {
           label: 'Share invitation',
           onPressed: () => unawaited(
             SharePlus.instance.share(
-              ShareParams(
-                text: _shareText,
-                subject: 'Join my Mediane family',
-              ),
+              ShareParams(text: _shareText, subject: 'Join my Mediane family'),
             ),
           ),
         ),
