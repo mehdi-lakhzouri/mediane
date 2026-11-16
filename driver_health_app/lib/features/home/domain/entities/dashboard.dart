@@ -45,6 +45,7 @@ class LatestEventSummary {
     required this.detectedAt,
     required this.contactsAlerted,
     this.incidentStatus,
+    this.processingMode,
   });
 
   final String id;
@@ -55,6 +56,7 @@ class LatestEventSummary {
   /// Outcome of the incident it belongs to; `null` for warnings.
   final IncidentStatus? incidentStatus;
   final bool contactsAlerted;
+  final String? processingMode;
 }
 
 /// Live safety state: the in-cabin unit, an open incident, the last event.
@@ -65,6 +67,8 @@ class DashboardMonitoring {
     this.deviceLastSeenAt,
     this.activeIncident,
     this.latestEvent,
+    this.runtimeStatus = 'UNAVAILABLE',
+    this.runtimeMode = 'SHADOW',
   });
 
   final bool devicePaired;
@@ -72,6 +76,8 @@ class DashboardMonitoring {
   final DateTime? deviceLastSeenAt;
   final ActiveIncidentSummary? activeIncident;
   final LatestEventSummary? latestEvent;
+  final String runtimeStatus;
+  final String runtimeMode;
 }
 
 class DashboardFamily {

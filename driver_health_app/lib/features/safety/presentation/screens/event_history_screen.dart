@@ -164,7 +164,9 @@ class _Filters extends StatelessWidget {
       child: Row(
         children: [
           chip('All', null),
-          for (final type in MedicalEventType.values)
+          for (final type in MedicalEventType.values.where(
+            (type) => type != MedicalEventType.unknown,
+          ))
             chip(SafetyCopy.filterLabel(type), type),
         ],
       ),

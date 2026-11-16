@@ -1,4 +1,6 @@
 enum MedicalEventType {
+  cardiacEmergency,
+  unknown,
   heartRhythm,
   drowsiness,
   seizure,
@@ -76,6 +78,8 @@ class MedicalEvent {
     this.incidentId,
     this.vitals,
     this.location,
+    this.processingMode,
+    this.modelVersion,
   });
 
   final String id;
@@ -94,4 +98,9 @@ class MedicalEvent {
   final String? incidentId;
   final Vitals? vitals;
   final GeoPoint? location;
+  final String? processingMode;
+  final String? modelVersion;
+
+  bool get isNonActionable =>
+      processingMode != null && processingMode != 'ACTIVE';
 }

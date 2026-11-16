@@ -99,9 +99,9 @@ void main() {
     await pumpCabinGuard(tester, backend: backend);
     await signIn(tester);
 
-    expect(find.text('Protection active'), findsOneWidget);
-    expect(find.text('CabinGuard vehicle connected'), findsOneWidget);
-    expect(find.text('Your journey is protected'), findsOneWidget);
+    expect(find.text('Shadow monitoring'), findsOneWidget);
+    expect(find.text('Mediane vehicle connected'), findsOneWidget);
+    expect(find.text('Your safety plan is ready'), findsOneWidget);
 
     final card = find.byKey(HomeScreen.latestEventKey);
     await scrollTo(tester, card);
@@ -117,7 +117,7 @@ void main() {
     expect(find.text('Readings'), findsOneWidget);
     expect(find.text('112 bpm'), findsOneWidget);
     expect(find.text('Irregular'), findsOneWidget);
-    expect(find.text('High confidence · 91%'), findsOneWidget);
+    expect(find.text('Detector score · 91%'), findsOneWidget);
     expect(find.text('Part of an alert. See what happened next.'), findsOne);
   });
 

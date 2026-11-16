@@ -66,6 +66,15 @@ class EventDetailScreen extends ConsumerWidget {
   List<Widget> _content(BuildContext context, MedicalEvent event) {
     final severityColor = SafetyCopy.severityColor(event.severity);
     return [
+      if (event.isNonActionable)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: InlineMessage(
+            message:
+                '${event.processingMode} recording. '
+                'This detection did not open an emergency alert.',
+          ),
+        ),
       SurfaceCard(
         child: Row(
           children: [
@@ -105,10 +114,10 @@ class EventDetailScreen extends ConsumerWidget {
         const SizedBox(height: 12),
         _Section(
           icon: Icons.insights_rounded,
-          title: SafetyCopy.confidenceLabel(confidence),
+          title: 'Detector score · ${(confidence * 100).round()}%',
           body:
-              'How sure the cabin unit was. Even a low-confidence detection '
-              'is worth a pause when it is safe to stop.',
+              'An uncalibrated model score. '
+              'It is not the probability of a diagnosis.',
         ),
       ],
       if (event.vitals case final vitals?) ...[

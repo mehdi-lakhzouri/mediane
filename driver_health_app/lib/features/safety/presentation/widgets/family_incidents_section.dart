@@ -92,7 +92,7 @@ class _UrgentCard extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'CabinGuard alerted ${SafetyCopy.whenInSentence(since)}. '
+                'Mediane alerted ${SafetyCopy.whenInSentence(since)}. '
                 'Try to reach $name. Their emergency contacts are being '
                 'called.',
                 style: const TextStyle(color: Colors.white, height: 1.4),

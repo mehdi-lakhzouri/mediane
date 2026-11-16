@@ -3,6 +3,16 @@ import { api } from "./client";
 export type DeviceStatus = "ACTIVE" | "REVOKED";
 
 export interface AdminDevice {
+  associationId: string;
+  aiMode: "SHADOW" | "ACTIVE";
+  runtimeHealth: {
+    runtimeVersion: string;
+    bootId: string;
+    queueDepth: number;
+    cardiac: string;
+    seizure: string;
+    stroke: string;
+  } | null;
   id: string;
   serialNumber: string;
   label: string;

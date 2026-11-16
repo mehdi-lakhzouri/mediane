@@ -44,7 +44,9 @@ class EventTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final title = SafetyCopy.eventTitle(event.type);
     final when = SafetyCopy.when(event.detectedAt);
-    final severity = SafetyCopy.severityLabel(event.severity);
+    final severity = event.isNonActionable
+        ? event.processingMode!
+        : SafetyCopy.severityLabel(event.severity);
     return Semantics(
       button: true,
       label: '$title, $severity, $when',

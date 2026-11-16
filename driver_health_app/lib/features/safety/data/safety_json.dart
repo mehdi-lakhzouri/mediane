@@ -17,6 +17,11 @@ abstract final class SafetyJson {
     incidentId: json['incidentId'] as String?,
     vitals: _vitals(json['vitals']),
     location: geoPoint(json['location']),
+    processingMode: json['processingMode'] as String?,
+    modelVersion: switch (json['detection']) {
+      {'featureVersion': final String version} => version,
+      _ => null,
+    },
   );
 
   static Incident incident(Map<String, Object?> json) => Incident(
@@ -77,6 +82,7 @@ abstract final class SafetyJson {
   }
 
   static MedicalEventType eventType(Object? value) => switch (value) {
+    'CARDIAC_EMERGENCY' => MedicalEventType.cardiacEmergency,
     'HEART_RHYTHM' => MedicalEventType.heartRhythm,
     'DROWSINESS' => MedicalEventType.drowsiness,
     'SEIZURE' => MedicalEventType.seizure,
@@ -84,10 +90,12 @@ abstract final class SafetyJson {
     'CARDIAC_ARREST' => MedicalEventType.cardiacArrest,
     'SOS' => MedicalEventType.sos,
     // A type this version does not know: treat it with the most care.
-    _ => MedicalEventType.sos,
+    _ => MedicalEventType.unknown,
   };
 
   static String eventTypeToJson(MedicalEventType type) => switch (type) {
+    MedicalEventType.cardiacEmergency => 'CARDIAC_EMERGENCY',
+    MedicalEventType.unknown => 'UNKNOWN',
     MedicalEventType.heartRhythm => 'HEART_RHYTHM',
     MedicalEventType.drowsiness => 'DROWSINESS',
     MedicalEventType.seizure => 'SEIZURE',

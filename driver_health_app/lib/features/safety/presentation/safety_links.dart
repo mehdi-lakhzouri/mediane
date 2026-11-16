@@ -2,7 +2,7 @@ import 'package:driver_health_app/features/safety/domain/entities/medical_event.
 import 'package:url_launcher/url_launcher.dart';
 
 /// Emergency medical services (SAMU, Tunisia). Shown when the app cannot
-/// reach CabinGuard or the driver wants to call directly.
+/// reach Mediane or the driver wants to call directly.
 const emergencyNumber = '190';
 
 /// Opens the phone dialer. Returns `false` when no dialer is available.

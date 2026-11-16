@@ -79,6 +79,14 @@ class RemoteDashboardRepository {
     final incident = value['activeIncident'];
     final event = value['latestEvent'];
     return DashboardMonitoring(
+      runtimeStatus: switch (value['runtime']) {
+        {'status': final String status} => status,
+        _ => 'UNAVAILABLE',
+      },
+      runtimeMode: switch (value['runtime']) {
+        {'mode': final String mode} => mode,
+        _ => 'SHADOW',
+      },
       devicePaired: device is Map && device['paired'] == true,
       deviceOnline: device is Map && device['online'] == true,
       deviceLastSeenAt: device is Map
@@ -106,6 +114,7 @@ class RemoteDashboardRepository {
                 event['incidentStatus'],
               ),
               contactsAlerted: event['contactsAlerted'] == true,
+              processingMode: event['processingMode'] as String?,
             )
           : null,
     );

@@ -16,6 +16,7 @@ class LatestEventCard extends StatelessWidget {
     required this.incidentStatus,
     required this.contactsAlerted,
     required this.onTap,
+    this.processingMode,
     super.key,
   });
 
@@ -25,17 +26,23 @@ class LatestEventCard extends StatelessWidget {
   final IncidentStatus? incidentStatus;
   final bool contactsAlerted;
   final VoidCallback onTap;
+  final String? processingMode;
 
   @override
   Widget build(BuildContext context) {
-    final (label, color) = SafetyCopy.outcome(severity, incidentStatus);
+    final nonActionable = processingMode != null && processingMode != 'ACTIVE';
+    final (label, color) = nonActionable
+        ? (processingMode!, AppColors.slate)
+        : SafetyCopy.outcome(severity, incidentStatus);
     final title = SafetyCopy.eventTitle(type);
     final when = SafetyCopy.when(detectedAt);
-    final detail = SafetyCopy.outcomeDetail(
-      severity: severity,
-      status: incidentStatus,
-      contactsAlerted: contactsAlerted,
-    );
+    final detail = nonActionable
+        ? 'Recorded without opening an emergency alert'
+        : SafetyCopy.outcomeDetail(
+            severity: severity,
+            status: incidentStatus,
+            contactsAlerted: contactsAlerted,
+          );
     return Semantics(
       button: true,
       label: '$title, $when. $label. $detail. View details',

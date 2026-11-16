@@ -28,7 +28,7 @@ void main() {
       final event = SafetyJson.event(
         eventJson(type: 'SOMETHING_NEW', severity: 'UNKNOWN'),
       );
-      expect(event.type, MedicalEventType.sos);
+      expect(event.type, MedicalEventType.unknown);
       expect(event.severity, EventSeverity.critical);
     });
 
@@ -74,6 +74,20 @@ void main() {
       ]);
       expect(detail.alerts.last.channel, NotificationChannel.email);
     });
+
+    test(
+      'keeps cardiac alarms distinct from arrest and labels replay history',
+      () {
+        final event = SafetyJson.event({
+          ...eventJson(type: 'CARDIAC_EMERGENCY'),
+          'processingMode': 'REPLAY',
+          'detection': {'featureVersion': '1'},
+        });
+        expect(event.type, MedicalEventType.cardiacEmergency);
+        expect(event.isNonActionable, isTrue);
+        expect(event.modelVersion, '1');
+      },
+    );
   });
 
   group('IncidentDetail countdown', () {

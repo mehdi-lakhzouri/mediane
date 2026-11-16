@@ -16,6 +16,7 @@ import 'package:driver_health_app/features/safety/application/safety_providers.d
 import 'package:driver_health_app/features/safety/presentation/safety_copy.dart';
 import 'package:driver_health_app/features/safety/presentation/widgets/active_alert_banner.dart';
 import 'package:driver_health_app/features/safety/presentation/widgets/latest_event_card.dart';
+import 'package:driver_health_app/features/safety/presentation/widgets/monitoring_card.dart';
 import 'package:driver_health_app/features/safety/presentation/widgets/sos_hold_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -122,6 +123,13 @@ class HomeScreen extends ConsumerWidget {
       _Greeting(dashboard: dashboard),
       const SizedBox(height: 20),
       _DriverCard(dashboard: dashboard),
+      if (monitoring.devicePaired) ...[
+        const SizedBox(height: 14),
+        MonitoringCard(
+          status: monitoring.runtimeStatus,
+          mode: monitoring.runtimeMode,
+        ),
+      ],
       const SizedBox(height: 14),
       _FamilyBanner(family: dashboard.family),
       for (final recommendation in dashboard.recommendations)
@@ -144,6 +152,7 @@ class HomeScreen extends ConsumerWidget {
             detectedAt: event.detectedAt,
             incidentStatus: event.incidentStatus,
             contactsAlerted: event.contactsAlerted,
+            processingMode: event.processingMode,
             onTap: () =>
                 unawaited(context.push(AppRoutes.historyEvent(event.id))),
           )
@@ -364,8 +373,6 @@ class _Greeting extends StatelessWidget {
         Text(
           !dashboard.safetyReady
               ? 'Finish your safety plan to stay protected'
-              : dashboard.monitoring.deviceOnline
-              ? 'Your journey is protected'
               : 'Your safety plan is ready',
           style: const TextStyle(color: AppColors.ice, fontSize: 16),
         ),
@@ -388,7 +395,14 @@ class _DriverCard extends StatelessWidget {
     if (!dashboard.features.medicalEvents) {
       return ('Safety plan ready', AppColors.mint);
     }
-    if (monitoring.deviceOnline) return ('Protection active', AppColors.mint);
+    if (monitoring.deviceOnline) {
+      if (monitoring.runtimeMode != 'ACTIVE') {
+        return ('Shadow monitoring', _amber);
+      }
+      return monitoring.runtimeStatus == 'READY'
+          ? ('Monitoring enabled', AppColors.mint)
+          : ('Monitoring limited', _amber);
+    }
     if (monitoring.devicePaired) return ('Cabin unit offline', _amber);
     return ('Safety plan ready', AppColors.mint);
   }
@@ -404,7 +418,7 @@ class _DriverCard extends StatelessWidget {
       return (Icons.contact_phone_outlined, contactLabel);
     }
     if (monitoring.deviceOnline) {
-      return (Icons.directions_car_rounded, 'CabinGuard vehicle connected');
+      return (Icons.directions_car_rounded, 'Mediane vehicle connected');
     }
     if (monitoring.devicePaired) {
       final seen = monitoring.deviceLastSeenAt;

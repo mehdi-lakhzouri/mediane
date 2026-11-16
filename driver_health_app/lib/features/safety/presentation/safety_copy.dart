@@ -11,6 +11,8 @@ const safetyAmber = Color(0xFFFFC857);
 /// history, detail, home and alert screens always agree.
 abstract final class SafetyCopy {
   static String eventTitle(MedicalEventType type) => switch (type) {
+    MedicalEventType.cardiacEmergency => 'Possible cardiac emergency',
+    MedicalEventType.unknown => 'Safety alert',
     MedicalEventType.heartRhythm => 'Heart rhythm alert',
     MedicalEventType.drowsiness => 'Drowsiness detected',
     MedicalEventType.seizure => 'Possible seizure',
@@ -20,6 +22,8 @@ abstract final class SafetyCopy {
   };
 
   static String filterLabel(MedicalEventType type) => switch (type) {
+    MedicalEventType.cardiacEmergency => 'Cardiac emergency',
+    MedicalEventType.unknown => 'Other alert',
     MedicalEventType.heartRhythm => 'Heart rhythm',
     MedicalEventType.drowsiness => 'Drowsiness',
     MedicalEventType.seizure => 'Seizure',
@@ -29,6 +33,8 @@ abstract final class SafetyCopy {
   };
 
   static IconData eventIcon(MedicalEventType type) => switch (type) {
+    MedicalEventType.cardiacEmergency => Icons.monitor_heart_rounded,
+    MedicalEventType.unknown => Icons.warning_amber_rounded,
     MedicalEventType.heartRhythm => Icons.monitor_heart_rounded,
     MedicalEventType.drowsiness => Icons.bedtime_rounded,
     MedicalEventType.seizure => Icons.bolt_rounded,
