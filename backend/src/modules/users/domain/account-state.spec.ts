@@ -45,10 +45,10 @@ describe('deriveAccountState', () => {
     ).toBe(AccountState.ACTIVE);
   });
 
-  it('requires an authenticator for administrators, after their own password', () => {
+  it('keeps MFA optional for administrators', () => {
     expect(deriveAccountState(activeAdmin)).toBe(AccountState.ACTIVE);
     expect(deriveAccountState({ ...activeAdmin, mfaEnabledAt: null })).toBe(
-      AccountState.MFA_SETUP_REQUIRED,
+      AccountState.ACTIVE,
     );
     expect(
       deriveAccountState({

@@ -99,7 +99,7 @@ const messages = defineMessages({
     stateHint:
       "The effective access and onboarding state calculated by the backend.",
     mfa: "Two-step verification",
-    mfaHint: "An authenticator app is required at every sign-in.",
+    mfaHint: "When on, an authenticator code is asked at every sign-in.",
     on: "On",
     off: "Off",
     since: "User since",
@@ -157,7 +157,7 @@ const messages = defineMessages({
       "L’état effectif d’accès et d’intégration calculé par le serveur.",
     mfa: "Vérification en deux étapes",
     mfaHint:
-      "Une application d’authentification est requise à chaque connexion.",
+      "Si elle est activée, un code d’authentification est demandé à chaque connexion.",
     on: "Activée",
     off: "Désactivée",
     since: "Utilisateur depuis",

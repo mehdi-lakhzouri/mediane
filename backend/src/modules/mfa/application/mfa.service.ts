@@ -37,7 +37,7 @@ import { MfaVerifier } from './mfa-verifier';
 export interface MfaStatusView {
   enabled: boolean;
   enabledAt: Date | null;
-  /** True for roles that cannot turn MFA off (administrators). */
+  /** True for roles that cannot turn MFA off (none at the moment). */
   required: boolean;
   recoveryCodesRemaining: number;
   /** Clients should suggest regenerating below this. */
@@ -224,7 +224,10 @@ export class MfaService {
     return { recoveryCodes, accountState: user.accountState };
   }
 
-  /** Only for roles where MFA is optional (drivers). */
+  /**
+   * Only for roles where MFA is optional (currently every role). Needs a
+   * current code or a recovery code; afterwards the password alone signs in.
+   */
   async disable(
     userId: string,
     code: string,
@@ -251,8 +254,8 @@ export class MfaService {
 
   /**
    * Lost phone AND recovery codes: an administrator removes the
-   * authenticator. Every session of the user is revoked; administrators must
-   * set up a new authenticator at their next sign-in (MFA_SETUP_REQUIRED).
+   * authenticator. Every session of the user is revoked; their next sign-in
+   * takes the password alone, and they may set up a new authenticator.
    * Callers enforce who may do this (never on oneself).
    */
   async resetForUser(

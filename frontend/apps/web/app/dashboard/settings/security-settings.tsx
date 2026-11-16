@@ -81,6 +81,7 @@ import {
 import { ApiError } from "../../../lib/api/client";
 import {
   confirmTotpSetup,
+  disableMfa,
   getMfaStatus,
   regenerateRecoveryCodes,
   startTotpSetup,
@@ -168,7 +169,9 @@ export function SecuritySettings() {
   const [failed, setFailed] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const [profileOpen, setProfileOpen] = useState(false);
-  const [dialog, setDialog] = useState<"codes" | "replace" | null>(null);
+  const [dialog, setDialog] = useState<
+    "codes" | "replace" | "disable" | null
+  >(null);
 
   const selectTab = useCallback((tab: SettingsTab) => {
     setActiveTab(tab);
@@ -281,6 +284,7 @@ export function SecuritySettings() {
                   failed={failed}
                   onReplace={() => setDialog("replace")}
                   onCodes={() => setDialog("codes")}
+                  onDisable={() => setDialog("disable")}
                 />
               </div>
 
@@ -305,6 +309,7 @@ export function SecuritySettings() {
             failed={failed}
             onReplace={() => setDialog("replace")}
             onCodes={() => setDialog("codes")}
+            onDisable={() => setDialog("disable")}
           />
         )}
 
@@ -338,6 +343,14 @@ export function SecuritySettings() {
       />
       <ReplaceAuthenticatorDialog
         open={dialog === "replace"}
+        enabled={status?.enabled ?? true}
+        onClose={() => {
+          setDialog(null);
+          void refresh();
+        }}
+      />
+      <DisableMfaDialog
+        open={dialog === "disable"}
         onClose={() => {
           setDialog(null);
           void refresh();
@@ -648,21 +661,24 @@ function SecurityOverview({
   failed,
   onReplace,
   onCodes,
+  onDisable,
 }: {
   status: MfaStatus | null;
   failed: boolean;
   onReplace: () => void;
   onCodes: () => void;
+  onDisable: () => void;
 }) {
   const t = useMessages(settingsMessages).overview;
   const enabled = status?.enabled ?? true;
+  const canTurnOff = enabled && status !== null && !status.required;
   const rows = [
     {
       icon: ShieldCheck,
       title: t.mfa,
       detail: enabled ? t.mfaOn : t.mfaOff,
-      action: t.manage,
-      onClick: onReplace,
+      action: !enabled ? t.turnOn : canTurnOff ? t.turnOff : t.manage,
+      onClick: canTurnOff ? onDisable : onReplace,
       green: true,
     },
     {
@@ -678,6 +694,7 @@ function SecurityOverview({
       detail: t.codesLeft(status?.recoveryCodesRemaining ?? 10),
       action: t.generate,
       onClick: onCodes,
+      unavailable: !enabled,
     },
   ];
 
@@ -714,7 +731,14 @@ function SecurityOverview({
                   {row.title}
                 </p>
                 {row.green && (
-                  <span className="rounded-full bg-[#def6e7] px-2 py-0.5 text-[10px] font-semibold text-[#168548]">
+                  <span
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                      enabled
+                        ? "bg-[#def6e7] text-[#168548]"
+                        : "bg-[#fff1d6] text-[#b45309]",
+                    )}
+                  >
                     {enabled ? t.on : t.off}
                   </span>
                 )}
@@ -727,6 +751,7 @@ function SecurityOverview({
               variant="outline"
               size="sm"
               onClick={row.onClick}
+              disabled={row.unavailable}
               className="h-[30px] rounded-[7px] border-[#dce4f1] px-4 text-[11px] font-semibold text-[#1451df]"
             >
               {row.action}
@@ -1058,11 +1083,13 @@ function SecurityTab({
   failed,
   onReplace,
   onCodes,
+  onDisable,
 }: {
   status: MfaStatus | null;
   failed: boolean;
   onReplace: () => void;
   onCodes: () => void;
+  onDisable: () => void;
 }) {
   return (
     <div className="grid min-w-0 items-start gap-[14px] 2xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -1072,6 +1099,7 @@ function SecurityTab({
           failed={failed}
           onReplace={onReplace}
           onCodes={onCodes}
+          onDisable={onDisable}
         />
         <div className="grid items-start gap-[14px] lg:grid-cols-[.7fr_1fr]">
           <PasswordCard />
@@ -1897,11 +1925,17 @@ function RegenerateCodesDialog({
   );
 }
 
+/**
+ * Replaces the active authenticator (proof first), or, when two-step
+ * verification is off, sets one up straight away.
+ */
 function ReplaceAuthenticatorDialog({
   open,
+  enabled,
   onClose,
 }: {
   open: boolean;
+  enabled: boolean;
   onClose: () => void;
 }) {
   const t = useMessages(settingsMessages).replace;
@@ -1915,18 +1949,29 @@ function ReplaceAuthenticatorDialog({
   const [codes, setCodes] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** A failed setup start, turned into text at render time. */
+  const [startFailure, setStartFailure] = useState<unknown>(null);
 
   useEffect(() => {
-    if (open) {
-      setStep("verify");
-      setProof("");
-      setSetup(null);
-      setQr("");
-      setNewCode("");
-      setCodes([]);
-      setError(null);
-    }
-  }, [open]);
+    if (!open) return;
+    setStep(enabled ? "verify" : "scan");
+    setProof("");
+    setSetup(null);
+    setQr("");
+    setNewCode("");
+    setCodes([]);
+    setError(null);
+    setStartFailure(null);
+    if (enabled) return;
+    // Nothing to prove while two-step verification is off.
+    let active = true;
+    startTotpSetup()
+      .then((started) => active && setSetup(started))
+      .catch((failure: unknown) => active && setStartFailure(failure));
+    return () => {
+      active = false;
+    };
+  }, [open, enabled]);
 
   useEffect(() => {
     if (!setup) return;
@@ -1960,7 +2005,8 @@ function ReplaceAuthenticatorDialog({
     try {
       setCodes((await confirmTotpSetup(newCode.trim())).recoveryCodes);
       setStep("codes");
-      toast.success(t.replaced, t.replacedDetail);
+      if (enabled) toast.success(t.replaced, t.replacedDetail);
+      else toast.success(t.enabled, t.enabledDetail);
     } catch (failure) {
       setError(messageFor(failure));
     } finally {
@@ -1977,16 +2023,28 @@ function ReplaceAuthenticatorDialog({
         <DialogHeader className="p-6 pb-0">
           <DialogTitle>
             {step === "verify" && t.verifyTitle}
-            {step === "scan" && t.scanTitle}
+            {step === "scan" && (enabled ? t.scanTitle : t.enableTitle)}
             {step === "codes" && t.codesTitle}
           </DialogTitle>
           <DialogDescription>
             {step === "verify" && t.verifyDescription}
-            {step === "scan" && t.scanDescription}
+            {step === "scan" &&
+              (enabled ? t.scanDescription : t.enableDescription)}
             {step === "codes" && t.codesDescription}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 p-6">
+          {step === "scan" && !setup && (
+            <>
+              {startFailure ? (
+                <ErrorLine message={messageFor(startFailure)} />
+              ) : (
+                <div className="grid h-[180px] place-items-center">
+                  <LoaderCircle className="animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </>
+          )}
           {step === "verify" && (
             <form method="post" onSubmit={verify} className="space-y-4">
               <CodeField
@@ -2054,6 +2112,85 @@ function ReplaceAuthenticatorDialog({
             <RecoveryCodesPanel codes={codes} onDone={onClose} />
           )}
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Turns two-step verification off: the password alone signs in afterwards. */
+function DisableMfaDialog({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const t = useMessages(settingsMessages).disable;
+  const messageFor = useMessageFor();
+  const toast = useToast();
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setCode("");
+      setError(null);
+    }
+  }, [open]);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await disableMfa(code.trim());
+      toast.success(t.done, t.doneDetail);
+      onClose();
+    } catch (failure) {
+      setError(messageFor(failure));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && !busy && onClose()}>
+      <DialogContent className="max-w-[480px] overflow-hidden rounded-[18px] border-[#dbe4f2] shadow-[0_24px_70px_rgba(25,42,84,.22)]">
+        <DialogHeader className="border-b border-[#e6ebf3] bg-[linear-gradient(135deg,#fffaf0,#fff3dc)] p-6">
+          <DialogTitle>{t.title}</DialogTitle>
+          <DialogDescription>{t.description}</DialogDescription>
+        </DialogHeader>
+        <form method="post" onSubmit={submit} className="space-y-4 p-6">
+          <CodeField
+            id="disable-code"
+            label={t.label}
+            value={code}
+            onChange={setCode}
+            hint={t.hint}
+          />
+          <ErrorLine message={error} />
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={busy}
+              className="rounded-[9px]"
+            >
+              {t.cancel}
+            </Button>
+            <Button
+              type="submit"
+              variant="destructive"
+              disabled={busy || code.trim().length < 6}
+              className="rounded-[9px]"
+            >
+              {busy && <LoaderCircle className="animate-spin" />}
+              {t.submit}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

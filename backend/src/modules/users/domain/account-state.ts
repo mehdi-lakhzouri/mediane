@@ -31,9 +31,10 @@ export interface AccountStateFacts {
 
 /**
  * Roles that cannot use the product without a second factor. Others may
- * enable it voluntarily.
+ * enable it voluntarily. Empty: every role, administrators included, chooses
+ * whether to use an authenticator from its security settings.
  */
-export const MFA_REQUIRED_ROLES: readonly Role[] = [Role.ADMIN];
+export const MFA_REQUIRED_ROLES: readonly Role[] = [];
 
 export function isMfaRequired(role: Role): boolean {
   return MFA_REQUIRED_ROLES.includes(role);

@@ -127,7 +127,7 @@ export class MfaController {
   @ApiCsrf()
   @ApiOperation({
     summary:
-      'Turn two-step verification off (needs a current code; not allowed for administrators)',
+      'Turn two-step verification off (needs a current code or a recovery code)',
   })
   @ApiEnvelopeResponse(MfaStatusResponse)
   disable(

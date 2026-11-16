@@ -211,7 +211,7 @@ Account state is derived from persisted facts instead of being stored as a mutab
 ```text
 INVITED
   → PASSWORD_CHANGE_REQUIRED
-  → MFA_SETUP_REQUIRED       (required for administrators)
+  → MFA_SETUP_REQUIRED       (only for roles in MFA_REQUIRED_ROLES; none today)
   → PROFILE_SETUP_REQUIRED   (required for drivers)
   → ACTIVE
 ```

@@ -62,7 +62,7 @@ export class User {
       passwordChangedAt: params.now,
       emailVerifiedAt: params.now,
       profileCompletedAt: params.now,
-      // MFA is set up at first sign-in (MFA_SETUP_REQUIRED for administrators).
+      // MFA is optional: each user turns it on from their security settings.
       mfaEnabledAt: null,
       lastLoginAt: null,
       failedLoginAttempts: 0,

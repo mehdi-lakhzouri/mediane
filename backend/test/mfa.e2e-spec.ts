@@ -19,9 +19,10 @@ import { CookieJar } from './utils/cookie-jar';
 import { enrollTotp, freshCode, webLoginWithMfa } from './utils/mfa';
 
 /**
- * Two-step verification end to end against PostgreSQL: mandatory setup for
+ * Two-step verification end to end against PostgreSQL: optional setup for
  * administrators, the login challenge, recovery codes, step-up on sensitive
- * actions, replacement, admin reset, and optional MFA for drivers on mobile.
+ * actions, replacement, turning it off, admin reset, and optional MFA for
+ * drivers on mobile.
  */
 const API = '/api/v1';
 const ORIGIN = 'http://localhost:3000';
@@ -203,9 +204,9 @@ describe('Two-step verification (e2e)', () => {
       data: { failedLoginAttempts: 0, lockedUntil: null },
     });
 
-  // --- mandatory setup for administrators -------------------------------------
+  // --- optional setup for administrators --------------------------------------
 
-  it('blocks the console until an invited admin has set up an authenticator', async () => {
+  it('lets an invited admin into the console without an authenticator', async () => {
     jar = await browser();
     jar.absorb(
       await post('/auth/login', jar, {
@@ -218,17 +219,14 @@ describe('Two-step verification (e2e)', () => {
       newPassword: ADMIN_PASSWORD,
     }).expect(200);
     jar.absorb(changed);
-    expect(body<LoginResponse>(changed).data?.accountState).toBe(
-      'MFA_SETUP_REQUIRED',
-    );
+    expect(body<LoginResponse>(changed).data?.accountState).toBe('ACTIVE');
 
-    const blocked = await get('/admin/users', jar).expect(403);
-    expect(codeOf(blocked)).toBe('MFA_SETUP_REQUIRED');
+    await get('/admin/users', jar).expect(200);
 
     const status = await get('/auth/mfa', jar).expect(200);
     expect(body<MfaStatus>(status).data).toMatchObject({
       enabled: false,
-      required: true,
+      required: false,
     });
   });
 
@@ -279,13 +277,6 @@ describe('Two-step verification (e2e)', () => {
     for (const code of recoveryCodes) {
       expect(stored.some((r) => r.codeHash.includes(code))).toBe(false);
     }
-  });
-
-  it('never lets an administrator turn MFA off', async () => {
-    const res = await post('/auth/mfa/totp/disable', jar, {
-      code: await freshCode(prisma, adminId, adminSecret),
-    }).expect(403);
-    expect(codeOf(res)).toBe('MFA_REQUIRED');
   });
 
   // --- login challenge ---------------------------------------------------------
@@ -480,6 +471,48 @@ describe('Two-step verification (e2e)', () => {
     });
   });
 
+  // --- turning MFA off ---------------------------------------------------------
+
+  it('lets an administrator turn MFA off, then sign in with the password alone', async () => {
+    const wrong = await post('/auth/mfa/totp/disable', jar, {
+      code: '000000',
+    }).expect(400);
+    expect(codeOf(wrong)).toBe('MFA_CODE_INVALID');
+    await unlock();
+
+    const res = await post('/auth/mfa/totp/disable', jar, {
+      code: await freshCode(prisma, adminId, adminSecret),
+    }).expect(200);
+    expect(body<MfaStatus>(res).data).toMatchObject({
+      enabled: false,
+      required: false,
+    });
+    expect(
+      await prisma.mfaRecoveryCode.count({ where: { userId: adminId } }),
+    ).toBe(0);
+    // The current session stays open.
+    await get('/admin/users', jar).expect(200);
+
+    const cookies = await browser();
+    const login = await post('/auth/login', cookies, {
+      email: adminEmail,
+      password: ADMIN_PASSWORD,
+    }).expect(200);
+    expect(body<LoginResponse>(login).data).toMatchObject({
+      mfaRequired: false,
+      accountState: 'ACTIVE',
+    });
+    cookies.absorb(login);
+    await get('/admin/users', cookies).expect(200);
+
+    // Back on, for the admin reset below.
+    const started = await post('/auth/mfa/totp/setup', jar).expect(200);
+    adminSecret = base32Decode(body<TotpSetup>(started).data!.secret);
+    await post('/auth/mfa/totp/confirm', jar, {
+      code: totpAt(adminSecret, new Date()),
+    }).expect(200);
+  });
+
   // --- admin reset -------------------------------------------------------------
 
   it('lets another admin reset the authenticator, never their own', async () => {
@@ -501,7 +534,7 @@ describe('Two-step verification (e2e)', () => {
     );
     expect(body<{ mfaEnabled: boolean }>(res).data?.mfaEnabled).toBe(false);
 
-    // Every session of the target is gone; next sign-in -> setup again.
+    // Every session of the target is gone; next sign-in -> password alone.
     await get('/auth/me', jar).expect(401);
     const cookies = await browser();
     const login = await post('/auth/login', cookies, {
@@ -510,7 +543,7 @@ describe('Two-step verification (e2e)', () => {
     }).expect(200);
     expect(body<LoginResponse>(login).data).toMatchObject({
       mfaRequired: false,
-      accountState: 'MFA_SETUP_REQUIRED',
+      accountState: 'ACTIVE',
     });
     expect(
       await prisma.mfaRecoveryCode.count({ where: { userId: adminId } }),

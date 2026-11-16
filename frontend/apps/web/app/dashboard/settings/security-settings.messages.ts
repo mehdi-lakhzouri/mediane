@@ -79,6 +79,8 @@ export const settingsMessages = defineMessages({
       codes: "Recovery codes",
       codesLeft: (left: number) => `${left} of 10 codes remaining`,
       generate: "Generate",
+      turnOff: "Turn off",
+      turnOn: "Turn on",
       on: "On",
       off: "Off",
     },
@@ -287,6 +289,22 @@ export const settingsMessages = defineMessages({
       newLabel: "Code from the new app",
       newHint: "The 6 digits now shown in the app you just set up.",
       confirm: "Confirm new app",
+      enableTitle: "Turn on two-step verification",
+      enableDescription:
+        "Scan the QR code with an authenticator app, then enter the code it shows.",
+      enabled: "Two-step verification is on.",
+      enabledDetail: "Your next sign-in will ask for a code from the app.",
+    },
+    disable: {
+      title: "Turn off two-step verification?",
+      description:
+        "You will sign in with your password alone. Your authenticator and recovery codes stop working.",
+      label: "Confirm with a code",
+      hint: "From your authenticator app, or an unused recovery code.",
+      cancel: "Cancel",
+      submit: "Turn off",
+      done: "Two-step verification is off.",
+      doneDetail: "Your next sign-in only needs your password.",
     },
   },
   fr: {
@@ -373,6 +391,8 @@ export const settingsMessages = defineMessages({
       codesLeft: (left: number) =>
         `${left} code${left > 1 ? "s" : ""} restant${left > 1 ? "s" : ""} sur 10`,
       generate: "Générer",
+      turnOff: "Désactiver",
+      turnOn: "Activer",
       on: "Activée",
       off: "Désactivée",
     },
@@ -592,6 +612,23 @@ export const settingsMessages = defineMessages({
       newHint:
         "Les 6 chiffres affichés dans l’application que vous venez de configurer.",
       confirm: "Confirmer la nouvelle application",
+      enableTitle: "Activer la double authentification",
+      enableDescription:
+        "Scannez le QR code avec une application d’authentification, puis saisissez le code affiché.",
+      enabled: "La double authentification est activée.",
+      enabledDetail:
+        "Votre prochaine connexion demandera un code de l’application.",
+    },
+    disable: {
+      title: "Désactiver la double authentification ?",
+      description:
+        "Vous vous connecterez avec votre seul mot de passe. Votre authentificateur et vos codes de récupération ne fonctionneront plus.",
+      label: "Confirmez avec un code",
+      hint: "De votre application d’authentification, ou un code de récupération inutilisé.",
+      cancel: "Annuler",
+      submit: "Désactiver",
+      done: "La double authentification est désactivée.",
+      doneDetail: "Votre prochaine connexion ne demandera que votre mot de passe.",
     },
   },
 });

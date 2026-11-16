@@ -42,3 +42,8 @@ export function confirmTotpSetup(code: string): Promise<RecoveryCodes> {
 export function regenerateRecoveryCodes(code: string): Promise<RecoveryCodes> {
   return api.post<RecoveryCodes>("/auth/mfa/recovery-codes", { code });
 }
+
+/** Turns two-step verification off; needs a current or recovery code. */
+export function disableMfa(code: string): Promise<MfaStatus> {
+  return api.post<MfaStatus>("/auth/mfa/totp/disable", { code });
+}
