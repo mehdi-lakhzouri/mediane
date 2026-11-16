@@ -125,10 +125,7 @@ class HomeScreen extends ConsumerWidget {
       _DriverCard(dashboard: dashboard),
       if (monitoring.devicePaired) ...[
         const SizedBox(height: 14),
-        MonitoringCard(
-          status: monitoring.runtimeStatus,
-          mode: monitoring.runtimeMode,
-        ),
+        MonitoringCard(status: monitoring.runtimeStatus),
       ],
       const SizedBox(height: 14),
       _FamilyBanner(family: dashboard.family),
@@ -396,9 +393,6 @@ class _DriverCard extends StatelessWidget {
       return ('Safety plan ready', AppColors.mint);
     }
     if (monitoring.deviceOnline) {
-      if (monitoring.runtimeMode != 'ACTIVE') {
-        return ('Shadow monitoring', _amber);
-      }
       return monitoring.runtimeStatus == 'READY'
           ? ('Monitoring enabled', AppColors.mint)
           : ('Monitoring limited', _amber);

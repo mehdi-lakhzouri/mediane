@@ -893,7 +893,7 @@ describe('Safety (e2e)', () => {
     const send = (body: object) =>
       deviceRequest(server, gateway, `${API}/device/ai/events`, body);
 
-    it('defaults to shadow mode and negotiates an authenticated association', async () => {
+    it('is active from pairing and negotiates an authenticated association', async () => {
       gateway = await registerUnit('AI');
       await asAdmin('post', `/admin/devices/${gateway.id}/pair`)
         .send({ userId: drivers.ai.id })
@@ -912,19 +912,14 @@ describe('Safety (e2e)', () => {
         ).expect(200),
       );
       associationId = session.associationId;
-      expect(session).toMatchObject({ mode: 'SHADOW', paired: true });
-      const receipt = dataOf<Receipt & { processingMode: string }>(
-        await send(payload()).expect(200),
-      );
-      expect(receipt).toMatchObject({
-        processingMode: 'SHADOW',
-        incidentId: null,
-      });
+      expect(session).toMatchObject({ mode: 'ACTIVE', paired: true });
       expect(await activeOf('ai')).toBeNull();
     });
 
     it('validates provenance and exposes it only to the owning driver', async () => {
-      const body = payload();
+      // Replayed input: checks the contract without opening an incident.
+      const live = payload();
+      const body = { ...live, ai: { ...live.ai, inputKind: 'REPLAY' } };
       const first = dataOf<Receipt>(await send(body).expect(200));
       expect(dataOf<Receipt>(await send(body).expect(200))).toMatchObject({
         eventId: first.eventId,
@@ -942,17 +937,13 @@ describe('Safety (e2e)', () => {
         processingMode: string;
         detection: { model: string };
       }>(await as('ai', 'get', `/safety/events/${first.eventId}`).expect(200));
-      expect(detail.processingMode).toBe('SHADOW');
+      expect(detail.processingMode).toBe('REPLAY');
       expect(detail.detection.model).toBe('Cardiac');
       await as('bilel', 'get', `/safety/events/${first.eventId}`).expect(404);
       await asAdmin('get', `/safety/events/${first.eventId}`).expect(403);
     });
 
-    it('never activates replay or delayed data, even on an active device', async () => {
-      await prisma.vehicleDevice.update({
-        where: { id: gateway.id },
-        data: { aiMode: 'ACTIVE' },
-      });
+    it('never activates replay or delayed data', async () => {
       const replay = payload();
       expect(
         dataOf<{ processingMode: string }>(

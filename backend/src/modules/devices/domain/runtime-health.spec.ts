@@ -15,7 +15,6 @@ describe('monitoring coverage', () => {
     status: 'ACTIVE',
     lastSeenAt: now,
     runtimeHealth: runtime,
-    aiMode: 'SHADOW',
   };
   it('does not interpret a heartbeat without model health as readiness', () => {
     expect(

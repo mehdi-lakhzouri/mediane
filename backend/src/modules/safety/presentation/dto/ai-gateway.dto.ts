@@ -66,13 +66,14 @@ export class AiHeartbeatDto {
 export class AiSessionResponse {
   @ApiProperty({ format: 'uuid' }) associationId!: string;
   @ApiProperty() paired!: boolean;
-  @ApiProperty({ enum: ['SHADOW', 'ACTIVE'] }) mode!: string;
+  /** Always ACTIVE: every live detection can raise an alert. */
+  @ApiProperty({ enum: ['ACTIVE'] }) mode!: 'ACTIVE';
 }
 
 export class AiEventReceiptResponse {
   @ApiProperty({ format: 'uuid' }) eventId!: string;
   @ApiProperty({ type: String, nullable: true }) incidentId!: string | null;
   @ApiProperty() duplicate!: boolean;
-  @ApiProperty({ enum: ['ACTIVE', 'SHADOW', 'REPLAY', 'DELAYED'] })
+  @ApiProperty({ enum: ['ACTIVE', 'REPLAY', 'DELAYED'] })
   processingMode!: string;
 }

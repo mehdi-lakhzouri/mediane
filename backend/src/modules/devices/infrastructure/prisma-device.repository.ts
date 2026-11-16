@@ -24,7 +24,6 @@ const RECORD_SELECT = {
   pairedAt: true,
   firmwareVersion: true,
   associationId: true,
-  aiMode: true,
   runtimeHealth: true,
   lastSeenAt: true,
   secretRotatedAt: true,
@@ -41,7 +40,6 @@ function toRecord(row: DeviceRow): DeviceRecord {
   const { pairedUser, ...device } = row;
   return {
     ...device,
-    aiMode: device.aiMode as DeviceRecord['aiMode'],
     runtimeHealth:
       device.runtimeHealth as unknown as DeviceRecord['runtimeHealth'],
     pairedDriver: pairedUser,

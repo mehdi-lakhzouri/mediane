@@ -441,7 +441,6 @@ model VehicleDevice {
   pairedAt          DateTime?
   firmwareVersion   String?      @db.VarChar(50)
   associationId     String       @default(uuid(7)) @db.Uuid
-  aiMode            String       @default("SHADOW") @db.VarChar(10)
   runtimeHealth     Json?
   lastSeenAt        DateTime?
   secretRotatedAt   DateTime?

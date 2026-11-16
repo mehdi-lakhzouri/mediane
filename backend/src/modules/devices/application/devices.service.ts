@@ -116,7 +116,6 @@ export class DevicesService {
     return this.unitOfWork.run(async () => {
       const paired = await this.devices.update(id, {
         associationId: uuidv7(),
-        aiMode: 'SHADOW',
         runtimeHealth: null,
         pairedUserId: userId,
         pairedAt: new Date(),
@@ -132,7 +131,6 @@ export class DevicesService {
     return this.unitOfWork.run(async () => {
       const unpaired = await this.devices.update(id, {
         associationId: uuidv7(),
-        aiMode: 'SHADOW',
         runtimeHealth: null,
         pairedUserId: null,
         pairedAt: null,
@@ -151,7 +149,6 @@ export class DevicesService {
     return this.unitOfWork.run(async () => {
       const revoked = await this.devices.update(id, {
         associationId: uuidv7(),
-        aiMode: 'SHADOW',
         runtimeHealth: null,
         status: DeviceStatus.REVOKED,
         revokedAt: new Date(),

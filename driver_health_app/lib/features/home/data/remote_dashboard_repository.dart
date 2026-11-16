@@ -83,10 +83,6 @@ class RemoteDashboardRepository {
         {'status': final String status} => status,
         _ => 'UNAVAILABLE',
       },
-      runtimeMode: switch (value['runtime']) {
-        {'mode': final String mode} => mode,
-        _ => 'SHADOW',
-      },
       devicePaired: device is Map && device['paired'] == true,
       deviceOnline: device is Map && device['online'] == true,
       deviceLastSeenAt: device is Map

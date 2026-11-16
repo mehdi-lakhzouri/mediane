@@ -68,7 +68,6 @@ class DashboardMonitoring {
     this.activeIncident,
     this.latestEvent,
     this.runtimeStatus = 'UNAVAILABLE',
-    this.runtimeMode = 'SHADOW',
   });
 
   final bool devicePaired;
@@ -77,7 +76,6 @@ class DashboardMonitoring {
   final ActiveIncidentSummary? activeIncident;
   final LatestEventSummary? latestEvent;
   final String runtimeStatus;
-  final String runtimeMode;
 }
 
 class DashboardFamily {

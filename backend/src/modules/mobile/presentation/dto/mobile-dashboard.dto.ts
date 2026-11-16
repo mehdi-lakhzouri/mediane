@@ -106,7 +106,7 @@ class DashboardMonitoringResponse {
     type: 'object',
     additionalProperties: true,
     description:
-      'Current coverage and shadow/active mode; independent of connectivity.',
+      'Current coverage; mode is always ACTIVE. Independent of connectivity.',
   })
   runtime!: Record<string, unknown>;
   @ApiProperty({ type: DashboardDeviceResponse })

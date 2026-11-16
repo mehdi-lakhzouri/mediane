@@ -43,7 +43,7 @@ export class AiGatewayService {
     return {
       associationId: device.associationId,
       paired: device.pairedUserId !== null,
-      mode: device.aiMode,
+      mode: 'ACTIVE' as const,
     };
   }
 
@@ -56,7 +56,7 @@ export class AiGatewayService {
       return {
         associationId: device.associationId,
         paired: device.pairedUserId !== null,
-        mode: device.aiMode,
+        mode: 'ACTIVE' as const,
       };
     });
   }
@@ -95,7 +95,7 @@ export class AiGatewayService {
           ? 'REPLAY'
           : now.getTime() - detected > AI_MAX_LIVE_AGE_MS
             ? 'DELAYED'
-            : device.aiMode;
+            : 'ACTIVE';
       const { event, incident, duplicate } = await this.ingestion.report(
         {
           userId: device.pairedUserId,

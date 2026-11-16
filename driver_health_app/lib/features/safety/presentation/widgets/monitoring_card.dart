@@ -3,10 +3,9 @@ import 'package:driver_health_app/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class MonitoringCard extends StatelessWidget {
-  const new({required this.status, required this.mode, super.key});
+  const new({required this.status, super.key});
 
   final String status;
-  final String mode;
 
   @override
   Widget build(BuildContext context) {
@@ -16,10 +15,9 @@ class MonitoringCard extends StatelessWidget {
       'DEGRADED' => 'Monitoring coverage is limited',
       _ => 'Monitoring is unavailable',
     };
-    final detail = mode == 'ACTIVE'
-        ? 'Detections can open an alert. '
-              'Readiness does not mean a medical all-clear.'
-        : 'Shadow mode records detections without opening emergency alerts.';
+    const detail =
+        'Detections can open an alert. '
+        'Readiness does not mean a medical all-clear.';
     return SurfaceCard(
       child: Row(
         children: [
@@ -40,7 +38,7 @@ class MonitoringCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(detail, style: const TextStyle(color: AppColors.slate)),
+                const Text(detail, style: TextStyle(color: AppColors.slate)),
               ],
             ),
           ),

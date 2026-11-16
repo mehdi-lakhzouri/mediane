@@ -24,7 +24,6 @@ export function monitoringState(
     status: string;
     lastSeenAt: Date | null;
     runtimeHealth: RuntimeHealth | null;
-    aiMode: string;
   } | null,
   now = new Date(),
 ) {
@@ -49,7 +48,8 @@ export function monitoringState(
   return {
     status,
     online,
-    mode: device?.aiMode ?? 'SHADOW',
+    // Detections always raise alerts; kept for installed app versions.
+    mode: 'ACTIVE' as const,
     lastSeenAt: device?.lastSeenAt ?? null,
     runtime,
   };

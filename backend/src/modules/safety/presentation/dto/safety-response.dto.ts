@@ -34,7 +34,9 @@ export class MedicalEventSummaryResponse {
   @ApiProperty({
     type: String,
     nullable: true,
-    enum: ['ACTIVE', 'SHADOW', 'REPLAY', 'DELAYED'],
+    enum: ['ACTIVE', 'REPLAY', 'DELAYED', 'SHADOW'],
+    description:
+      'ACTIVE may raise an alert; REPLAY and DELAYED are only recorded. SHADOW: older events only.',
   })
   processingMode!: string | null;
   @ApiProperty({ format: 'uuid' }) id!: string;

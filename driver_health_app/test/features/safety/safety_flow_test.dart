@@ -99,7 +99,7 @@ void main() {
     await pumpCabinGuard(tester, backend: backend);
     await signIn(tester);
 
-    expect(find.text('Shadow monitoring'), findsOneWidget);
+    expect(find.text('Monitoring limited'), findsOneWidget);
     expect(find.text('Mediane vehicle connected'), findsOneWidget);
     expect(find.text('Your safety plan is ready'), findsOneWidget);
 

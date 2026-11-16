@@ -88,7 +88,7 @@ class Outbox:
             if payload["ai"]["associationId"] != association_id:
                 raise DeliveryError(409)
             receipt = client.request("POST", "/device/ai/events", payload)
-            if not receipt.get("eventId") or receipt.get("processingMode") not in ("SHADOW", "REPLAY", "DELAYED", "ACTIVE"):
+            if not receipt.get("eventId") or receipt.get("processingMode") not in ("REPLAY", "DELAYED", "ACTIVE"):
                 raise DeliveryError(502)
         except DeliveryError as exc:
             delay = exc.retry_after if exc.retry_after is not None else min(2 ** min(attempts + 1, 8), 300) * random.uniform(0.8, 1.2)
@@ -112,7 +112,7 @@ class Outbox:
             if payload['ai']['associationId'] != association_id:
                 raise DeliveryError(409)
             receipt = await asyncio.to_thread(client.request, 'POST', '/device/ai/events', payload)
-            if not receipt.get('eventId') or receipt.get('processingMode') not in ('SHADOW', 'REPLAY', 'DELAYED', 'ACTIVE'):
+            if not receipt.get('eventId') or receipt.get('processingMode') not in ('REPLAY', 'DELAYED', 'ACTIVE'):
                 raise DeliveryError(502)
         except DeliveryError as exc:
             delay = exc.retry_after if exc.retry_after is not None else min(2 ** min(attempts + 1, 8), 300) * random.uniform(0.8, 1.2)

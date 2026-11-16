@@ -80,7 +80,6 @@ class PairedDriverResponse {
 
 export class DeviceResponse {
   @ApiProperty({ format: 'uuid' }) associationId!: string;
-  @ApiProperty({ enum: ['SHADOW', 'ACTIVE'] }) aiMode!: string;
   @ApiProperty({ type: 'object', additionalProperties: true, nullable: true })
   runtimeHealth!: Record<string, unknown> | null;
   @ApiProperty({ format: 'uuid' }) id!: string;

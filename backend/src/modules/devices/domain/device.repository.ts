@@ -26,7 +26,6 @@ export type DeviceChanges = Partial<
     | 'pairedAt'
     | 'firmwareVersion'
     | 'associationId'
-    | 'aiMode'
     | 'runtimeHealth'
     | 'lastSeenAt'
     | 'secretRotatedAt'
