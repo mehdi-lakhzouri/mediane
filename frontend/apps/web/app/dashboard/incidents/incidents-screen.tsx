@@ -11,10 +11,8 @@ import type {
 import {
   ArrowUpRight,
   BellRing,
-  Clock3,
   Info,
   Layers3,
-  RefreshCw,
   Search,
   Siren,
   X,
@@ -29,8 +27,8 @@ import {
   SelectValue,
 } from "@repo/ui/components/ui/select";
 import { DataTable } from "../../components/data-table/data-table";
+import { LiveRefresh } from "../../components/dashboard/live-refresh";
 import {
-  ctaMotion,
   headerMotion,
   rowMotion,
   sectionMotion,
@@ -314,8 +312,8 @@ export function IncidentsScreen() {
       animate="show"
       className="flex flex-col gap-6"
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <motion.div variants={headerMotion.drivers.title}>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <motion.div variants={headerMotion.drivers.title} className="min-w-0">
           <h1 className="text-[32px] font-bold leading-tight tracking-[-0.035em] text-foreground">
             {t.title}
           </h1>
@@ -325,47 +323,27 @@ export function IncidentsScreen() {
         </motion.div>
         <motion.div
           variants={headerMotion.drivers.actions}
-          className="inline-flex shrink-0"
+          className="shrink-0"
         >
-          <motion.div {...ctaMotion} className="inline-flex">
-            <Button
-              size="lg"
-              disabled={fetching}
-              onClick={() => setRefresh((value) => value + 1)}
-              className="h-[46px] rounded-[9px] px-6 shadow-[0_5px_14px_rgba(48,71,217,.18)]"
-            >
-              <RefreshCw
-                className={`size-4 ${fetching ? "animate-spin" : ""}`}
-              />
-              {fetching ? t.refreshing : t.refresh}
-            </Button>
-          </motion.div>
+          <LiveRefresh
+            fetching={fetching}
+            stale={stale}
+            updatedAt={snapshot?.at ?? null}
+            onRefresh={() => setRefresh((value) => value + 1)}
+            labels={{
+              autoRefresh: t.autoRefresh,
+              updated: t.updated,
+              waiting: t.waitingData,
+              refresh: t.refresh,
+              refreshing: t.refreshing,
+            }}
+          />
         </motion.div>
       </div>
       <IncidentStats
         stats={snapshot && !stale ? snapshot.stats : null}
         loading={!snapshot && fetching}
       />
-      <motion.div
-        variants={sectionMotion}
-        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-[12px] text-muted-foreground"
-      >
-        <span className="inline-flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className={`size-2 rounded-full ${stale ? "bg-warning" : "bg-success"}`}
-          />
-          {t.autoRefresh}
-          <span className="hidden text-border sm:inline">·</span>
-          <span className="hidden sm:inline">{t.global}</span>
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <Clock3 className="size-3.5" />
-          {snapshot
-            ? `${t.updated} · ${format.dateTime(new Date(snapshot.at))}`
-            : t.waitingData}
-        </span>
-      </motion.div>
       {stale && (
         <div
           role="alert"
@@ -374,20 +352,7 @@ export function IncidentsScreen() {
           {t.error}
         </div>
       )}
-      <motion.section variants={sectionMotion} className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-[17px] font-bold tracking-tight">
-              {t.inventory}
-            </h2>
-            <p className="mt-1 text-[12px] text-muted-foreground">
-              {t.inventoryHint}
-            </p>
-          </div>
-          <span className="text-[12px] text-muted-foreground">
-            {current ? t.resultCount(format.number(current.totalItems)) : "—"}
-          </span>
-        </div>
+      <motion.div variants={sectionMotion}>
         <DataTable
           columns={columns}
           data={current?.items ?? []}
@@ -472,6 +437,11 @@ export function IncidentsScreen() {
                   {t.clear}
                 </Button>
               )}
+              <span className="ml-auto text-[12px] text-muted-foreground tabular-nums">
+                {current
+                  ? t.resultCount(format.number(current.totalItems))
+                  : "—"}
+              </span>
             </div>
           }
           emptyState={
@@ -505,17 +475,16 @@ export function IncidentsScreen() {
             </div>
           }
         />
-      </motion.section>
-      <motion.div
-        variants={sectionMotion}
-        className="space-y-2 rounded-xl border border-border bg-card px-4 py-3 text-xs leading-relaxed text-muted-foreground"
-      >
-        <p className="flex items-start gap-2">
-          <Info className="mt-0.5 size-4 shrink-0" />
-          {t.replay}
-        </p>
-        <p className="pl-6">{t.scope}</p>
       </motion.div>
+      <motion.p
+        variants={sectionMotion}
+        className="flex items-start gap-2 text-[12px] leading-relaxed text-muted-foreground"
+      >
+        <Info className="mt-0.5 size-4 shrink-0" />
+        <span>
+          {t.replay} {t.scope}
+        </span>
+      </motion.p>
       <IncidentSheet id={detailId} onClose={() => setDetailId(null)} />
     </motion.div>
   );

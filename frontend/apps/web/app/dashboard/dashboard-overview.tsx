@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import {
+  BellRing,
   CalendarDays,
   ChevronRight,
   ClipboardList,
@@ -53,6 +54,12 @@ import {
 } from "../../lib/api/admin-audit";
 import { listAdminDevices } from "../../lib/api/admin-devices";
 import {
+  getAdminIncidentStats,
+  listAdminIncidents,
+  type AdminIncident,
+  type AdminIncidentStats,
+} from "../../lib/api/admin-incidents";
+import {
   getAdminInvitationStats,
   listAdminInvitations,
   type AdminInvitation,
@@ -67,6 +74,7 @@ import { getApiHealth, type ApiHealth } from "../../lib/api/health";
 import { getUnreadNotificationCount } from "../../lib/api/notifications";
 import { useFormatters, useMessages } from "../../lib/i18n/locale-provider";
 import { defineMessages } from "../../lib/i18n/messages";
+import { IncidentStatusBadge } from "./incidents/incident-badges";
 
 const messages = defineMessages({
   en: {
@@ -82,8 +90,7 @@ const messages = defineMessages({
       pendingInvitations: "Pending invitations",
       families: "Monitored families",
       openIncidents: "Open incidents",
-      healthAlerts: "Health alerts",
-      noAdminApi: "No admin API",
+      escalated: "Escalated alerts",
       unavailable: "Unavailable",
       live: "Live API",
     },
@@ -91,7 +98,7 @@ const messages = defineMessages({
       driverActivity: "Driver activity overview",
       driverActivityHint: "Historical driver totals need a time-series API.",
       health: "Health & incidents",
-      healthHint: "Administrator medical aggregates are not exposed.",
+      healthHint: "Every incident by status, without medical details.",
       system: "System status",
       systemHint: "Live responses from core services.",
       recent: "Recent activity",
@@ -100,7 +107,7 @@ const messages = defineMessages({
       refresh: "Refresh overview",
       priority: "Priority incidents",
       priorityHint: "Incidents requiring attention.",
-      noIncidentFeed: "No administrator incident feed",
+      noOpenIncidents: "No open incident",
       invitations: "Recent invitations",
       invitationsHint: "Latest driver invitations.",
       view: "View",
@@ -113,10 +120,11 @@ const messages = defineMessages({
     },
     breakdown: {
       noData: "No data",
-      critical: "Critical",
-      warning: "Warning",
-      info: "Info",
+      total: "incidents",
+      awaiting: "Awaiting",
+      escalated: "Escalated",
       resolved: "Resolved",
+      cancelled: "Cancelled",
     },
     checks: {
       api: "API service",
@@ -153,8 +161,7 @@ const messages = defineMessages({
       pendingInvitations: "Invitations en attente",
       families: "Familles suivies",
       openIncidents: "Incidents ouverts",
-      healthAlerts: "Alertes santé",
-      noAdminApi: "Pas d’API admin",
+      escalated: "Alertes escaladées",
       unavailable: "Indisponible",
       live: "API en direct",
     },
@@ -163,8 +170,7 @@ const messages = defineMessages({
       driverActivityHint:
         "L’historique des conducteurs nécessite une API de séries temporelles.",
       health: "Santé et incidents",
-      healthHint:
-        "Les agrégats médicaux ne sont pas exposés aux administrateurs.",
+      healthHint: "Tous les incidents par statut, sans détail médical.",
       system: "État du système",
       systemHint: "Réponses en direct des services principaux.",
       recent: "Activité récente",
@@ -173,7 +179,7 @@ const messages = defineMessages({
       refresh: "Actualiser la vue d’ensemble",
       priority: "Incidents prioritaires",
       priorityHint: "Incidents nécessitant une attention.",
-      noIncidentFeed: "Aucun flux d’incidents pour les administrateurs",
+      noOpenIncidents: "Aucun incident ouvert",
       invitations: "Invitations récentes",
       invitationsHint: "Dernières invitations de conducteurs.",
       view: "Voir",
@@ -186,10 +192,11 @@ const messages = defineMessages({
     },
     breakdown: {
       noData: "Aucune donnée",
-      critical: "Critique",
-      warning: "Avertissement",
-      info: "Info",
-      resolved: "Résolu",
+      total: "incidents",
+      awaiting: "En attente",
+      escalated: "Escaladés",
+      resolved: "Résolus",
+      cancelled: "Annulés",
     },
     checks: {
       api: "Service API",
@@ -229,6 +236,8 @@ interface OverviewData {
   audit: AdminAuditEntry[];
   invitations: AdminInvitation[];
   deviceCount: number | null;
+  incidentStats: AdminIncidentStats | null;
+  openIncidents: AdminIncident[];
   apiHealth: ApiHealth | null;
   unreadNotifications: number | null;
   serviceChecks: {
@@ -244,6 +253,8 @@ const EMPTY_DATA: OverviewData = {
   audit: [],
   invitations: [],
   deviceCount: null,
+  incidentStats: null,
+  openIncidents: [],
   apiHealth: null,
   unreadNotifications: null,
   serviceChecks: {
@@ -278,6 +289,9 @@ export function DashboardOverview() {
         devices,
         health,
         unread,
+        incidentStats,
+        escalated,
+        awaiting,
       ] = await Promise.allSettled([
         listUsers({
           page: 1,
@@ -302,6 +316,22 @@ export function DashboardOverview() {
         listAdminDevices({ page: 1, pageSize: 1 }),
         getApiHealth(),
         getUnreadNotificationCount(),
+        getAdminIncidentStats(),
+        // Escalated first: contacts were alerted and nobody answered yet.
+        listAdminIncidents({
+          page: 1,
+          pageSize: 3,
+          status: "ESCALATED",
+          sortBy: "openedAt",
+          sortDir: "desc",
+        }),
+        listAdminIncidents({
+          page: 1,
+          pageSize: 3,
+          status: "AWAITING_RESPONSE",
+          sortBy: "openedAt",
+          sortDir: "desc",
+        }),
       ]);
 
       if (id !== requestId.current) return;
@@ -312,6 +342,11 @@ export function DashboardOverview() {
         audit: fulfilled(audit)?.items ?? [],
         invitations: fulfilled(invitations)?.items ?? [],
         deviceCount: fulfilled(devices)?.totalItems ?? null,
+        incidentStats: fulfilled(incidentStats),
+        openIncidents: [
+          ...(fulfilled(escalated)?.items ?? []),
+          ...(fulfilled(awaiting)?.items ?? []),
+        ].slice(0, 3),
         apiHealth: fulfilled(health),
         unreadNotifications: fulfilled(unread),
         serviceChecks: {
@@ -354,15 +389,19 @@ export function DashboardOverview() {
       },
       {
         label: t.stats.openIncidents,
-        value: null,
+        value: data.incidentStats
+          ? data.incidentStats.awaitingResponse + data.incidentStats.escalated
+          : null,
         icon: Siren,
-        status: { text: t.stats.noAdminApi, variant: "outline" },
+        loading,
+        status: sourceStatus(data.incidentStats, t),
       },
       {
-        label: t.stats.healthAlerts,
-        value: null,
-        icon: HeartPulse,
-        status: { text: t.stats.noAdminApi, variant: "outline" },
+        label: t.stats.escalated,
+        value: data.incidentStats?.escalated ?? null,
+        icon: BellRing,
+        loading,
+        status: sourceStatus(data.incidentStats, t),
       },
     ],
     [data, loading, t],
@@ -375,8 +414,8 @@ export function DashboardOverview() {
       animate="show"
       className="flex flex-col gap-4"
     >
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <motion.div variants={headerMotion.overview.title}>
+      <header className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <motion.div variants={headerMotion.overview.title} className="min-w-0">
           <h1 className="text-[30px] font-extrabold leading-tight tracking-[-0.035em] text-foreground">
             {t.title}
           </h1>
@@ -384,16 +423,17 @@ export function DashboardOverview() {
             {t.subtitle}
           </p>
         </motion.div>
+        {/* Filter, secondary link, then the main action: one row, one height. */}
         <motion.div
           variants={stagger(0.06)}
-          className="flex flex-wrap items-center gap-2.5"
+          className="flex flex-wrap items-center gap-2.5 xl:shrink-0 xl:flex-nowrap"
         >
           <motion.div variants={headerMotion.overview.actions}>
             <Select
               value={range}
               onValueChange={(value) => setRange(value as RangeDays)}
             >
-              <SelectTrigger className="h-10 w-[168px] rounded-[9px] bg-white text-[12px] font-semibold">
+              <SelectTrigger className="h-10 w-[172px] rounded-[9px] bg-white text-[12px] font-semibold">
                 <CalendarDays className="size-4 text-[#40557c]" />
                 <SelectValue />
               </SelectTrigger>
@@ -408,7 +448,7 @@ export function DashboardOverview() {
             <Button
               asChild
               variant="outline"
-              className="h-10 rounded-[9px] bg-white px-4 text-[12px]"
+              className="h-10 rounded-[9px] bg-white px-4 text-[12px] whitespace-nowrap"
             >
               <Link href="/dashboard/audit">
                 <ClipboardList /> {t.viewAudit}
@@ -417,7 +457,10 @@ export function DashboardOverview() {
           </motion.div>
           <motion.div variants={headerMotion.overview.actions}>
             <motion.div {...ctaMotion} className="inline-flex">
-              <Button asChild className="h-10 rounded-[9px] px-4 text-[12px]">
+              <Button
+                asChild
+                className="h-10 rounded-[9px] px-4 text-[12px] whitespace-nowrap shadow-[0_5px_14px_rgba(48,71,217,.18)]"
+              >
                 <Link href="/dashboard/invitations">
                   <UserPlus /> {t.inviteDriver}
                 </Link>
@@ -459,7 +502,11 @@ export function DashboardOverview() {
               <SmallLink href="/dashboard/health" label={t.panels.view} />
             }
           />
-          <HealthIncidentBreakdown t={t.breakdown} />
+          <HealthIncidentBreakdown
+            stats={data.incidentStats}
+            loading={loading}
+            t={t.breakdown}
+          />
         </Panel>
 
         <Panel className="min-h-[270px] 2xl:col-span-3">
@@ -517,7 +564,11 @@ export function DashboardOverview() {
               danger
               compact
             />
-            <EmptyInline icon={Siren} title={t.panels.noIncidentFeed} />
+            <PriorityIncidents
+              rows={data.openIncidents}
+              loading={loading}
+              emptyLabel={t.panels.noOpenIncidents}
+            />
           </Panel>
 
           <Panel className="min-h-[150px] overflow-hidden 2xl:min-h-0">
@@ -683,13 +734,56 @@ function UnavailableChart({ t }: { t: OverviewMessages["chart"] }) {
   );
 }
 
-function HealthIncidentBreakdown({ t }: { t: OverviewMessages["breakdown"] }) {
+function HealthIncidentBreakdown({
+  stats,
+  loading,
+  t,
+}: {
+  stats: AdminIncidentStats | null;
+  loading: boolean;
+  t: OverviewMessages["breakdown"];
+}) {
+  const format = useFormatters();
   const categories = [
-    { label: t.critical, color: "bg-danger" },
-    { label: t.warning, color: "bg-warning" },
-    { label: t.info, color: "bg-primary" },
-    { label: t.resolved, color: "bg-[#cbd5e1]" },
+    {
+      label: t.awaiting,
+      value: stats?.awaitingResponse ?? null,
+      color: "bg-warning",
+      stroke: "var(--warning)",
+    },
+    {
+      label: t.escalated,
+      value: stats?.escalated ?? null,
+      color: "bg-danger",
+      stroke: "var(--danger)",
+    },
+    {
+      label: t.resolved,
+      value: stats?.resolved ?? null,
+      color: "bg-success",
+      stroke: "var(--success)",
+    },
+    {
+      label: t.cancelled,
+      value: stats?.falseAlarm ?? null,
+      color: "bg-[#cbd5e1]",
+      stroke: "#cbd5e1",
+    },
   ];
+  const total = stats?.total ?? 0;
+  // Conic segments in the order of the legend; an empty register stays grey.
+  let angle = 0;
+  const segments = categories
+    .filter((category) => (category.value ?? 0) > 0 && total > 0)
+    .map((category) => {
+      const from = angle;
+      angle += ((category.value ?? 0) / total) * 360;
+      return `${category.stroke} ${from}deg ${angle}deg`;
+    });
+  const ring = segments.length
+    ? `conic-gradient(${segments.join(", ")})`
+    : "conic-gradient(#e3e9f2 0deg, #e3e9f2 360deg)";
+
   return (
     <div className="flex flex-1 items-center justify-center gap-5 px-4 pb-5">
       <motion.div
@@ -701,16 +795,25 @@ function HealthIncidentBreakdown({ t }: { t: OverviewMessages["breakdown"] }) {
           damping: 18,
           delay: 0.45,
         }}
-        className="relative grid size-[112px] shrink-0 place-items-center rounded-full bg-[conic-gradient(#e3e9f2_0deg,#e3e9f2_360deg)] before:absolute before:size-[70px] before:rounded-full before:bg-white"
+        style={{ backgroundImage: ring }}
+        className="relative grid size-[112px] shrink-0 place-items-center rounded-full before:absolute before:size-[70px] before:rounded-full before:bg-white"
       >
         <div className="relative text-center">
-          <p className="font-mono text-xl font-bold text-muted-foreground/55">
-            —
+          {loading ? (
+            <Skeleton className="mx-auto h-6 w-8" />
+          ) : (
+            <p
+              className={`font-mono text-xl font-bold ${stats ? "text-foreground" : "text-muted-foreground/55"}`}
+            >
+              {stats ? format.number(total) : "—"}
+            </p>
+          )}
+          <p className="text-[10px] text-muted-foreground">
+            {stats ? t.total : t.noData}
           </p>
-          <p className="text-[10px] text-muted-foreground">{t.noData}</p>
         </div>
       </motion.div>
-      <ul className="min-w-[82px] space-y-3">
+      <ul className="min-w-[96px] space-y-3">
         {categories.map((category, index) => (
           <motion.li
             key={category.label}
@@ -724,12 +827,58 @@ function HealthIncidentBreakdown({ t }: { t: OverviewMessages["breakdown"] }) {
             <span className="flex-1 text-[10px] text-[#425170]">
               {category.label}
             </span>
-            <span className="font-mono text-[10px] text-muted-foreground">
-              —
+            <span className="font-mono text-[10px] font-semibold text-foreground">
+              {category.value === null ? "—" : format.number(category.value)}
             </span>
           </motion.li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+/** Open incidents, escalated first; each row leads to the register. */
+function PriorityIncidents({
+  rows,
+  loading,
+  emptyLabel,
+}: {
+  rows: AdminIncident[];
+  loading: boolean;
+  emptyLabel: string;
+}) {
+  const format = useFormatters();
+  if (loading) return <RowsSkeleton rows={2} />;
+  if (rows.length === 0) {
+    return <EmptyInline icon={Siren} title={emptyLabel} compact />;
+  }
+  return (
+    <div className="px-4 pb-1">
+      {rows.map((incident, index) => (
+        <MotionLink
+          key={incident.id}
+          custom={index}
+          variants={listItemMotion}
+          initial="hidden"
+          animate="show"
+          href="/dashboard/incidents"
+          className="flex min-h-[40px] items-center gap-2.5 border-t border-border first:border-t-0"
+        >
+          <span className="grid size-7 shrink-0 place-items-center rounded-full bg-danger-surface text-[9px] font-bold text-danger">
+            {initials(incident.driver)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[11px] font-semibold text-foreground">
+              {fullName(incident.driver)}
+            </p>
+            <p className="truncate text-[9px] text-muted-foreground">
+              {format.ago(incident.openedAt)}
+            </p>
+          </div>
+          <IncidentStatusBadge status={incident.status} />
+          <ChevronRight className="size-3.5 text-primary" />
+        </MotionLink>
+      ))}
     </div>
   );
 }

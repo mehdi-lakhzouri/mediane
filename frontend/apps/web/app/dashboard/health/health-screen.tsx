@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import type {
   ColumnDef,
@@ -9,13 +9,20 @@ import type {
   SortingState,
 } from "@tanstack/react-table";
 import {
+  Activity,
   ArrowUpRight,
+  Brain,
+  CalendarDays,
   Clock3,
   Cpu,
+  HeartPulse,
+  Inbox,
   Info,
-  RefreshCw,
+  Link2,
   Search,
   Server,
+  Settings2,
+  ShieldCheck,
   UserRound,
   Wifi,
   WifiOff,
@@ -31,17 +38,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui/components/ui/select";
-import {
-  Sheet,
-  SheetBody,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@repo/ui/components/ui/sheet";
 import { DataTable } from "../../components/data-table/data-table";
 import {
-  ctaMotion,
+  DetailRow,
+  DetailSection,
+  DetailSheet,
+  SheetSummary,
+  SummaryVisual,
+} from "../../components/dashboard/detail-sheet";
+import { LiveRefresh } from "../../components/dashboard/live-refresh";
+import {
   headerMotion,
   rowMotion,
   sectionMotion,
@@ -65,6 +71,11 @@ type CoverageFilter =
   | "READY"
   | "WARMING_UP"
   | "DEGRADED";
+const DETECTOR_ICONS = {
+  cardiac: HeartPulse,
+  seizure: Activity,
+  stroke: Brain,
+} as const;
 const priority: Record<DetectorState, number> = {
   UNAVAILABLE: 0,
   ERROR: 1,
@@ -412,8 +423,8 @@ export function HealthScreen() {
       animate="show"
       className="flex flex-col gap-6"
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <motion.div variants={headerMotion.drivers.title}>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <motion.div variants={headerMotion.drivers.title} className="min-w-0">
           <h1 className="text-[32px] font-bold leading-tight tracking-[-0.035em] text-foreground">
             {t.title}
           </h1>
@@ -423,21 +434,21 @@ export function HealthScreen() {
         </motion.div>
         <motion.div
           variants={headerMotion.drivers.actions}
-          className="inline-flex shrink-0"
+          className="shrink-0"
         >
-          <motion.div {...ctaMotion} className="inline-flex">
-            <Button
-              size="lg"
-              disabled={fetching}
-              onClick={() => setRefresh((value) => value + 1)}
-              className="h-[46px] rounded-[9px] px-6 shadow-[0_5px_14px_rgba(48,71,217,.18)]"
-            >
-              <RefreshCw
-                className={`size-4 ${fetching ? "animate-spin" : ""}`}
-              />
-              {fetching ? t.refreshing : t.refresh}
-            </Button>
-          </motion.div>
+          <LiveRefresh
+            fetching={fetching}
+            stale={stale}
+            updatedAt={snapshot?.at ?? null}
+            onRefresh={() => setRefresh((value) => value + 1)}
+            labels={{
+              autoRefresh: t.autoRefresh,
+              updated: t.updated,
+              waiting: t.notUpdated,
+              refresh: t.refresh,
+              refreshing: t.refreshing,
+            }}
+          />
         </motion.div>
       </div>
 
@@ -449,24 +460,6 @@ export function HealthScreen() {
         known={!!snapshot}
       />
 
-      <motion.div
-        variants={sectionMotion}
-        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-[12px] text-muted-foreground"
-      >
-        <span className="inline-flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className={`size-2 rounded-full ${stale ? "bg-warning" : "bg-success"}`}
-          />
-          {t.autoRefresh}
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <Clock3 className="size-3.5" />
-          {snapshot
-            ? `${t.updated} · ${format.dateTime(new Date(snapshot.at))}`
-            : t.notUpdated}
-        </span>
-      </motion.div>
       {stale && (
         <div
           role="alert"
@@ -476,23 +469,7 @@ export function HealthScreen() {
         </div>
       )}
 
-      <motion.section variants={sectionMotion} className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-[17px] font-bold tracking-tight">
-              {t.inventoryTitle}
-            </h2>
-            <p className="mt-1 text-[12px] text-muted-foreground">
-              {t.inventoryHint}
-            </p>
-          </div>
-          <span className="text-[12px] text-muted-foreground">
-            {t.results(
-              format.number(filtered.length),
-              format.number(devices.length),
-            )}
-          </span>
-        </div>
+      <motion.div variants={sectionMotion}>
         <DataTable
           cardFullWidthColumns={["driver", "detectors", "lastSeen"]}
           columns={columns}
@@ -560,6 +537,12 @@ export function HealthScreen() {
                   {t.clear}
                 </Button>
               )}
+              <span className="ml-auto text-[12px] text-muted-foreground tabular-nums">
+                {t.results(
+                  format.number(filtered.length),
+                  format.number(devices.length),
+                )}
+              </span>
             </div>
           }
           emptyState={
@@ -593,7 +576,7 @@ export function HealthScreen() {
             </div>
           }
         />
-      </motion.section>
+      </motion.div>
       <motion.p
         variants={sectionMotion}
         className="flex items-start gap-2 text-[12px] leading-relaxed text-muted-foreground"
@@ -602,156 +585,153 @@ export function HealthScreen() {
         {t.privacy}
       </motion.p>
 
-      <Sheet
+      <DetailSheet
         open={!!selected}
-        onOpenChange={(open) => {
-          if (!open) setDetailId(null);
-        }}
+        onClose={() => setDetailId(null)}
+        title={t.details}
+        subtitle={t.detailHint}
       >
-        <SheetContent className="sm:max-w-[520px]">
-          <SheetHeader>
-            <SheetTitle>{t.details}</SheetTitle>
-            <SheetDescription>{t.detailHint}</SheetDescription>
-          </SheetHeader>
-          {selected && (
-            <SheetBody className="space-y-6">
-              <div className="flex items-center gap-3">
-                <span className="grid size-12 place-items-center rounded-xl bg-[#e9efff] text-primary">
-                  <Cpu className="size-6" />
-                </span>
-                <div>
-                  <h3 className="font-bold">{selected.label}</h3>
-                  <p className="font-mono text-xs text-muted-foreground">
-                    {selected.serialNumber}
-                  </p>
-                </div>
-              </div>
-              {stale && (
-                <p
-                  role="status"
-                  className="rounded-lg bg-warning-surface p-3 text-xs text-warning-strong"
-                >
-                  {t.error}
-                </p>
-              )}
-              <DetailSection title={t.assignment}>
-                <DetailField label={t.driver}>
-                  {selected.pairedDriver ? (
-                    <>
-                      <span className="block font-semibold">
-                        {fullName(selected.pairedDriver)}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {selected.pairedDriver.email}
-                      </span>
-                    </>
-                  ) : selected.pairedUserId ? (
-                    t.unknown
-                  ) : (
-                    t.unpaired
-                  )}
-                </DetailField>
-                <DetailField label={t.pairedAt}>
-                  {safeDate(selected.pairedAt)}
-                </DetailField>
-              </DetailSection>
-              <DetailSection title={t.connection}>
-                <DetailField label={t.device}>
-                  <span className="inline-flex items-center gap-2">
-                    {deviceHealth(selected, now, stale).online ? (
-                      <Wifi className="size-4 text-success-strong" />
-                    ) : (
-                      <WifiOff className="size-4 text-muted-foreground" />
-                    )}
-                    {stale
-                      ? t.unknown
-                      : selected.status === "REVOKED"
-                        ? t.revokedLabel
-                        : deviceHealth(selected, now).online
-                          ? t.onlineLabel
-                          : t.offlineLabel}
-                  </span>
-                </DetailField>
-                <DetailField label={t.coverage}>
-                  <StatusBadge
-                    state={deviceHealth(selected, now, stale).state}
-                  />
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {t.reasons[deviceHealth(selected, now, stale).reason]}
-                  </p>
-                </DetailField>
-                {DETECTORS.map((key) => (
-                  <DetailField key={key} label={t[key]}>
-                    <StatusBadge
-                      state={deviceHealth(selected, now, stale).detectors[key]}
-                    />
-                  </DetailField>
-                ))}
-                <DetailField label={t.lastSeen}>
-                  {safeDate(selected.lastSeenAt)}
-                </DetailField>
-                <DetailField label={t.queue}>
-                  {deviceHealth(selected, now, stale).queue === null
-                    ? "—"
-                    : format.number(deviceHealth(selected, now, stale).queue!)}
-                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                    {t.queueHelp}
-                  </p>
-                </DetailField>
-              </DetailSection>
-              <DetailSection title={t.configuration}>
-                <DetailField label={t.firmware}>
-                  {selected.firmwareVersion || t.unknown}
-                </DetailField>
-                <DetailField label={t.runtime}>
-                  {selected.runtimeHealth?.runtimeVersion || t.unknown}
-                </DetailField>
-                <DetailField label={t.association}>
-                  <span className="break-all font-mono text-[11px]">
-                    {selected.associationId || t.unknown}
-                  </span>
-                </DetailField>
-                <DetailField label={t.createdAt}>
-                  {safeDate(selected.createdAt)}
-                </DetailField>
-              </DetailSection>
-            </SheetBody>
-          )}
-        </SheetContent>
-      </Sheet>
+        {selected && (
+          <DeviceDetails
+            device={selected}
+            health={deviceHealth(selected, now, stale)}
+            online={deviceHealth(selected, now).online}
+            stale={stale}
+            safeDate={safeDate}
+          />
+        )}
+      </DetailSheet>
     </motion.div>
   );
 }
 
-function DetailSection({
-  title,
-  children,
+/** Sheet body for one cabin unit, laid out like the driver details. */
+function DeviceDetails({
+  device,
+  health,
+  online,
+  stale,
+  safeDate,
 }: {
-  title: string;
-  children: ReactNode;
+  device: AdminDevice;
+  health: ReturnType<typeof deviceHealth>;
+  online: boolean;
+  stale: boolean;
+  safeDate: (date: string | null | undefined) => string;
 }) {
+  const t = useMessages(healthMessages);
+  const format = useFormatters();
   return (
-    <section>
-      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {title}
-      </h3>
-      <dl className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card px-4">
-        {children}
-      </dl>
-    </section>
-  );
-}
-function DetailField({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="grid grid-cols-[120px_minmax(0,1fr)] gap-3 py-3 text-[13px]">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 [overflow-wrap:anywhere]">{children}</dd>
-    </div>
+    <>
+      <SheetSummary
+        visual={<SummaryVisual icon={Cpu} />}
+        title={device.label}
+        subtitle={
+          <span className="font-mono text-[13px]">{device.serialNumber}</span>
+        }
+        badges={<StatusBadge state={health.state} />}
+      />
+      {stale && (
+        <p
+          role="status"
+          className="mt-4 rounded-lg bg-warning-surface p-3 text-xs text-warning-strong"
+        >
+          {t.error}
+        </p>
+      )}
+      <DetailSection icon={UserRound} title={t.assignment}>
+        <DetailRow
+          icon={UserRound}
+          label={t.driver}
+          value={
+            device.pairedDriver ? (
+              <>
+                <span className="block font-semibold">
+                  {fullName(device.pairedDriver)}
+                </span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  {device.pairedDriver.email}
+                </span>
+              </>
+            ) : device.pairedUserId ? (
+              t.unknown
+            ) : (
+              t.unpaired
+            )
+          }
+        />
+        <DetailRow
+          icon={Link2}
+          label={t.pairedAt}
+          value={safeDate(device.pairedAt)}
+        />
+      </DetailSection>
+      <DetailSection icon={Wifi} title={t.connection}>
+        <DetailRow
+          icon={health.online ? Wifi : WifiOff}
+          label={t.device}
+          value={
+            stale
+              ? t.unknown
+              : device.status === "REVOKED"
+                ? t.revokedLabel
+                : online
+                  ? t.onlineLabel
+                  : t.offlineLabel
+          }
+        />
+        <DetailRow
+          icon={ShieldCheck}
+          label={t.coverage}
+          value={<StatusBadge state={health.state} />}
+          hint={t.reasons[health.reason]}
+        />
+        {DETECTORS.map((key) => (
+          <DetailRow
+            key={key}
+            icon={DETECTOR_ICONS[key]}
+            label={t[key]}
+            value={<StatusBadge state={health.detectors[key]} />}
+          />
+        ))}
+        <DetailRow
+          icon={Clock3}
+          label={t.lastSeen}
+          value={safeDate(device.lastSeenAt)}
+        />
+        <DetailRow
+          icon={Inbox}
+          label={t.queue}
+          value={health.queue === null ? "—" : format.number(health.queue)}
+          hint={t.queueHelp}
+        />
+      </DetailSection>
+      <DetailSection icon={Settings2} title={t.configuration}>
+        <DetailRow
+          icon={Cpu}
+          label={t.firmware}
+          value={device.firmwareVersion || t.unknown}
+        />
+        <DetailRow
+          icon={Server}
+          label={t.runtime}
+          value={device.runtimeHealth?.runtimeVersion || t.unknown}
+        />
+        <DetailRow
+          icon={Link2}
+          label={t.association}
+          value={
+            <span className="font-mono text-[11px] break-all">
+              {device.associationId || t.unknown}
+            </span>
+          }
+        />
+        <DetailRow
+          icon={CalendarDays}
+          label={t.createdAt}
+          value={safeDate(device.createdAt)}
+        />
+      </DetailSection>
+    </>
   );
 }

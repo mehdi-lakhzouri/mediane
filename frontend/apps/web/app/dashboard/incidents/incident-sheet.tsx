@@ -1,24 +1,38 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import { BellRing, RefreshCw, Siren } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  BellRing,
+  CalendarClock,
+  CheckCircle2,
+  Clock3,
+  Fingerprint,
+  Hash,
+  Layers3,
+  ListOrdered,
+  Mail,
+  RefreshCw,
+  ShieldAlert,
+  Siren,
+  Timer,
+  UserRound,
+} from "lucide-react";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { Button } from "@repo/ui/components/ui/button";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
-import {
-  Sheet,
-  SheetBody,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@repo/ui/components/ui/sheet";
 import {
   getAdminIncident,
   incidentReference,
   type AdminIncidentDetail,
 } from "../../../lib/api/admin-incidents";
 import { useFormatters, useMessages } from "../../../lib/i18n/locale-provider";
+import {
+  DetailRow,
+  DetailSection,
+  DetailSheet,
+  SheetSummary,
+  SummaryVisual,
+} from "../../components/dashboard/detail-sheet";
 import { fullName } from "../../components/dashboard/users/format";
 import { IncidentStatusBadge } from "./incident-badges";
 import { incidentMessages } from "./incidents.messages";
@@ -89,242 +103,218 @@ export function IncidentSheet({
       value && Number.isFinite(Date.parse(value)) ? value : null,
       "—",
     );
+  const reload = () => setRefresh((value) => value + 1);
+
   return (
-    <Sheet
+    <DetailSheet
       open={!!id}
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
+      onClose={onClose}
+      title={t.details}
+      subtitle={t.detailHint}
+      loading={!!current?.loading && !!incident}
     >
-      <SheetContent className="sm:max-w-[540px]">
-        <SheetHeader>
-          <SheetTitle>{t.details}</SheetTitle>
-          <SheetDescription>{t.detailHint}</SheetDescription>
-        </SheetHeader>
-        <SheetBody className="space-y-6">
-          {current?.error && (
-            <p
-              role="alert"
-              className="rounded-xl border border-warning/30 bg-warning-surface p-3 text-xs text-warning-strong"
-            >
-              {t.detailError}
-            </p>
-          )}
-          {!incident ? (
-            current?.error ? (
+      {current?.error && (
+        <p
+          role="alert"
+          className="mb-4 rounded-xl border border-warning/30 bg-warning-surface p-3 text-xs text-warning-strong"
+        >
+          {t.detailError}
+        </p>
+      )}
+      {!incident ? (
+        current?.error ? (
+          <Button variant="outline" onClick={reload}>
+            <RefreshCw className="size-4" />
+            {t.refresh}
+          </Button>
+        ) : (
+          <div role="status" aria-label={t.refreshing} className="space-y-4">
+            <Skeleton className="h-32 w-full rounded-[12px]" />
+            <Skeleton className="h-48 w-full rounded-[12px]" />
+            <Skeleton className="h-48 w-full rounded-[12px]" />
+          </div>
+        )
+      ) : (
+        <>
+          <SheetSummary
+            visual={<SummaryVisual icon={Siren} tone="danger" />}
+            title={fullName(incident.driver)}
+            subtitle={incident.driver.email}
+            badges={
+              <>
+                <IncidentStatusBadge status={incident.status} />
+                <Badge variant="outline" className="font-mono text-[11px]">
+                  {incidentReference(incident.id)}
+                </Badge>
+              </>
+            }
+            actions={
               <Button
                 variant="outline"
-                onClick={() => setRefresh((value) => value + 1)}
+                disabled={current?.loading}
+                onClick={reload}
+                className="h-11 flex-1 rounded-[9px] border-[#d8e1ee] bg-white"
               >
-                <RefreshCw className="size-4" />
+                <RefreshCw
+                  className={`size-4 ${current?.loading ? "animate-spin" : ""}`}
+                />
                 {t.refresh}
               </Button>
-            ) : (
-              <div
-                role="status"
-                aria-label={t.refreshing}
-                className="space-y-4"
-              >
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-40 w-full" />
-                <Skeleton className="h-40 w-full" />
-              </div>
-            )
-          ) : (
-            <>
-              <div className="flex items-center gap-3">
-                <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-[#feedee] text-[#d92d3a]">
-                  <Siren className="size-6" />
-                </span>
-                <div className="min-w-0">
-                  <h3 className="font-bold">
-                    {incidentReference(incident.id)}
-                  </h3>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {date(incident.openedAt)}
-                  </p>
-                </div>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  disabled={current?.loading}
-                  aria-label={t.refresh}
-                  className="ml-auto"
-                  onClick={() => setRefresh((value) => value + 1)}
-                >
-                  <RefreshCw
-                    className={`size-4 ${current?.loading ? "animate-spin" : ""}`}
-                  />
-                </Button>
-              </div>
-              <DetailSection title={t.identity}>
-                <DetailField label={t.driver}>
-                  <span className="block font-semibold">
-                    {fullName(incident.driver)}
-                  </span>
-                  <span className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
-                    {incident.driver.email}
-                  </span>
-                </DetailField>
-                <DetailField label={t.status}>
-                  <IncidentStatusBadge status={incident.status} />
-                </DetailField>
-                <DetailField label={t.incidentId}>
-                  <span className="break-all font-mono text-[11px]">
-                    {incident.id}
-                  </span>
-                </DetailField>
-                <DetailField label={t.linkedEvents}>
-                  {format.number(incident.eventCount)}
-                </DetailField>
-                <DetailField label={t.notificationCount}>
-                  {format.number(incident.notificationCount)}
-                </DetailField>
-              </DetailSection>
-              <DetailSection title={t.response}>
-                <DetailField label={t.openedAt}>
-                  {date(incident.openedAt)}
-                </DetailField>
-                <DetailField label={t.deadline}>
-                  {date(incident.respondBy)}
-                </DetailField>
-                <DetailField label={t.acknowledged}>
-                  {date(incident.acknowledgedAt)}
-                </DetailField>
-                <DetailField label={t.acknowledgedVia}>
-                  {channels[incident.acknowledgedVia ?? ""] ?? "—"}
-                </DetailField>
-                <DetailField label={t.escalatedAt}>
-                  {date(incident.escalatedAt)}
-                </DetailField>
-                <DetailField label={t.resolvedAt}>
-                  {date(incident.resolvedAt)}
-                </DetailField>
-                <DetailField label={t.resolvedVia}>
-                  {channels[incident.resolvedVia ?? ""] ?? "—"}
-                </DetailField>
-              </DetailSection>
-              <section>
-                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {t.timeline}
-                </h3>
-                {incident.timeline.length ? (
-                  <ol className="space-y-0">
-                    {incident.timeline.map((entry) => (
-                      <li
-                        key={entry.id}
-                        className="relative ml-2 border-l border-border pb-5 pl-6 last:border-0 last:pb-0"
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={`absolute top-1 -left-1.5 size-3 rounded-full border-2 border-card ${entry.kind === "ESCALATED" ? "bg-danger" : entry.kind === "RESOLVED" ? "bg-success" : "bg-primary"}`}
-                        />
-                        <p className="text-[13px] font-medium">
-                          {timelineLabels[entry.kind] ?? t.unknown}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {date(entry.at)}
-                        </p>
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p className="rounded-xl border border-dashed p-4 text-xs text-muted-foreground">
-                    {t.noTimeline}
-                  </p>
-                )}
-              </section>
-              <section>
-                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {t.notifications}
-                </h3>
-                {incident.notifications.length ? (
-                  <ul className="space-y-2">
-                    {incident.notifications.map((attempt) => (
-                      <li
-                        key={attempt.id}
-                        className="rounded-xl border border-border p-3"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="inline-flex items-center gap-2 text-[13px] font-medium">
-                            <BellRing className="size-4 text-muted-foreground" />
-                            {attempt.kind === "ALL_CLEAR"
-                              ? t.allClear
-                              : t.alert}{" "}
-                            · {channels[attempt.channel] ?? t.unknown}
-                          </span>
-                          <Badge
-                            variant={
-                              attempt.status === "FAILED"
-                                ? "danger"
-                                : attempt.status === "SKIPPED" ||
-                                    attempt.channel === "LOG"
-                                  ? "outline"
-                                  : "success"
-                            }
-                            className="text-[10px]"
-                          >
-                            {attempt.status === "FAILED"
-                              ? t.failed
-                              : attempt.status === "SKIPPED"
-                                ? t.skipped
-                                : attempt.channel === "LOG"
-                                  ? t.recorded
-                                  : t.accepted}
-                          </Badge>
-                        </div>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          {date(attempt.attemptedAt)}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="rounded-xl border border-dashed p-4 text-xs text-muted-foreground">
-                    {t.noNotifications}
-                  </p>
-                )}
-                <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                  {t.notificationHint}
-                </p>
-              </section>
-            </>
-          )}
-        </SheetBody>
-      </SheetContent>
-    </Sheet>
-  );
-}
+            }
+          />
 
-function DetailSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <section>
-      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {title}
-      </h3>
-      <dl className="divide-y divide-border rounded-xl border border-border bg-card px-4">
-        {children}
-      </dl>
-    </section>
-  );
-}
-function DetailField({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="grid grid-cols-[125px_minmax(0,1fr)] gap-3 py-3 text-[13px]">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0">{children}</dd>
-    </div>
+          <DetailSection icon={ShieldAlert} title={t.identity}>
+            <DetailRow
+              icon={UserRound}
+              label={t.driver}
+              value={fullName(incident.driver)}
+            />
+            <DetailRow
+              icon={ShieldAlert}
+              label={t.status}
+              value={<IncidentStatusBadge status={incident.status} />}
+            />
+            <DetailRow
+              icon={Layers3}
+              label={t.linkedEvents}
+              value={format.number(incident.eventCount)}
+            />
+            <DetailRow
+              icon={BellRing}
+              label={t.notificationCount}
+              value={format.number(incident.notificationCount)}
+            />
+            <DetailRow
+              icon={Fingerprint}
+              label={t.incidentId}
+              value={
+                <span className="font-mono text-[11px] break-all">
+                  {incident.id}
+                </span>
+              }
+            />
+          </DetailSection>
+
+          <DetailSection icon={Timer} title={t.response}>
+            <DetailRow
+              icon={CalendarClock}
+              label={t.openedAt}
+              value={date(incident.openedAt)}
+            />
+            <DetailRow
+              icon={Timer}
+              label={t.deadline}
+              value={date(incident.respondBy)}
+            />
+            <DetailRow
+              icon={CheckCircle2}
+              label={t.acknowledged}
+              value={date(incident.acknowledgedAt)}
+              hint={
+                incident.acknowledgedVia
+                  ? `${t.acknowledgedVia} · ${channels[incident.acknowledgedVia] ?? t.unknown}`
+                  : undefined
+              }
+            />
+            <DetailRow
+              icon={BellRing}
+              label={t.escalatedAt}
+              value={date(incident.escalatedAt)}
+            />
+            <DetailRow
+              icon={CheckCircle2}
+              label={t.resolvedAt}
+              value={date(incident.resolvedAt)}
+              hint={
+                incident.resolvedVia
+                  ? `${t.resolvedVia} · ${channels[incident.resolvedVia] ?? t.unknown}`
+                  : undefined
+              }
+            />
+          </DetailSection>
+
+          <DetailSection icon={ListOrdered} title={t.timeline} list={false}>
+            {incident.timeline.length ? (
+              <ol>
+                {incident.timeline.map((entry) => (
+                  <li
+                    key={entry.id}
+                    className="relative ml-2 border-l border-[#dce4f0] pb-5 pl-6 last:border-0 last:pb-0"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`absolute top-1 -left-1.5 size-3 rounded-full border-2 border-white ${entry.kind === "ESCALATED" ? "bg-danger" : entry.kind === "RESOLVED" ? "bg-success" : "bg-primary"}`}
+                    />
+                    <p className="text-[14px] font-medium text-[#172554]">
+                      {timelineLabels[entry.kind] ?? t.unknown}
+                    </p>
+                    <p className="mt-1 inline-flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                      <Clock3 className="size-3.5" />
+                      {date(entry.at)}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="rounded-xl border border-dashed p-4 text-xs text-muted-foreground">
+                {t.noTimeline}
+              </p>
+            )}
+          </DetailSection>
+
+          <DetailSection icon={Mail} title={t.notifications} list={false}>
+            {incident.notifications.length ? (
+              <ul className="divide-y divide-[#dce4f0]">
+                {incident.notifications.map((attempt) => (
+                  <li
+                    key={attempt.id}
+                    className="flex flex-wrap items-center justify-between gap-2 py-2.5 first:pt-0 last:pb-0"
+                  >
+                    <div className="min-w-0">
+                      <p className="inline-flex items-center gap-2 text-[14px] font-medium text-[#172554]">
+                        <Hash className="size-4 text-[#2947e8]" />
+                        {attempt.kind === "ALL_CLEAR" ? t.allClear : t.alert}
+                        <span className="font-normal text-muted-foreground">
+                          · {channels[attempt.channel] ?? t.unknown}
+                        </span>
+                      </p>
+                      <p className="mt-0.5 pl-6 text-[12px] text-muted-foreground">
+                        {date(attempt.attemptedAt)}
+                      </p>
+                    </div>
+                    <Badge
+                      variant={
+                        attempt.status === "FAILED"
+                          ? "danger"
+                          : attempt.status === "SKIPPED" ||
+                              attempt.channel === "LOG"
+                            ? "outline"
+                            : "success"
+                      }
+                      className="text-[10px]"
+                    >
+                      {attempt.status === "FAILED"
+                        ? t.failed
+                        : attempt.status === "SKIPPED"
+                          ? t.skipped
+                          : attempt.channel === "LOG"
+                            ? t.recorded
+                            : t.accepted}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="rounded-xl border border-dashed p-4 text-xs text-muted-foreground">
+                {t.noNotifications}
+              </p>
+            )}
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              {t.notificationHint}
+            </p>
+          </DetailSection>
+        </>
+      )}
+    </DetailSheet>
   );
 }

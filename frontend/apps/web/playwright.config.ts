@@ -5,8 +5,9 @@ import { defineConfig, devices } from "@playwright/test";
  *
  *   ADMIN_EMAIL=... ADMIN_PASSWORD=... pnpm --filter web test:e2e
  *
- * The admin must exist WITHOUT an authenticator: the "setup" project enrolls
- * one on first sign-in and saves the session for the authenticated specs.
+ * The admin must exist WITHOUT an authenticator: the "setup" project signs in
+ * with the password, turns two-step verification on from Settings > Security
+ * and saves the session for the authenticated specs.
  * The manual walk-throughs (e2e/*.check.mjs, e2e/*.shots.mjs) are separate.
  */
 const CI = Boolean(process.env.CI);
