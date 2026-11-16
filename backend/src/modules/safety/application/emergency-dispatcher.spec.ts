@@ -1,4 +1,9 @@
-import { type IncidentRecord, IncidentStatus } from '../domain/incident';
+import {
+  type IncidentRecord,
+  IncidentStatus,
+  IncidentTimelineKind,
+  type TimelineEntry,
+} from '../domain/incident';
 import {
   type DeliveryResult,
   EmergencyContactChannel,
@@ -33,7 +38,11 @@ const incident: IncidentRecord = {
 };
 
 const recipients: IncidentRecipients = {
-  driver: { firstName: 'Amira', lastName: 'Driver' },
+  driver: {
+    firstName: 'Amira',
+    lastName: 'Driver',
+    phoneNumber: '+21655000001',
+  },
   contacts: [
     { fullName: 'Sami', phoneNumber: '+21698000001', priority: 1 },
     { fullName: 'Lina', phoneNumber: '+21698000002', priority: 2 },
@@ -81,14 +90,28 @@ describe('EmergencyDispatcher', () => {
   let family: RecordingFamily;
   let dispatcher: EmergencyDispatcher;
   let inbox: { notify: jest.Mock };
+  let timeline: TimelineEntry[];
+  let timelineUnavailable: boolean;
 
   beforeEach(() => {
     stored = [];
+    timelineUnavailable = false;
+    timeline = [
+      {
+        kind: IncidentTimelineKind.ESCALATED,
+        at: incident.escalatedAt!,
+        detail: { reason: 'NO_RESPONSE' },
+      },
+    ];
     completed = [];
     contacts = new RecordingContacts();
     family = new RecordingFamily();
     const incidents = {
       listNotifications: () => Promise.resolve(stored),
+      listTimeline: () =>
+        timelineUnavailable
+          ? Promise.reject(new Error('timeline unavailable'))
+          : Promise.resolve(timeline),
       addNotifications: (_id: string, attempts: NotificationAttempt[]) => {
         stored.push(
           ...attempts.map((a, i) => ({ ...a, id: `n-${stored.length + i}` })),
@@ -120,6 +143,8 @@ describe('EmergencyDispatcher', () => {
     expect(contacts.sent.map((s) => s.priority)).toEqual([1, 2]);
     expect(family.sent.map((s) => s.email)).toEqual(['b@x.test', 'e@x.test']);
     expect(contacts.sent[0].message.location).toEqual(incident.location);
+    expect(contacts.sent[0].message.alertReason).toBe('NO_RESPONSE');
+    expect(contacts.sent[0].message.driver.phoneNumber).toBe('+21655000001');
     expect(stored).toHaveLength(4);
     expect(completed).toEqual(['ALERT']);
     expect(inbox.notify).toHaveBeenCalledWith(['m-1', 'm-2'], {
@@ -158,6 +183,7 @@ describe('EmergencyDispatcher', () => {
         ...incident,
         status: IncidentStatus.RESOLVED,
         resolvedAt: new Date('2026-10-03T10:02:00Z'),
+        resolvedVia: 'APP',
       },
       kind: 'ALL_CLEAR',
     });
@@ -165,6 +191,42 @@ describe('EmergencyDispatcher', () => {
     expect(contacts.sent.map((s) => s.priority)).toEqual([2]);
     expect(family.sent).toHaveLength(2);
     expect(contacts.sent[0].message.location).toBeNull();
+    expect(contacts.sent[0].message.resolvedVia).toBe('APP');
     expect(completed).toEqual(['ALERT', 'ALL_CLEAR']);
+  });
+
+  it('recognizes an SOS that escalated an existing medical incident', async () => {
+    timeline = [
+      {
+        kind: IncidentTimelineKind.ESCALATED,
+        at: incident.escalatedAt!,
+        detail: { reason: 'SOS' },
+      },
+    ];
+    await dispatcher.deliver({ incident, kind: 'ALERT' });
+    expect(contacts.sent[0].message.alertReason).toBe('SOS');
+  });
+
+  it('recognizes a directly opened SOS without relying on timeline details', async () => {
+    timeline = [];
+    await dispatcher.deliver({
+      incident: { ...incident, triggerType: MedicalEventType.SOS },
+      kind: 'ALERT',
+    });
+    expect(contacts.sent[0].message.alertReason).toBe('SOS');
+  });
+
+  it('does not invent an escalation reason when the history is missing', async () => {
+    timeline = [];
+    await dispatcher.deliver({ incident, kind: 'ALERT' });
+    expect(contacts.sent[0].message.alertReason).toBeUndefined();
+  });
+
+  it('still delivers the alert if optional escalation wording cannot be loaded', async () => {
+    timelineUnavailable = true;
+    await dispatcher.deliver({ incident, kind: 'ALERT' });
+    expect(contacts.sent).toHaveLength(2);
+    expect(contacts.sent[0].message.alertReason).toBeUndefined();
+    expect(completed).toEqual(['ALERT']);
   });
 });
