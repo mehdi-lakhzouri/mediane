@@ -47,11 +47,12 @@ function toast(text, kind = "", ms = 4000) {
 
 // ------------------------------------------------------------------ connection
 function connect() {
-  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`);
   ws.onopen = () => { $("conn").textContent = "connected to the car loop"; $("conn").className = "conn ok"; };
   ws.onclose = () => {
     $("conn").textContent = "disconnected, retrying..."; $("conn").className = "conn bad";
     setButtons(false, false); setTimeout(connect, 2000);
+    $("gatewayStatus").textContent = "Dashboard déconnecté ; état d’envoi inconnu.";
   };
   ws.onmessage = (e) => handle(JSON.parse(e.data));
 }
@@ -68,6 +69,7 @@ function setButtons(ready, playing) {
 // ------------------------------------------------------------------ messages
 function handle(m) {
   switch (m.type) {
+    case "gateway": return onGateway(m);
     case "hello": return onHello(m);
     case "scenario": return onScenario(m);
     case "signal": return onSignal(m);
@@ -80,6 +82,19 @@ function handle(m) {
     case "idle": return onIdle(m);
     case "error": return toast(m.text, "error", 8000);
   }
+}
+
+function onGateway(m) {
+  $("gatewayStatus").textContent = !m.enabled
+    ? "Mode local : l’envoi vers le conducteur n’est pas configuré."
+    : m.connected ? "Connecté à l’API — boîtier associé à un conducteur" : "Envoi indisponible";
+  $("gatewayTarget").textContent = m.enabled
+    ? `${m.api} · Boîtier ${m.serial || "non configuré"}${m.driver ? ` · Conducteur configuré : ${m.driver}` : ""}`
+    : "Pour connecter la démo, configurez le boîtier avec python -m gateway.configure, puis redémarrez.";
+  $("gatewayDelivery").textContent = m.enabled
+    ? `${m.sent} détection(s) envoyée(s) · ${m.pending} en attente · ${m.quarantined} refusée(s)` : "";
+  $("gatewayError").hidden = !m.error;
+  $("gatewayError").textContent = m.error || "";
 }
 
 function onHello(m) {

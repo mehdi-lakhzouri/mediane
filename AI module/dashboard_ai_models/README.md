@@ -73,6 +73,48 @@ Loading takes about 10-20 s, then the browser opens at http://127.0.0.1:8000.
 Choose a scenario and press **Play**, or press **Play all scenarios**. Press Ctrl+C in the
 terminal to stop the server.
 
+### Connected demo: Play → VM → driver app
+
+The **Play** and **Play all scenarios** buttons can also send model detections to the
+application API. Register a demo cabin unit on that API and pair it with the intended
+driver first. This is the existing backend device association; entering an email in
+the Python configuration does not create or change that association.
+
+One-time PowerShell setup (from this directory):
+
+```powershell
+.\.venv\Scripts\python.exe -m gateway.configure --api https://api.vunlera.tn/api/v1 --serial CG-AI-DEMO --driver driver@example.com
+```
+
+Enter the unit's signing secret at the hidden prompt. The command checks that the
+unit is paired, pins its association ID, and stores the connection only in the
+gitignored `.gateway/dashboard.json`. Keep that file private. The optional `--driver`
+value is an operator label; the backend's device pairing determines the recipient.
+The secret is never sent to the browser.
+
+Then, including on subsequent launches:
+
+```powershell
+.\.venv\Scripts\python.exe run.py
+```
+
+Click **Play**. The connection panel shows the destination, configured driver label,
+API-confirmed pairing, delivered detections, pending deliveries and errors. No second
+replay process is needed. Only actual alarm episodes are sent, independently for each
+detector; repeating Play starts fresh episodes. Raw signal samples and normal model
+windows stay in the research dashboard.
+
+Open `https://app.vunlera.tn/dashboard/health` as an administrator to see the paired
+unit's runtime status. Open the mobile app as the paired driver to see the latest
+event and history (the home screen refreshes every 15 seconds). The administrator
+view remains operational status only; it does not expose medical predictions.
+
+All playback events are **REPLAY**, even when the device is configured ACTIVE: they
+cannot open emergency incidents. Stopping playback marks the detectors unavailable.
+Network failures retain queued events for retries. A changed pairing blocks sending
+until the operator reconfigures the connection; data is never silently reassigned.
+The Python dashboard still supports local-only playback when no connection is configured.
+
 ## 4. Check that every scenario works
 
 ```bash

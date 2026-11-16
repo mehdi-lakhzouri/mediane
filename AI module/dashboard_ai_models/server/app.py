@@ -7,11 +7,14 @@ import asyncio
 import json
 import os
 from contextlib import asynccontextmanager
+from urllib.parse import urlsplit
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from gateway.dashboard import DashboardGateway, load_config
+from gateway.replay import verified_manifest
 from pipeline.scenarios import ROOT, build_scenarios
 from .car_loop import CarLoop, clean
 from .model_workers import start_workers
@@ -34,6 +37,9 @@ async def broadcast(msg):
 
 @asynccontextmanager
 async def lifespan(app):
+    # Validate exported artifacts before model workers unpickle them.
+    manifest = verified_manifest()
+    config = load_config()
     print("Loading the data of every scenario ...")
     scenarios = await asyncio.to_thread(build_scenarios, lambda m: print("  ", m))
     for s in scenarios:
@@ -42,12 +48,23 @@ async def lifespan(app):
     workers, infos = await start_workers()
     for i in infos:
         print(f"   {i['model']:8s} {', '.join(i['files'])}")
-    app.state.loop = CarLoop(scenarios, workers, broadcast, infos)
+    gateway = app.state.gateway = DashboardGateway(config, broadcast, manifest=manifest)
+    await gateway.start()
+
+    async def publish(message):
+        await gateway.observe(message)
+        await broadcast(message)
+
+    app.state.loop = CarLoop(scenarios, workers, publish, infos)
+    app.state.controls = asyncio.Lock()
     print("Ready.")
-    yield
-    await app.state.loop.stop()
-    for w in workers.values():
-        w.close()
+    try:
+        yield
+    finally:
+        await app.state.loop.stop()
+        await gateway.close()
+        for w in workers.values():
+            w.close()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -66,10 +83,18 @@ async def _sender(ws, q):
 
 @app.websocket("/ws")
 async def websocket(ws: WebSocket):
+    host = ws.headers.get('host', '')
+    origin = ws.headers.get('origin')
+    if urlsplit('http://' + host).hostname not in ('127.0.0.1', 'localhost', '::1') or (
+        origin and origin not in ('http://' + host, 'https://' + host)
+    ):
+        await ws.close(code=1008)
+        return
     await ws.accept()
     loop = app.state.loop
     q = asyncio.Queue(maxsize=600)
     await ws.send_text(encode(loop.hello()))
+    await ws.send_text(encode(app.state.gateway.snapshot()))
     for m in loop.snapshot():
         q.put_nowait(encode(m))
     clients.add(q)
@@ -77,12 +102,17 @@ async def websocket(ws: WebSocket):
     try:
         while True:
             cmd = json.loads(await ws.receive_text())
-            if cmd.get("cmd") == "play" and cmd.get("scenario") in loop.scenarios:
-                loop.play([cmd["scenario"]])
-            elif cmd.get("cmd") == "play_all":
-                loop.play(loop.order)
-            elif cmd.get("cmd") == "stop":
-                await loop.stop()
+            async with app.state.controls:
+                if cmd.get("cmd") == "play" and cmd.get("scenario") in loop.scenarios:
+                    if await app.state.gateway.prepare():
+                        await loop.stop()
+                        loop.play([cmd["scenario"]])
+                elif cmd.get("cmd") == "play_all":
+                    if await app.state.gateway.prepare():
+                        await loop.stop()
+                        loop.play(loop.order)
+                elif cmd.get("cmd") == "stop":
+                    await loop.stop()
     except (WebSocketDisconnect, RuntimeError):
         pass
     finally:

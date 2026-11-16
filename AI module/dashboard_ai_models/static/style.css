@@ -51,6 +51,9 @@ button.link { background: none; border: none; color: var(--text-2); text-decorat
 .conn { margin-left: auto; font-size: 13px; color: var(--muted); }
 .conn.ok::before { content: "\25CF "; color: var(--normal); }
 .conn.bad::before { content: "\25CF "; color: var(--critical); }
+.demo-connection { margin: 0 0 12px; display: grid; gap: 5px; font-size: 13px; }
+.demo-connection .badge-sim { margin-left: 8px; }
+.gateway-error { color: var(--warning); }
 .info { display: grid; grid-template-columns: 1.15fr 1.3fr 0.75fr; gap: 16px; font-size: 12px; color: var(--text-2); margin-bottom: 8px; }
 .sources div, .models div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sources b, .models b { color: var(--text); font-weight: 600; }

@@ -100,12 +100,16 @@ class CarLoop:
 
     async def _play(self, names):
         self.playlist, self.results = list(names), []
-        for i, name in enumerate(names):
-            if i:
-                await self.send({"type": "status", "text": f"Next scenario: {name}", "seconds": 4})
-                await asyncio.sleep(4)
-            self.results.append(await self.run(self.scenarios[name], True, i, len(names)))
-        await self.send({"type": "idle", "results": self.results, "stopped": False})
+        try:
+            for i, name in enumerate(names):
+                if i:
+                    await self.send({"type": "status", "text": f"Next scenario: {name}", "seconds": 4})
+                    await asyncio.sleep(4)
+                self.results.append(await self.run(self.scenarios[name], True, i, len(names)))
+        except Exception as exc:
+            await self.send({"type": "error", "text": f"Scenario failed: {type(exc).__name__}: {exc}"})
+        finally:
+            await self.send({"type": "idle", "results": self.results, "stopped": False})
 
     # ------------------------------------------------------------------ one scenario
     def _scenario_msg(self, sc):

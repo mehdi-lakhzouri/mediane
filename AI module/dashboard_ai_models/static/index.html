@@ -26,6 +26,15 @@
   <div id="conn" class="conn">connecting...</div>
 </header>
 
+<section class="demo-connection panel" aria-label="Connexion de la démonstration" aria-live="polite">
+  <div><b>Démo connectée</b> <span class="badge-sim">REPLAY</span>
+    <span id="gatewayStatus">Vérification de la connexion…</span></div>
+  <div id="gatewayTarget" class="muted"></div>
+  <div id="gatewayDelivery"></div>
+  <div id="gatewayError" class="gateway-error" hidden></div>
+  <div class="small">Les détections sont enregistrées dans l’historique du conducteur sans déclencher d’urgence.</div>
+</section>
+
 <section class="info">
   <div id="sources" class="sources"></div>
   <div id="notes" class="notes"></div>
