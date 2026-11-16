@@ -105,6 +105,8 @@ interface DataTableProps<T> {
   loading?: boolean;
   /** Filters and search, rendered above the table. */
   toolbar?: ReactNode;
+  /** Columns whose fields use the full width of a card. */
+  cardFullWidthColumns?: readonly string[];
   /** Shown below the toolbar while at least one row is selected. */
   bulkBar?: ReactNode;
   emptyState?: ReactNode;
@@ -141,6 +143,7 @@ export function DataTable<T>({
   onRowSelectionChange,
   loading = false,
   toolbar,
+  cardFullWidthColumns = [],
   bulkBar,
   emptyState,
   activeRowId,
@@ -401,6 +404,7 @@ export function DataTable<T>({
             transition={{ duration: 0.2, ease: EASE }}
           >
             <CardGrid
+              cardFullWidthColumns={cardFullWidthColumns}
               rowVariants={rowVariants}
               table={table}
               columns={columns}
@@ -495,6 +499,7 @@ export function DataTable<T>({
 }
 
 function CardGrid<T>({
+  cardFullWidthColumns,
   table,
   columns,
   loading,
@@ -505,6 +510,7 @@ function CardGrid<T>({
   pageSize,
   rowVariants,
 }: {
+  cardFullWidthColumns: readonly string[];
   table: ReturnType<typeof useReactTable<T>>;
   columns: ColumnDef<T>[];
   loading: boolean;
@@ -629,7 +635,14 @@ function CardGrid<T>({
 
                 <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5">
                   {detailCells.map((cell) => (
-                    <div key={cell.id} className="min-w-0">
+                    <div
+                      key={cell.id}
+                      className={cn(
+                        "min-w-0",
+                        cardFullWidthColumns.includes(cell.column.id) &&
+                          "col-span-2",
+                      )}
+                    >
                       <dt className="mb-1.5 text-[10px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
                         {cardFieldLabel(
                           cell.column.id,
