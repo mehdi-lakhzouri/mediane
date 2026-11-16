@@ -63,6 +63,10 @@ export default function nextConfig(phase) {
     outputFileTracingRoot: fileURLToPath(new URL("../../", import.meta.url)),
     // No "X-Powered-By: Next.js" fingerprint.
     poweredByHeader: false,
+    experimental: {
+      // Nudge coding agents about security upgrades for this app.
+      agentUpgrade: "security",
+    },
     async headers() {
       return [{ source: "/:path*", headers: securityHeaders(isDev) }];
     },
