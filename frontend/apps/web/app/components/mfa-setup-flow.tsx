@@ -45,16 +45,16 @@ const messages = defineMessages({
     scan: {
       title: "Connect your authenticator",
       copy: "Open your authenticator app (Google Authenticator, Microsoft Authenticator, Authy, etc.) and scan this QR code.",
-      qrAlt: "QR code for the CabinGuard authenticator setup",
+      qrAlt: "QR code for the Mediane authenticator setup",
       manual: "or enter manually",
       copyKey: "Copy setup key",
-      tip: "This code is unique to your CabinGuard account and works only once. Keep it confidential.",
+      tip: "This code is unique to your Mediane account and works only once. Keep it confidential.",
       next: "I've scanned the code",
     },
     verify: {
       eyebrow: "Verify your authenticator",
       title: "Enter the six-digit code",
-      copy: "Type the code currently shown for CabinGuard in your authenticator app.",
+      copy: "Type the code currently shown for Mediane in your authenticator app.",
       refreshes: (seconds: number) => `Code refreshes in ${seconds}s`,
       submit: "Verify securely",
       submitting: "Verifying…",
@@ -68,7 +68,7 @@ const messages = defineMessages({
       copied: "Copied",
       copyAll: "Copy all",
       download: "Download .txt",
-      fileHeader: "CabinGuard recovery codes",
+      fileHeader: "Mediane recovery codes",
       fileNote: "Each code works once. Keep them private.",
       saved: "I have stored these codes somewhere safe.",
       next: "Continue",
@@ -107,16 +107,16 @@ const messages = defineMessages({
     scan: {
       title: "Associez votre authentificateur",
       copy: "Ouvrez votre application d’authentification (Google Authenticator, Microsoft Authenticator, Authy, etc.) et scannez ce QR code.",
-      qrAlt: "QR code de configuration de l’authentificateur CabinGuard",
+      qrAlt: "QR code de configuration de l’authentificateur Mediane",
       manual: "ou saisissez la clé manuellement",
       copyKey: "Copier la clé de configuration",
-      tip: "Ce code est propre à votre compte CabinGuard et ne fonctionne qu’une fois. Gardez-le confidentiel.",
+      tip: "Ce code est propre à votre compte Mediane et ne fonctionne qu’une fois. Gardez-le confidentiel.",
       next: "J’ai scanné le code",
     },
     verify: {
       eyebrow: "Vérifiez votre authentificateur",
       title: "Saisissez le code à six chiffres",
-      copy: "Saisissez le code actuellement affiché pour CabinGuard dans votre application d’authentification.",
+      copy: "Saisissez le code actuellement affiché pour Mediane dans votre application d’authentification.",
       refreshes: (seconds: number) => `Nouveau code dans ${seconds} s`,
       submit: "Vérifier en toute sécurité",
       submitting: "Vérification…",
@@ -130,7 +130,7 @@ const messages = defineMessages({
       copied: "Copié",
       copyAll: "Tout copier",
       download: "Télécharger le .txt",
-      fileHeader: "Codes de récupération CabinGuard",
+      fileHeader: "Codes de récupération Mediane",
       fileNote:
         "Chaque code ne fonctionne qu’une fois. Gardez-les confidentiels.",
       saved: "J’ai conservé ces codes en lieu sûr.",
@@ -349,7 +349,7 @@ function RecoveryStep({
     const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
     const link = document.createElement("a");
     link.href = url;
-    link.download = "cabinguard-recovery-codes.txt";
+    link.download = "mediane-recovery-codes.txt";
     link.click();
     URL.revokeObjectURL(url);
   }

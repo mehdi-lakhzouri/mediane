@@ -40,12 +40,12 @@ class StartupStatusScreen extends ConsumerWidget {
         title: 'A quick safety update',
         message:
             bootstrap?.maintenanceMessage ??
-            'CabinGuard is receiving an update. Please try again shortly.',
+            'Mediane is receiving an update. Please try again shortly.',
         action: 'Check again',
       ),
       StartupDestination.mandatoryUpdate => (
         icon: Icons.system_update_alt_rounded,
-        title: 'Update CabinGuard',
+        title: 'Update Mediane',
         message:
             'Version ${bootstrap?.minimumSupportedVersion ?? ''} or newer is '
             'required to keep safety features working correctly.',
@@ -55,7 +55,7 @@ class StartupStatusScreen extends ConsumerWidget {
         icon: Icons.cloud_sync_rounded,
         title: 'We’ll be right back',
         message:
-            'CabinGuard can’t reach its secure services right now. Your '
+            'Mediane can’t reach its secure services right now. Your '
             'account and safety settings are unchanged.',
         action: 'Try again',
       ),
@@ -71,7 +71,7 @@ class StartupStatusScreen extends ConsumerWidget {
         icon: Icons.cloud_off_rounded,
         title: 'You’re offline',
         message:
-            'Reconnect to the internet so CabinGuard can verify your safety '
+            'Reconnect to the internet so Mediane can verify your safety '
             'settings and secure session.',
         action: 'Try again',
       ),

@@ -74,7 +74,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             ),
             const SizedBox(height: 10),
             const Text(
-              'Enter the email linked to your CabinGuard account. We’ll send '
+              'Enter the email linked to your Mediane account. We’ll send '
               'secure reset instructions.',
               textAlign: TextAlign.center,
               style: TextStyle(

@@ -115,7 +115,7 @@ class _AuthenticatorSetupScreenState
             ),
             const SizedBox(height: 6),
             const Text(
-              'Add CabinGuard to your authenticator app.',
+              'Add Mediane to your authenticator app.',
               style: TextStyle(color: AppColors.slate, fontSize: 16),
             ),
             const SizedBox(height: 20),
@@ -151,7 +151,7 @@ class _AuthenticatorSetupScreenState
         title: 'Open your authenticator app',
         children: [
           const Text(
-            'On this phone, tap below to add CabinGuard to Google '
+            'On this phone, tap below to add Mediane to Google '
             'Authenticator, Microsoft Authenticator, 1Password or a similar '
             'app.',
             style: TextStyle(color: AppColors.ice, height: 1.4),
@@ -175,7 +175,7 @@ class _AuthenticatorSetupScreenState
           if (_showQr)
             Center(
               child: Semantics(
-                label: 'QR code to add CabinGuard to an authenticator app',
+                label: 'QR code to add Mediane to an authenticator app',
                 image: true,
                 excludeSemantics: true,
                 child: Container(

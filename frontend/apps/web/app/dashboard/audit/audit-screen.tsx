@@ -65,7 +65,7 @@ const messages = defineMessages({
   en: {
     title: "Audit log",
     subtitle:
-      "Investigate security, access and administrative activity across CabinGuard.",
+      "Investigate security, access and administrative activity across Mediane.",
     export: "Export page",
     refresh: "Refresh",
     columns: {
@@ -107,7 +107,7 @@ const messages = defineMessages({
   fr: {
     title: "Journal d’audit",
     subtitle:
-      "Analysez l’activité de sécurité, d’accès et d’administration sur CabinGuard.",
+      "Analysez l’activité de sécurité, d’accès et d’administration sur Mediane.",
     export: "Exporter la page",
     refresh: "Actualiser",
     columns: {

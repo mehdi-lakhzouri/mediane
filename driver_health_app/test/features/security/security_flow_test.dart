@@ -122,9 +122,9 @@ void main() {
         return FakeResponse.ok({
           'secret': 'JBSWY3DPEHPK3PXP',
           'otpauthUri':
-              'otpauth://totp/CabinGuard:amira%40example.com'
-              '?secret=JBSWY3DPEHPK3PXP&issuer=CabinGuard',
-          'issuer': 'CabinGuard',
+              'otpauth://totp/Mediane:amira%40example.com'
+              '?secret=JBSWY3DPEHPK3PXP&issuer=Mediane',
+          'issuer': 'Mediane',
           'accountName': 'amira@example.com',
           'algorithm': 'SHA1',
           'digits': 6,
@@ -307,7 +307,7 @@ void main() {
         keystore: savedSession(),
       );
 
-      expect(find.text('Unlock CabinGuard'), findsOneWidget);
+      expect(find.text('Unlock Mediane'), findsOneWidget);
       expect(homeGreeting, findsNothing);
       expect(backend.requestsTo('GET', 'mobile/dashboard'), isEmpty);
 

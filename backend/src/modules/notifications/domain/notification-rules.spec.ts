@@ -61,7 +61,7 @@ describe('lockScreenPreview', () => {
   it('is generic by default: no names, no details', () => {
     const preview = lockScreenPreview(alert, DEFAULT_PREFERENCES);
     expect(preview).toEqual({
-      title: 'CabinGuard',
+      title: 'Mediane',
       body: 'You have a new safety alert.',
     });
     expect(JSON.stringify(preview)).not.toContain('Karim');
@@ -72,7 +72,7 @@ describe('lockScreenPreview', () => {
       showNamesOnLockScreen: true,
     });
     expect(preview.title).toBe('Karim may need help');
-    expect(preview.body).toBe('Open CabinGuard for details.');
+    expect(preview.body).toBe('Open Mediane for details.');
     expect(preview.body).not.toContain(alert.body);
   });
 });

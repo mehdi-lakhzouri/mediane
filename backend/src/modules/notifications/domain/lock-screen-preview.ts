@@ -26,6 +26,6 @@ export function lockScreenPreview(
   preferences: Pick<NotificationPreferences, 'showNamesOnLockScreen'>,
 ): LockScreenPreview {
   return preferences.showNamesOnLockScreen
-    ? { title: notification.title, body: 'Open CabinGuard for details.' }
-    : { title: 'CabinGuard', body: GENERIC_BODY[notification.category] };
+    ? { title: notification.title, body: 'Open Mediane for details.' }
+    : { title: 'Mediane', body: GENERIC_BODY[notification.category] };
 }

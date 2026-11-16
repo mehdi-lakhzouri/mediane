@@ -13,11 +13,11 @@ import { Privacy } from "./_components/privacy";
 import { SiteFooter } from "./_components/site-footer";
 import { SiteHeader } from "./_components/site-header";
 
-const EN_TITLE = "CabinGuard | Driver health monitoring for a safer tomorrow";
+const EN_TITLE = "Mediane | Driver health monitoring for a safer tomorrow";
 const EN_DESCRIPTION =
   "Real-time driver health monitoring, family alerts, emergency response and incident management in one platform.";
 const FR_TITLE =
-  "CabinGuard | La surveillance de la santé du conducteur pour un avenir plus sûr";
+  "Mediane | La surveillance de la santé du conducteur pour un avenir plus sûr";
 const FR_DESCRIPTION =
   "Surveillance en temps réel de la santé du conducteur, alertes familiales, intervention d’urgence et gestion des incidents dans une seule plateforme.";
 

@@ -14,7 +14,6 @@ import {
   KeyRound,
   Search,
   Settings2,
-  ShieldCheck,
   SlidersHorizontal,
   UserRound,
   Users,
@@ -30,10 +29,11 @@ import { cn } from "@repo/ui/lib/utils";
 import { NAV_ITEMS, navMessages } from "../../dashboard/nav";
 import { useMessages } from "../../../lib/i18n/locale-provider";
 import { defineMessages } from "../../../lib/i18n/messages";
+import { MedianeMark } from "../mediane-brand";
 
 const messages = defineMessages({
   en: {
-    title: "Search CabinGuard",
+    title: "Search Mediane",
     description: "Jump to a dashboard page or setting.",
     placeholder: "Search users, families, security…",
     navigation: "Dashboard",
@@ -47,7 +47,7 @@ const messages = defineMessages({
     team: "Team access",
     teamDescription: "Review administrators and drivers",
     notifications: "Notification preferences",
-    notificationsDescription: "Choose how CabinGuard keeps you informed",
+    notificationsDescription: "Choose how Mediane keeps you informed",
     preferences: "Dashboard preferences",
     preferencesDescription: "Language, timezone and interface density",
     empty: "No result found",
@@ -57,7 +57,7 @@ const messages = defineMessages({
     close: "Close",
   },
   fr: {
-    title: "Rechercher dans CabinGuard",
+    title: "Rechercher dans Mediane",
     description: "Accédez rapidement à une page ou à un réglage.",
     placeholder: "Rechercher utilisateurs, familles, sécurité…",
     navigation: "Tableau de bord",
@@ -67,11 +67,12 @@ const messages = defineMessages({
     general: "Paramètres généraux",
     generalDescription: "Compte, mot de passe et actions rapides",
     security: "Sécurité et MFA",
-    securityDescription: "Authentificateur, codes de récupération et protection",
+    securityDescription:
+      "Authentificateur, codes de récupération et protection",
     team: "Accès de l’équipe",
     teamDescription: "Consultez les administrateurs et conducteurs",
     notifications: "Préférences de notification",
-    notificationsDescription: "Choisissez comment CabinGuard vous informe",
+    notificationsDescription: "Choisissez comment Mediane vous informe",
     preferences: "Préférences du tableau de bord",
     preferencesDescription: "Langue, fuseau horaire et densité de l’interface",
     empty: "Aucun résultat",
@@ -111,13 +112,14 @@ export function DashboardSearch({
       ...NAV_ITEMS.map((item) => ({
         id: item.key,
         label: nav.items[item.key],
-        description: nav.sections[
-          item.key === "health" || item.key === "incidents"
-            ? "safety"
-            : item.key === "audit" || item.key === "settings"
-              ? "system"
-              : "operations"
-        ],
+        description:
+          nav.sections[
+            item.key === "health" || item.key === "incidents"
+              ? "safety"
+              : item.key === "audit" || item.key === "settings"
+                ? "system"
+                : "operations"
+          ],
         href: item.href,
         group: t.navigation,
         icon: item.icon,
@@ -130,7 +132,8 @@ export function DashboardSearch({
         href: "/dashboard/profile",
         group: t.navigation,
         icon: UserRound,
-        keywords: "profile account identity devices profil compte identité appareils",
+        keywords:
+          "profile account identity devices profil compte identité appareils",
       },
       {
         id: "settings-general",
@@ -148,7 +151,8 @@ export function DashboardSearch({
         href: "/dashboard/settings#security",
         group: t.settings,
         icon: KeyRound,
-        keywords: "security mfa authenticator recovery codes sécurité authentificateur récupération",
+        keywords:
+          "security mfa authenticator recovery codes sécurité authentificateur récupération",
       },
       {
         id: "settings-team",
@@ -175,7 +179,8 @@ export function DashboardSearch({
         href: "/dashboard/settings#preferences",
         group: t.settings,
         icon: SlidersHorizontal,
-        keywords: "preferences language timezone density langue fuseau densité flags drapeaux",
+        keywords:
+          "preferences language timezone density langue fuseau densité flags drapeaux",
       },
     ],
     [nav, t],
@@ -186,9 +191,9 @@ export function DashboardSearch({
     if (!needle) return items.slice(0, 10);
     return items
       .filter((item) =>
-        normalize(`${item.label} ${item.description} ${item.keywords}`).includes(
-          needle,
-        ),
+        normalize(
+          `${item.label} ${item.description} ${item.keywords}`,
+        ).includes(needle),
       )
       .slice(0, 10);
   }, [items, query]);
@@ -325,15 +330,19 @@ export function DashboardSearch({
 
         <div className="flex items-center gap-4 border-t border-border bg-muted/35 px-5 py-2.5 text-[10px] font-medium text-muted-foreground">
           <span className="flex items-center gap-1.5">
-            <kbd className="rounded border border-border bg-card px-1.5 py-0.5">↑↓</kbd>
+            <kbd className="rounded border border-border bg-card px-1.5 py-0.5">
+              ↑↓
+            </kbd>
             {t.move}
           </span>
           <span className="flex items-center gap-1.5">
-            <kbd className="rounded border border-border bg-card px-1.5 py-0.5">↵</kbd>
+            <kbd className="rounded border border-border bg-card px-1.5 py-0.5">
+              ↵
+            </kbd>
             {t.open}
           </span>
           <span className="ml-auto flex items-center gap-1.5">
-            <ShieldCheck className="size-3.5 text-primary" /> CabinGuard
+            <MedianeMark size={16} /> Mediane
           </span>
         </div>
       </DialogContent>

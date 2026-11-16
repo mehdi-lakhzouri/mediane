@@ -39,11 +39,11 @@ const messages = defineMessages({
       rateLimited:
         "Too many sign-in attempts. Please wait a few minutes and try again.",
       validation: "Please enter a valid email address and password.",
-      mobileOnly: "Driver accounts sign in with the CabinGuard mobile app.",
+      mobileOnly: "Driver accounts sign in with the Mediane mobile app.",
     },
     title: "Welcome back",
     eyebrow: "Secure portal",
-    subtitle: "Sign in to your CabinGuard account",
+    subtitle: "Sign in to your Mediane account",
     expiredTitle: "Session ended safely",
     expiredMessage:
       "You were signed out after 30 minutes without activity. Sign in again to continue.",
@@ -77,11 +77,11 @@ const messages = defineMessages({
         "Trop de tentatives de connexion. Patientez quelques minutes puis réessayez.",
       validation: "Saisissez une adresse e-mail et un mot de passe valides.",
       mobileOnly:
-        "Les comptes conducteur se connectent avec l’application mobile CabinGuard.",
+        "Les comptes conducteur se connectent avec l’application mobile Mediane.",
     },
     title: "Bon retour",
     eyebrow: "Portail sécurisé",
-    subtitle: "Connectez-vous à votre compte CabinGuard",
+    subtitle: "Connectez-vous à votre compte Mediane",
     expiredTitle: "Session terminée en toute sécurité",
     expiredMessage:
       "Vous avez été déconnecté après 30 minutes d’inactivité. Reconnectez-vous pour continuer.",

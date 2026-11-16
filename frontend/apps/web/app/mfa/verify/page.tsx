@@ -4,12 +4,12 @@ import { MfaVerifyScreen } from "./mfa-verify-screen";
 export const generateMetadata = localizedMetadata(
   {
     en: {
-      title: "Verification code | CabinGuard",
+      title: "Verification code | Mediane",
       description:
         "Enter the code from your authenticator app to finish signing in.",
     },
     fr: {
-      title: "Code de vérification | CabinGuard",
+      title: "Code de vérification | Mediane",
       description:
         "Saisissez le code de votre application d’authentification pour terminer la connexion.",
     },

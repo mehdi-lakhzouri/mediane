@@ -15,12 +15,12 @@ const dateFormatter = new Intl.DateTimeFormat('fr-FR', {
   timeZone: 'UTC',
 });
 
-const EMAIL_BANNER_CID = 'cabinguard-email-banner@cabinguard';
+const EMAIL_BANNER_CID = 'mediane-email-banner@mediane';
 const EMAIL_BANNER_PATH = join(
   __dirname,
   'templates',
   'assets',
-  'cabinguard-email-banner.jpg',
+  'mediane-email-banner.jpg',
 );
 
 /** Handlebars escapes every {{variable}}: never use triple-stash {{{ }}} with user data. */
@@ -34,7 +34,7 @@ export class NodemailerMailSender implements MailSender {
   sendInvitation(mail: InvitationMail): Promise<void> {
     return this.send({
       to: mail.to,
-      subject: 'Invitation à rejoindre CabinGuard',
+      subject: 'Invitation à rejoindre Mediane',
       template: 'invitation',
       context: this.invitationContext(mail),
     });
@@ -43,7 +43,7 @@ export class NodemailerMailSender implements MailSender {
   sendInvitationResend(mail: InvitationMail): Promise<void> {
     return this.send({
       to: mail.to,
-      subject: 'Nouvelle invitation CabinGuard',
+      subject: 'Nouvelle invitation Mediane',
       template: 'invitation-resend',
       context: this.invitationContext(mail),
     });
@@ -52,7 +52,7 @@ export class NodemailerMailSender implements MailSender {
   sendPasswordReset(mail: PasswordResetMail): Promise<void> {
     return this.send({
       to: mail.to,
-      subject: 'Réinitialisation de votre mot de passe CabinGuard',
+      subject: 'Réinitialisation de votre mot de passe Mediane',
       template: 'password-reset',
       context: {
         firstName: mail.firstName,
@@ -97,7 +97,7 @@ export class NodemailerMailSender implements MailSender {
       ...options,
       attachments: [
         {
-          filename: 'cabinguard-email-banner.jpg',
+          filename: 'mediane-email-banner.jpg',
           path: EMAIL_BANNER_PATH,
           cid: EMAIL_BANNER_CID,
           contentDisposition: 'inline',

@@ -272,7 +272,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ApiFailureKind.rateLimited =>
         'Too many sign-in attempts. Wait a few minutes and try again.',
       ApiFailureKind.server || ApiFailureKind.protocol =>
-        'CabinGuard couldn’t sign you in right now. Try again shortly.',
+        'Mediane couldn’t sign you in right now. Try again shortly.',
       _ => failure.message,
     };
   }

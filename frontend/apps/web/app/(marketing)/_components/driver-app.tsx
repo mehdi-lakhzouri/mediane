@@ -14,8 +14,8 @@ const messages = defineMessages({
     eyebrow: "The driver app",
     title: "Help is one tap away.",
     accent: "So is the all-clear.",
-    lead: "The CabinGuard app pairs with the cabin unit, answers its alerts and keeps the driver in charge of who is told what.",
-    homeAlt: "CabinGuard home screen showing protection active",
+    lead: "The Mediane app pairs with the cabin unit, answers its alerts and keeps the driver in charge of who is told what.",
+    homeAlt: "Mediane home screen showing protection active",
     alertAlt: "Are you OK? countdown with 22 seconds left and an I’m OK button",
     notificationsAlt:
       "Notification center with safety, family and security alerts",
@@ -24,8 +24,8 @@ const messages = defineMessages({
     eyebrow: "L’application conducteur",
     title: "L’aide est à un appui.",
     accent: "La fin d’alerte aussi.",
-    lead: "L’application CabinGuard s’associe au boîtier embarqué, répond à ses alertes et laisse le conducteur décider de qui est informé, et de quoi.",
-    homeAlt: "Écran d’accueil CabinGuard indiquant que la protection est active",
+    lead: "L’application Mediane s’associe au boîtier embarqué, répond à ses alertes et laisse le conducteur décider de qui est informé, et de quoi.",
+    homeAlt: "Écran d’accueil Mediane indiquant que la protection est active",
     alertAlt:
       "Compte à rebours « Tout va bien ? » avec 22 secondes restantes et un bouton « Je vais bien »",
     notificationsAlt:

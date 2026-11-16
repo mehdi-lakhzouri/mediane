@@ -53,7 +53,7 @@ void main() {
   ) async {
     await pumpCabinGuard(tester, backend: backend, appVersion: '0.9.0');
 
-    expect(find.text('Update CabinGuard'), findsOneWidget);
+    expect(find.text('Update Mediane'), findsOneWidget);
   });
 
   testWidgets('an unreachable network shows the offline screen', (
@@ -90,7 +90,7 @@ void main() {
 
     expect(find.text('A quick safety update'), findsOneWidget);
     expect(
-      find.text('CabinGuard is receiving a safety update.'),
+      find.text('Mediane is receiving a safety update.'),
       findsOneWidget,
     );
   });

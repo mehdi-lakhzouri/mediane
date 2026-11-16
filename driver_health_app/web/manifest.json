@@ -1,11 +1,11 @@
 {
-    "name": "driver_health_app",
-    "short_name": "driver_health_app",
+    "name": "Mediane",
+    "short_name": "Mediane",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0b1827",
+    "theme_color": "#0b1827",
+    "description": "Driver safety, family alerts and emergency response for every journey.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

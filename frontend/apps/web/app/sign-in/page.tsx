@@ -8,13 +8,13 @@ import { BrandLogo } from "../components/brand-logo";
 
 export const generateMetadata = localizedMetadata({
   en: {
-    title: "Sign in | CabinGuard",
-    description: "Secure access to your CabinGuard journey and health data.",
+    title: "Sign in | Mediane",
+    description: "Secure access to your Mediane journey and health data.",
   },
   fr: {
-    title: "Connexion | CabinGuard",
+    title: "Connexion | Mediane",
     description:
-      "Accès sécurisé à vos trajets et à vos données de santé CabinGuard.",
+      "Accès sécurisé à vos trajets et à vos données de santé Mediane.",
   },
 });
 

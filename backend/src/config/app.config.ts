@@ -8,7 +8,7 @@ export const appConfig = registerAs('app', () => {
     env.MOBILE_LINK_URL ?? `${env.FRONTEND_URL}/mobile`
   ).replace(/\/+$/, '');
   return {
-    name: 'CabinGuard API',
+    name: 'Mediane API',
     nodeEnv: env.NODE_ENV,
     isProduction,
     /** Background jobs stay off; tests drive them explicitly. */

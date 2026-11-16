@@ -39,7 +39,7 @@ const messages = defineMessages({
     eyebrow: "Account recovery",
     title: "Reset your password",
     description:
-      "Enter the email linked to your CabinGuard account. We’ll send a single-use recovery link.",
+      "Enter the email linked to your Mediane account. We’ll send a single-use recovery link.",
     email: "Email address",
     emailPlaceholder: "you@company.com",
     submit: "Send recovery link",
@@ -66,7 +66,7 @@ const messages = defineMessages({
     eyebrow: "Récupération du compte",
     title: "Réinitialisez votre mot de passe",
     description:
-      "Saisissez l’adresse e-mail liée à votre compte CabinGuard. Nous vous enverrons un lien de récupération à usage unique.",
+      "Saisissez l’adresse e-mail liée à votre compte Mediane. Nous vous enverrons un lien de récupération à usage unique.",
     email: "Adresse e-mail",
     emailPlaceholder: "vous@entreprise.com",
     submit: "Envoyer le lien de récupération",

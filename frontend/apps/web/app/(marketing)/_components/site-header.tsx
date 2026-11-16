@@ -1,9 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, ChevronDown, Menu, Search, X } from "lucide-react";
+import { ArrowRight, ChevronDown, Menu, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMessages } from "../../../lib/i18n/locale-provider";
 import { defineMessages } from "../../../lib/i18n/messages";
 import { LanguageSwitch, LanguageToggle } from "../../components/language-switch";
@@ -13,39 +13,23 @@ import { EASE, PopIn } from "./motion";
 
 const messages = defineMessages({
   en: {
-    home: "CabinGuard home",
+    home: "Mediane home",
     main: "Main",
-    search: "Search the site",
     signIn: "Sign in",
     demo: "Request demo",
     // Narrow desktop widths (below 2xl) where the full label does not fit.
     demoShort: "Request demo",
     openMenu: "Open menu",
     closeMenu: "Close menu",
-    section: "Page section",
-    faq: "FAQ",
-    placeholder: "Search features, safety, FAQ…",
-    searchLabel: "Search",
-    results: "Results",
-    none: (query: string) =>
-      `Nothing matches “${query}”. Try “alerts” or “privacy”.`,
   },
   fr: {
-    home: "Accueil CabinGuard",
+    home: "Accueil Mediane",
     main: "Principal",
-    search: "Rechercher sur le site",
     signIn: "Connexion",
     demo: "Demander une démo",
     demoShort: "Démo",
     openMenu: "Ouvrir le menu",
     closeMenu: "Fermer le menu",
-    section: "Section de la page",
-    faq: "FAQ",
-    placeholder: "Rechercher des fonctionnalités, la sécurité, la FAQ…",
-    searchLabel: "Rechercher",
-    results: "Résultats",
-    none: (query: string) =>
-      `Aucun résultat pour « ${query} ». Essayez « alertes » ou « confidentialité ».`,
   },
 });
 
@@ -55,7 +39,6 @@ export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -71,10 +54,6 @@ export function SiteHeader() {
       if (event.key === "Escape") {
         setOpen(null);
         setMobileOpen(false);
-      }
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        setSearchOpen(true);
       }
     };
     const onPointer = (event: PointerEvent) => {
@@ -178,14 +157,6 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-4 lg:ml-0">
-          <button
-            type="button"
-            onClick={() => setSearchOpen(true)}
-            aria-label={t.search}
-            className="hidden size-[44px] place-items-center rounded-full border border-[var(--lp-line-strong)] bg-white/80 text-[var(--lp-ink-soft)] transition-colors hover:border-[var(--lp-blue-line)] hover:text-[var(--lp-blue)] sm:grid lg:hidden 2xl:grid"
-          >
-            <Search size={19} strokeWidth={2} />
-          </button>
           <PopIn delay={0.05} className="hidden sm:inline-flex">
             <LanguageToggle />
           </PopIn>
@@ -218,9 +189,6 @@ export function SiteHeader() {
 
       <AnimatePresence>
         {mobileOpen ? <MobileMenu onClose={() => setMobileOpen(false)} /> : null}
-      </AnimatePresence>
-      <AnimatePresence>
-        {searchOpen ? <SearchPalette onClose={() => setSearchOpen(false)} /> : null}
       </AnimatePresence>
     </header>
   );
@@ -270,107 +238,6 @@ function MobileMenu({ onClose }: { onClose: () => void }) {
           </a>
         </div>
       </div>
-    </motion.div>
-  );
-}
-
-type Destination = { label: string; hint: string; href: string };
-
-function SearchPalette({ onClose }: { onClose: () => void }) {
-  const t = useMessages(messages);
-  const { NAV, FAQ } = useContent();
-  const [query, setQuery] = useState("");
-  const [active, setActive] = useState(0);
-  const input = useRef<HTMLInputElement>(null);
-
-  const destinations = useMemo<Destination[]>(() => {
-    const pages = NAV.flatMap((group) =>
-      group.links
-        ? group.links.map((link) => ({ label: link.label, hint: group.label, href: link.href }))
-        : [{ label: group.label, hint: t.section, href: group.href ?? "#" }],
-    );
-    const questions = FAQ.map((item) => ({ label: item.question, hint: t.faq, href: "#faq" }));
-    return [...pages, ...questions];
-  }, [FAQ, NAV, t]);
-
-  const results = destinations
-    .filter((d) => `${d.label} ${d.hint}`.toLowerCase().includes(query.trim().toLowerCase()))
-    .slice(0, 8);
-
-  useEffect(() => {
-    input.current?.focus();
-  }, []);
-
-  const go = (destination: Destination | undefined) => {
-    if (!destination) return;
-    onClose();
-    window.location.href = destination.href;
-  };
-
-  return (
-    <motion.div
-      className="fixed inset-0 z-[60] grid items-start justify-items-center bg-[rgba(10,19,48,0.35)] px-4 pt-[12vh] backdrop-blur-sm"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onPointerDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <motion.div
-        role="dialog"
-        aria-modal="true"
-        aria-label={t.search}
-        initial={{ y: -12, scale: 0.98 }}
-        animate={{ y: 0, scale: 1 }}
-        transition={{ duration: 0.25, ease: EASE }}
-        className="lp-card w-full max-w-[560px] overflow-hidden p-0"
-      >
-        <div className="flex items-center gap-3 border-b border-[var(--lp-line)] px-5">
-          <Search size={18} className="text-[var(--lp-muted)]" />
-          <input
-            ref={input}
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setActive(0);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "ArrowDown") setActive((i) => Math.min(i + 1, results.length - 1));
-              if (event.key === "ArrowUp") setActive((i) => Math.max(i - 1, 0));
-              if (event.key === "Enter") go(results[active]);
-              if (event.key === "Escape") onClose();
-            }}
-            placeholder={t.placeholder}
-            aria-label={t.searchLabel}
-            className="h-14 w-full bg-transparent text-[16px] outline-none placeholder:text-[var(--lp-faint)]"
-          />
-          <kbd className="rounded-md border border-[var(--lp-line)] px-2 py-0.5 text-[11px] text-[var(--lp-muted)]">Esc</kbd>
-        </div>
-        <ul className="max-h-[360px] overflow-y-auto p-2" role="listbox" aria-label={t.results}>
-          {results.length === 0 ? (
-            <li className="px-4 py-6 text-center text-[14px] text-[var(--lp-muted)]">
-              {t.none(query)}
-            </li>
-          ) : (
-            results.map((result, index) => (
-              <li key={`${result.hint}-${result.label}`} role="option" aria-selected={index === active}>
-                <button
-                  type="button"
-                  onPointerEnter={() => setActive(index)}
-                  onClick={() => go(result)}
-                  className={`flex w-full items-center justify-between gap-4 rounded-xl px-4 py-3 text-left ${
-                    index === active ? "bg-[var(--lp-blue-tint)]" : ""
-                  }`}
-                >
-                  <span className="text-[15px] font-medium text-[var(--lp-ink)]">{result.label}</span>
-                  <span className="shrink-0 text-[12px] text-[var(--lp-muted)]">{result.hint}</span>
-                </button>
-              </li>
-            ))
-          )}
-        </ul>
-      </motion.div>
     </motion.div>
   );
 }

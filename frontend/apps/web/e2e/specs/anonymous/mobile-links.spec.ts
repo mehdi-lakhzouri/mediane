@@ -14,10 +14,10 @@ test("a driver invitation hands the token over to the app, unused", async ({
   await page.goto("/mobile/accept-invitation#token=one-time-token-123");
 
   await expect(
-    page.getByRole("heading", { name: /open cabinguard on your phone/i }),
+    page.getByRole("heading", { name: /open mediane on your phone/i }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: /open in the cabinguard app/i }),
+    page.getByRole("link", { name: /open in the mediane app/i }),
   ).toHaveAttribute(
     "href",
     "cabinguard://app/accept-invitation#token=one-time-token-123",
@@ -28,7 +28,7 @@ test("a driver invitation hands the token over to the app, unused", async ({
 test("a family invitation link opens the same way", async ({ page }) => {
   await page.goto("/mobile/join-family#K7M4-QX9P");
   await expect(
-    page.getByRole("link", { name: /open in the cabinguard app/i }),
+    page.getByRole("link", { name: /open in the mediane app/i }),
   ).toHaveAttribute("href", "cabinguard://app/join-family#K7M4-QX9P");
 });
 

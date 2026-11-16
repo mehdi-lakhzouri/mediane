@@ -1,5 +1,5 @@
 /**
- * Minimal client for the CabinGuard API.
+ * Minimal client for the Mediane API.
  *
  * - Every response is `{ data, meta, error }`; this module unwraps it.
  * - Auth lives in HttpOnly cookies set by the API: nothing is ever stored in

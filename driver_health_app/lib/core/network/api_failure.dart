@@ -24,7 +24,7 @@ class ApiFieldError {
   final String message;
 }
 
-/// Every failure a CabinGuard request can produce, decoded from Dio errors and
+/// Every failure a Mediane request can produce, decoded from Dio errors and
 /// the `{ data, meta, error }` envelope. [message] is safe to show to users:
 /// the backend guarantees it for envelope errors and the fallbacks are generic.
 class ApiFailure implements Exception {
@@ -84,7 +84,7 @@ class ApiFailure implements Exception {
       case DioExceptionType.transformTimeout:
         return const ApiFailure(
           kind: ApiFailureKind.timeout,
-          message: 'CabinGuard is taking too long to respond. Try again.',
+          message: 'Mediane is taking too long to respond. Try again.',
         );
       case DioExceptionType.connectionError:
         return _offline;
@@ -96,7 +96,7 @@ class ApiFailure implements Exception {
       case DioExceptionType.badCertificate:
         return const ApiFailure(
           kind: ApiFailureKind.server,
-          message: 'A secure connection to CabinGuard could not be verified.',
+          message: 'A secure connection to Mediane could not be verified.',
         );
       case DioExceptionType.unknown:
         final cause = error.error;
@@ -124,7 +124,7 @@ class ApiFailure implements Exception {
       kind: _kindForStatus(status) ?? ApiFailureKind.server,
       message: switch (status) {
         429 => 'Too many attempts. Please wait a moment and try again.',
-        503 => 'CabinGuard is temporarily unavailable. Try again shortly.',
+        503 => 'Mediane is temporarily unavailable. Try again shortly.',
         _ => 'Something went wrong. Please try again.',
       },
       statusCode: status,

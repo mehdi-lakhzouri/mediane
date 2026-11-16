@@ -21,7 +21,7 @@ import Image from "next/image";
 import { useMessages } from "../../../lib/i18n/locale-provider";
 import { consoleMessages } from "../_lib/console.messages";
 import { type ConsoleNavItem, ConsoleSidebar } from "./console-chrome";
-import { ShieldMark } from "./icons";
+import { MedianeWordmark } from "../../components/mediane-brand";
 import { CountUp, EASE, usePrefersReducedMotion, useSeen } from "./motion";
 
 /** Design size of the live incident console in How it works, in pixels. */
@@ -44,8 +44,7 @@ export function ConsoleIncident({ active }: { active?: string }) {
     <div className="lp-console relative h-full w-full">
       <div className="flex h-[88px] items-center gap-5 pl-6 pr-0">
         <span className="flex items-center gap-2.5">
-          <ShieldMark size={30} />
-          <span className="text-[21px] font-extrabold tracking-[-0.035em] text-[#0f1a3a]">CabinGuard</span>
+          <MedianeWordmark height={32} />
         </span>
         <span className="ml-auto flex h-[38px] w-[260px] items-center gap-2 rounded-l-full border border-r-0 border-[#e6edf8] bg-white px-4 text-[12px] text-[#8b98b1]">
           <Search size={15} className="text-[#56647f]" /> {t.searchShort}

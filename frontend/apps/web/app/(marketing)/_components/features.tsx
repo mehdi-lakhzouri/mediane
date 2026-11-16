@@ -17,13 +17,13 @@ const messages = defineMessages({
     eyebrow: "Features",
     title: ["Everything needed to", "keep "],
     accent: "every journey safer.",
-    lead: "CabinGuard gives you a complete view of driver health, family safety, and vehicle incidents — with real-time insights, instant alerts, and powerful tools to keep people safer on the road.",
+    lead: "Mediane gives you a complete view of driver health, family safety, and vehicle incidents — with real-time insights, instant alerts, and powerful tools to keep people safer on the road.",
   },
   fr: {
     eyebrow: "Fonctionnalités",
     title: ["Tout le nécessaire pour", "rendre "],
     accent: "chaque trajet plus sûr.",
-    lead: "CabinGuard vous offre une vue complète de la santé des conducteurs, de la sécurité des familles et des incidents de véhicule — avec des analyses en temps réel, des alertes instantanées et des outils puissants pour mieux protéger chacun sur la route.",
+    lead: "Mediane vous offre une vue complète de la santé des conducteurs, de la sécurité des familles et des incidents de véhicule — avec des analyses en temps réel, des alertes instantanées et des outils puissants pour mieux protéger chacun sur la route.",
   },
 });
 

@@ -239,7 +239,7 @@ describe('Two-step verification (e2e)', () => {
     expect(setup.secret).toMatch(/^[A-Z2-7]{32}$/);
     const uri = new URL(setup.otpauthUri);
     expect(uri.searchParams.get('secret')).toBe(setup.secret);
-    expect(uri.searchParams.get('issuer')).toBe('CabinGuard');
+    expect(uri.searchParams.get('issuer')).toBe('Mediane');
     adminSecret = base32Decode(setup.secret);
 
     const row = await prisma.userMfa.findUniqueOrThrow({

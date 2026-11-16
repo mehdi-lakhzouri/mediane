@@ -14,7 +14,7 @@ export const mobileConfig = registerAs('mobile', () => {
     maintenance: env.MOBILE_MAINTENANCE,
     maintenanceMessage:
       env.MOBILE_MAINTENANCE_MESSAGE ??
-      'CabinGuard is receiving a safety update. Please try again shortly.',
+      'Mediane is receiving a safety update. Please try again shortly.',
     maintenanceEndsAt: env.MOBILE_MAINTENANCE_ENDS_AT ?? null,
     termsVersion: env.MOBILE_TERMS_VERSION,
     privacyVersion: env.MOBILE_PRIVACY_VERSION,

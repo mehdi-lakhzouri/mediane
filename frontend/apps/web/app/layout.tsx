@@ -42,7 +42,12 @@ const messages = defineMessages({
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getMessages(messages);
-  return { title: "CabinGuard", description: t.description };
+  return {
+    title: "Mediane",
+    applicationName: "Mediane",
+    description: t.description,
+    appleWebApp: { title: "Mediane" },
+  };
 }
 
 // Applies a saved sign-in theme preference to <html> before first paint, so
@@ -55,7 +60,7 @@ export async function generateMetadata(): Promise<Metadata> {
 // inline script in the HTML stream is parsed and executed synchronously by
 // the browser, in place, before anything after it — the only way to
 // guarantee this actually runs before the page is shown.
-const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem("cg.signin.theme");document.documentElement.setAttribute("data-theme",t==="dark"?"dark":"light");}catch(e){}})();`;
+const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem("cg.signin.theme");document.documentElement.setAttribute("data-theme",t==="light"?"light":"dark");}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();`;
 
 export default async function RootLayout({
   children,
@@ -71,7 +76,7 @@ export default async function RootLayout({
     // whole point: no flash of the wrong theme). React would otherwise warn
     // that the server-rendered attribute doesn't match the DOM it hydrates
     // onto — suppressHydrationWarning silences only that one expected mismatch.
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale} data-theme="dark" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>

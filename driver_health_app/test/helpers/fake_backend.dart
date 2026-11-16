@@ -61,7 +61,7 @@ Map<String, Object?> sessionJson({
   };
 }
 
-/// Serves canned CabinGuard responses keyed by `METHOD path` (relative to
+/// Serves canned Mediane responses keyed by `METHOD path` (relative to
 /// `/api/v1/`) and records every request it receives.
 class FakeBackend implements HttpClientAdapter {
   final _handlers = <String, FakeHandler>{};

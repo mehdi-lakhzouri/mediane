@@ -361,7 +361,7 @@ await page.goto(`${WEB}/dashboard`, { waitUntil: "domcontentloaded" });
 await page.waitForSelector("main");
 await page.waitForTimeout(650);
 await page.keyboard.press("Control+K");
-await page.waitForSelector('[role="dialog"]');
+await page.getByRole("dialog", { name: "Search Mediane" }).waitFor();
 console.log("PASS shortcut Ctrl+K opens dashboard search");
 
 for (const viewport of [viewports[2], viewports[3], viewports[4]]) {
@@ -373,7 +373,7 @@ for (const viewport of [viewports[2], viewports[3], viewports[4]]) {
   await page.waitForSelector("main");
   await page.waitForTimeout(350);
   await page.keyboard.press("Control+K");
-  const dialog = page.locator('[role="dialog"]');
+  const dialog = page.getByRole("dialog", { name: "Search Mediane" });
   await dialog.waitFor();
   const box = await dialog.boundingBox();
   const fits =

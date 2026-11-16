@@ -79,7 +79,7 @@ class _InviteBody extends ConsumerWidget {
   final String familyName;
 
   String get _shareText =>
-      'Join my family on CabinGuard: ${invite.link} '
+      'Join my family on Mediane: ${invite.link} '
       '(code ${invite.code}). I’ll approve your request.';
 
   Future<void> _copy(BuildContext context) async {
@@ -182,7 +182,7 @@ class _InviteBody extends ConsumerWidget {
             SharePlus.instance.share(
               ShareParams(
                 text: _shareText,
-                subject: 'Join my CabinGuard family',
+                subject: 'Join my Mediane family',
               ),
             ),
           ),

@@ -11,8 +11,16 @@ describe('describeUserAgent', () => {
       { label: 'iPhone15,2 · iOS 18.1', platform: 'IOS', app: true },
     ],
     [
+      'Mediane/1.0.0 (Android 15; Pixel 8)',
+      { label: 'Pixel 8 · Android 15', platform: 'ANDROID', app: true },
+    ],
+    [
+      'Mediane/1.2.3+4 (iOS 18.1; iPhone15,2)',
+      { label: 'iPhone15,2 · iOS 18.1', platform: 'IOS', app: true },
+    ],
+    [
       'Dart/3.13 (dart:io)',
-      { label: 'CabinGuard app', platform: 'UNKNOWN', app: true },
+      { label: 'Mediane app', platform: 'UNKNOWN', app: true },
     ],
     [
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36',

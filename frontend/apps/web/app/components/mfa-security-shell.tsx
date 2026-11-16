@@ -15,14 +15,15 @@ import { useMessages } from "../../lib/i18n/locale-provider";
 import { defineMessages } from "../../lib/i18n/messages";
 import { BrandLogo } from "./brand-logo";
 import { LanguageSwitch } from "./language-switch";
+import { ThemeToggle } from "./theme-toggle";
 
 const messages = defineMessages({
   en: {
-    signIn: "CabinGuard sign in",
+    signIn: "Mediane sign in",
     eyebrow: "Multi-factor security",
     title: "Stronger security for safer",
     titleAccent: "journeys",
-    copy: "CabinGuard protects your account with multi-factor authentication, keeping your data and drivers safe.",
+    copy: "Mediane protects your account with multi-factor authentication, keeping your data and drivers safe.",
     benefits: "Multi-factor security benefits",
     features: [
       {
@@ -49,11 +50,11 @@ const messages = defineMessages({
     steps: ["Scan QR Code", "Verify", "Complete"] as [string, string, string],
   },
   fr: {
-    signIn: "Connexion CabinGuard",
+    signIn: "Connexion Mediane",
     eyebrow: "Sécurité multifacteur",
     title: "Une sécurité renforcée pour des",
     titleAccent: "trajets plus sûrs",
-    copy: "CabinGuard protège votre compte grâce à l’authentification multifacteur, pour garder vos données et vos conducteurs en sécurité.",
+    copy: "Mediane protège votre compte grâce à l’authentification multifacteur, pour garder vos données et vos conducteurs en sécurité.",
     benefits: "Avantages de la sécurité multifacteur",
     features: [
       {
@@ -103,6 +104,7 @@ export function MfaSecurityShell({
 
   return (
     <main className="mfa-security-canvas min-h-svh">
+      <ThemeToggle />
       <div className="mfa-security-backdrop" aria-hidden="true" />
       <div className="mfa-security-page-shade" aria-hidden="true" />
       <div className="mfa-security-frame">

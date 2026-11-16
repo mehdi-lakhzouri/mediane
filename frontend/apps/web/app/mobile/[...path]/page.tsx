@@ -7,8 +7,8 @@ import { MobileLinkScreen } from "./mobile-link-screen";
 // installed opens them in the app directly; anything else lands here.
 export const generateMetadata = localizedMetadata(
   {
-    en: { title: "Open in the CabinGuard app | CabinGuard" },
-    fr: { title: "Ouvrir dans l’application CabinGuard | CabinGuard" },
+    en: { title: "Open in the Mediane app | Mediane" },
+    fr: { title: "Ouvrir dans l’application Mediane | Mediane" },
   },
   // The fragment may carry a one-time token: keep these pages out of indexes.
   { robots: { index: false, follow: false } },

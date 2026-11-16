@@ -2,7 +2,7 @@ import 'package:driver_health_app/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Labelled form field used on every CabinGuard glass panel.
+/// Labelled form field used on every Mediane glass panel.
 class CabinGuardTextField extends StatelessWidget {
   const new({
     required this.label,

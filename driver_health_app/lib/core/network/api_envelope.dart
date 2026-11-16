@@ -16,7 +16,7 @@ class PageInfo {
 }
 
 abstract final class ApiEnvelope {
-  /// Returns the `data` object of a successful CabinGuard response.
+  /// Returns the `data` object of a successful Mediane response.
   static Map<String, Object?> data(Object? payload) {
     final data = _envelope(payload)['data'];
     if (data is! Map) {

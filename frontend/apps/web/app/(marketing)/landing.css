@@ -1,5 +1,5 @@
 /* -----------------------------------------------------------------------
-   CabinGuard marketing site.
+   Mediane marketing site.
    Scoped to `.lp-root` (set by the (marketing) layout) and prefixed `--lp-*`
    so nothing here can leak into the console or the sign-in screens.
    Everything sits in the `components` layer, below Tailwind's utilities, so a

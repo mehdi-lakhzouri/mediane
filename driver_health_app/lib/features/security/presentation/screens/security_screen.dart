@@ -364,7 +364,7 @@ class _BiometricSectionState extends ConsumerState<_BiometricSection> {
               Text(
                 available
                     ? 'Use Face ID, fingerprint or your device passcode to '
-                          'open CabinGuard when your session is saved on this '
+                          'open Mediane when your session is saved on this '
                           'phone. Your password is still needed to sign in.'
                     : 'Set up Face ID or a fingerprint on this phone to use '
                           'biometric unlock.',

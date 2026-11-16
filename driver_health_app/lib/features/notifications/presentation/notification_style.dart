@@ -32,7 +32,7 @@ abstract final class NotificationStyle {
         NotificationCategory.safety => 'Safety',
         NotificationCategory.family => 'Family',
         NotificationCategory.security => 'Security',
-        NotificationCategory.account => 'CabinGuard',
+        NotificationCategory.account => 'Mediane',
       };
 }
 

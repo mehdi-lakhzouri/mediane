@@ -68,7 +68,7 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
           Semantics(
             header: true,
             child: const Text(
-              'Unlock CabinGuard',
+              'Unlock Mediane',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white,

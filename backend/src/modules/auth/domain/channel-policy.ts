@@ -19,7 +19,7 @@ const CODES: Record<SessionChannel, string> = {
 const MESSAGES: Record<SessionChannel, string> = {
   [SessionChannel.WEB]: 'Administrator accounts sign in on the web console.',
   [SessionChannel.MOBILE]:
-    'Driver accounts sign in with the CabinGuard mobile app.',
+    'Driver accounts sign in with the Mediane mobile app.',
 };
 
 /**

@@ -40,14 +40,14 @@ const iconVariants = {
 };
 
 /**
- * Light/dark switch for the sign-in screen. Reads and writes `data-theme` on
+ * Light/dark switch for the auth screens. Reads and writes `data-theme` on
  * <html>; a `beforeInteractive` script in the root layout applies the saved
- * preference before first paint, so this component's own default ("light")
+ * preference before first paint, so this component's own default ("dark")
  * always matches what the server rendered — no hydration mismatch, and the
  * sync in the layout effect below resolves before the browser paints.
  */
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>("dark");
   const reduceMotion = useReducedMotion();
   const t = useMessages(messages);
 
@@ -56,9 +56,9 @@ export function ThemeToggle() {
     try {
       stored = window.localStorage.getItem(THEME_STORAGE_KEY);
     } catch {
-      // Private browsing / storage disabled: fall back to light, no persistence.
+      // Private browsing / storage disabled: fall back to dark, no persistence.
     }
-    const initial: Theme = stored === "dark" ? "dark" : "light";
+    const initial: Theme = stored === "light" ? "light" : "dark";
     setTheme(initial);
     applyTheme(initial);
   }, []);

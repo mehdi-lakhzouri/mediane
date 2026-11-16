@@ -75,7 +75,7 @@ class AppLock extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<BiometricResult> unlock() async {
     final result = await _authenticator.authenticate(
-      'Unlock your saved CabinGuard session',
+      'Unlock your saved Mediane session',
     );
     if (result == BiometricResult.success) _setLocked(locked: false);
     return result;

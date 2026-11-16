@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-/// `CabinGuard/<version> (<OS> <release>; <model>)`, sent on every request so
+/// `Mediane/<version> (<OS> <release>; <model>)`, sent on every request so
 /// "Active devices" can name this phone. `null` keeps Dio's default (tests,
 /// web, where browsers own the header).
 final userAgentProvider = Provider<String?>((ref) => null);
@@ -20,9 +20,9 @@ Future<String?> buildUserAgent() async {
       TargetPlatform.iOS => await _ios(info),
       _ => (defaultTargetPlatform.name, 'Device'),
     };
-    return 'CabinGuard/${_clean(version)} (${_clean(os)}; ${_clean(model)})';
+    return 'Mediane/${_clean(version)} (${_clean(os)}; ${_clean(model)})';
   } on Object {
-    return 'CabinGuard/unknown (${defaultTargetPlatform.name}; Device)';
+    return 'Mediane/unknown (${defaultTargetPlatform.name}; Device)';
   }
 }
 

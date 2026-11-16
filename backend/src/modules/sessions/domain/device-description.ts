@@ -13,12 +13,13 @@ export interface DeviceDescription {
   /** Human label, e.g. "Pixel 8 · Android 15" or "Chrome on Windows". */
   label: string;
   platform: DevicePlatform;
-  /** The CabinGuard mobile app rather than a browser. */
+  /** The Mediane mobile app rather than a browser. */
   app: boolean;
 }
 
-/** `CabinGuard/1.2.0 (Android 15; Pixel 8)`, sent by the mobile app. */
-const APP_AGENT = /^CabinGuard\/[\w.+-]+ \(([^;)]+);\s*([^)]+)\)/;
+/** `Mediane/1.2.0 (Android 15; Pixel 8)`, sent by the mobile app. */
+// Recognize installed builds from before the rename as well as Mediane builds.
+const APP_AGENT = /^(?:Mediane|CabinGuard)\/[\w.+-]+ \(([^;)]+);\s*([^)]+)\)/;
 
 function platformOf(text: string): DevicePlatform {
   if (/android/i.test(text)) return DevicePlatform.ANDROID;
@@ -66,7 +67,7 @@ export function describeUserAgent(userAgent: string | null): DeviceDescription {
   // Older app builds identify as the Dart HTTP client.
   if (/^Dart\//.test(agent)) {
     return {
-      label: 'CabinGuard app',
+      label: 'Mediane app',
       platform: DevicePlatform.UNKNOWN,
       app: true,
     };

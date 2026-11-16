@@ -426,7 +426,7 @@ describe('SessionsService', () => {
       );
 
     it('lists signed-in devices, marks this one, and hides ended sessions', async () => {
-      const phone = await open('CabinGuard/1.0.0 (Android 15; Pixel 8)', at(0));
+      const phone = await open('Mediane/1.0.0 (Android 15; Pixel 8)', at(0));
       const laptop = await open(
         'Mozilla/5.0 (Windows NT 10.0) Chrome/140.0 Safari/537.36',
         at(1000),
@@ -456,8 +456,8 @@ describe('SessionsService', () => {
     });
 
     it('signs out another device but never the current one or a stranger', async () => {
-      const phone = await open('CabinGuard/1.0.0 (Android 15; Pixel 8)', at(0));
-      const tablet = await open('CabinGuard/1.0.0 (Android 14; Tab S9)', at(0));
+      const phone = await open('Mediane/1.0.0 (Android 15; Pixel 8)', at(0));
+      const tablet = await open('Mediane/1.0.0 (Android 14; Tab S9)', at(0));
       const stranger = await service.open(
         'user-2',
         client,
@@ -506,7 +506,7 @@ describe('SessionsService', () => {
     });
 
     it('signs out everywhere else, keeping this device', async () => {
-      const phone = await open('CabinGuard/1.0.0 (Android 15; Pixel 8)', at(0));
+      const phone = await open('Mediane/1.0.0 (Android 15; Pixel 8)', at(0));
       await open('a', at(0));
       await open('b', at(0));
 

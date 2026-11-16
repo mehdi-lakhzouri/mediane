@@ -17,7 +17,7 @@ import { CSRF_HEADER } from '../modules/security/presentation/csrf.constants';
 export function configureSwagger(app: INestApplication): void {
   const cookies = app.get<CookieConfig>(cookieConfig.KEY);
   const document = new DocumentBuilder()
-    .setTitle('CabinGuard API')
+    .setTitle('Mediane API')
     .setDescription(
       'Every response is wrapped as { data, meta, error }. ' +
         'Authentication uses HttpOnly cookies; state-changing requests need the X-CSRF-Token header ' +

@@ -1,5 +1,5 @@
 name: driver_health_app
-description: CabinGuard mobile application for driver safety and family alerts.
+description: Mediane mobile application for driver safety and family alerts.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -61,3 +61,14 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+
+flutter_native_splash:
+  color: '#031222'
+  image: assets/images/mediane-splash.png
+  color_dark: '#031222'
+  image_dark: assets/images/mediane-splash.png
+  android_12:
+    color: '#031222'
+    image: assets/images/mediane-app-icon.png
+    icon_background_color: '#031222'
+  web: true

@@ -24,11 +24,11 @@ import { EASE, Reveal, ScaledCanvas, usePrefersReducedMotion, useSeen } from "./
 
 const messages = defineMessages({
   en: {
-    eyebrow: "How CabinGuard works",
+    eyebrow: "How Mediane works",
     title: ["From detection to response", "in "],
     accent: "three clear steps",
-    lead: "CabinGuard turns real-time driver and vehicle signals into life-saving action. We monitor, detect, and notify — keeping drivers, families, and organizations connected and safer on every journey.",
-    panel: (label: string) => `${label} in the CabinGuard console`,
+    lead: "Mediane turns real-time driver and vehicle signals into life-saving action. We monitor, detect, and notify — keeping drivers, families, and organizations connected and safer on every journey.",
+    panel: (label: string) => `${label} in the Mediane console`,
     ecosystem: "A complete safety ecosystem",
     signals: [
       ["Heart rate", "& wellness"],
@@ -63,11 +63,11 @@ const messages = defineMessages({
     ],
   },
   fr: {
-    eyebrow: "Comment fonctionne CabinGuard",
+    eyebrow: "Comment fonctionne Mediane",
     title: ["De la détection à l’intervention", "en "],
     accent: "trois étapes claires",
-    lead: "CabinGuard transforme les signaux du conducteur et du véhicule en actions qui sauvent des vies. Nous surveillons, détectons et prévenons — pour que conducteurs, familles et organisations restent connectés et plus en sécurité à chaque trajet.",
-    panel: (label: string) => `${label} dans la console CabinGuard`,
+    lead: "Mediane transforme les signaux du conducteur et du véhicule en actions qui sauvent des vies. Nous surveillons, détectons et prévenons — pour que conducteurs, familles et organisations restent connectés et plus en sécurité à chaque trajet.",
+    panel: (label: string) => `${label} dans la console Mediane`,
     ecosystem: "Un écosystème de sécurité complet",
     signals: [
       ["Rythme cardiaque", "et bien-être"],

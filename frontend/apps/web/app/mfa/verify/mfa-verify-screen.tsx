@@ -42,7 +42,7 @@ const messages = defineMessages({
     appTitle: "Enter your code",
     recoveryTitle: "Use a recovery code",
     appCopy:
-      "Open your authenticator app and type the six-digit code for CabinGuard.",
+      "Open your authenticator app and type the six-digit code for Mediane.",
     recoveryCopy:
       "Type one of the recovery codes you saved during setup. Each code works once.",
     recoveryLabel: "Recovery code",
@@ -69,7 +69,7 @@ const messages = defineMessages({
     appTitle: "Saisissez votre code",
     recoveryTitle: "Utilisez un code de récupération",
     appCopy:
-      "Ouvrez votre application d’authentification et saisissez le code à six chiffres de CabinGuard.",
+      "Ouvrez votre application d’authentification et saisissez le code à six chiffres de Mediane.",
     recoveryCopy:
       "Saisissez l’un des codes de récupération enregistrés lors de la configuration. Chaque code ne fonctionne qu’une fois.",
     recoveryLabel: "Code de récupération",

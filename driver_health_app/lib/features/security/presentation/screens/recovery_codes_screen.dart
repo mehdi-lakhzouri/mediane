@@ -53,7 +53,7 @@ class _RecoveryCodesScreenState extends ConsumerState<RecoveryCodesScreen> {
   List<String> get _codes => widget.args.codes.codes;
 
   String get _asText => [
-    'CabinGuard recovery codes',
+    'Mediane recovery codes',
     'Each code works once. Keep them somewhere safe.',
     '',
     ..._codes,
@@ -74,13 +74,13 @@ class _RecoveryCodesScreenState extends ConsumerState<RecoveryCodesScreen> {
 
   Future<void> _saveFile() async {
     final directory = await getTemporaryDirectory();
-    final file = File('${directory.path}/cabinguard-recovery-codes.txt');
+    final file = File('${directory.path}/mediane-recovery-codes.txt');
     try {
       await file.writeAsString(_asText, flush: true);
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path, mimeType: 'text/plain')],
-          subject: 'CabinGuard recovery codes',
+          subject: 'Mediane recovery codes',
         ),
       );
     } finally {

@@ -11,7 +11,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Search,
-  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import { Button } from "@repo/ui/components/ui/button";
@@ -26,6 +25,7 @@ import { getUnreadNotificationCount } from "../../../lib/api/notifications";
 import { useMessages } from "../../../lib/i18n/locale-provider";
 import { defineMessages } from "../../../lib/i18n/messages";
 import { LanguageSwitch } from "../language-switch";
+import { MedianeWordmark } from "../mediane-brand";
 import { roleMessages } from "./user-menu";
 import { activeHref, NAV_ITEMS, navMessages } from "../../dashboard/nav";
 
@@ -182,20 +182,15 @@ export function Topbar({
 
         <Link
           href="/dashboard"
-          aria-label="CabinGuard"
+          aria-label="Mediane"
           className={cn(
             "hidden items-center gap-2.5 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring lg:flex",
             navigationMode === "sidebar" && "lg:hidden",
           )}
         >
-          <span className="grid size-9 place-items-center rounded-[10px] bg-primary text-primary-foreground shadow-[0_7px_18px_rgba(48,71,217,.22)]">
-            <ShieldCheck className="size-[21px]" strokeWidth={2.1} />
-          </span>
           <span className="flex flex-col leading-none">
-            <span className="text-[15px] font-bold tracking-[-0.025em]">
-              CabinGuard
-            </span>
-            <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">
+            <MedianeWordmark height={27} />
+            <span className="mt-0.5 pl-[37px] text-[8px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">
               {nav.sections.operations}
             </span>
           </span>
@@ -207,7 +202,7 @@ export function Topbar({
         >
           <ol className="flex items-center gap-2 text-[13px]">
             <li className="hidden font-medium text-muted-foreground sm:block">
-              CabinGuard
+              Mediane
             </li>
             <li aria-hidden="true" className="hidden text-border sm:block">
               /

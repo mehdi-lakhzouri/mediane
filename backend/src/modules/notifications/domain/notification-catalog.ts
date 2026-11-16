@@ -52,7 +52,7 @@ export function composeNotification(
         category: safety,
         critical: true,
         title: `${message.memberName} may need help`,
-        body: `CabinGuard alerted ${message.memberName}'s emergency contacts. Try to reach them now.`,
+        body: `Mediane alerted ${message.memberName}'s emergency contacts. Try to reach them now.`,
         link: '/family',
       };
     case 'FAMILY_MEMBER_SAFE':

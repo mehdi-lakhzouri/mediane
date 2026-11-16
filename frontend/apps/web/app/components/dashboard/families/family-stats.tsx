@@ -28,7 +28,7 @@ const messages = defineMessages({
     label: "Family statistics",
     loading: "Loading…",
     total: "Total families",
-    totalHint: "Across CabinGuard",
+    totalHint: "Across Mediane",
     members: "Family members",
     openPlaces: (count: number) => `${count} open places`,
     average: "Average size",
@@ -42,7 +42,7 @@ const messages = defineMessages({
     label: "Statistiques des familles",
     loading: "Chargement…",
     total: "Familles",
-    totalHint: "Sur CabinGuard",
+    totalHint: "Sur Mediane",
     members: "Membres",
     openPlaces: (count: number) =>
       `${count} place${count > 1 ? "s" : ""} libre${count > 1 ? "s" : ""}`,

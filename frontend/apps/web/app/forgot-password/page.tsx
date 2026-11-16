@@ -4,13 +4,13 @@ import { ForgotPasswordScreen } from "./forgot-password-screen";
 export const generateMetadata = localizedMetadata(
   {
     en: {
-      title: "Forgot password | CabinGuard",
-      description: "Request a secure CabinGuard password reset link.",
+      title: "Forgot password | Mediane",
+      description: "Request a secure Mediane password reset link.",
     },
     fr: {
-      title: "Mot de passe oublié | CabinGuard",
+      title: "Mot de passe oublié | Mediane",
       description:
-        "Demandez un lien sécurisé de réinitialisation de votre mot de passe CabinGuard.",
+        "Demandez un lien sécurisé de réinitialisation de votre mot de passe Mediane.",
     },
   },
   { robots: { index: false, follow: false } },

@@ -20,7 +20,7 @@ import {
   consoleMessages,
   type ConsoleNavKey,
 } from "../_lib/console.messages";
-import { ShieldMark } from "./icons";
+import { MedianeWordmark } from "../../components/mediane-brand";
 
 /**
  * Shared frame of the console mocks: navy sidebar, search bar and account
@@ -56,7 +56,7 @@ export function ConsoleSidebar({
   gap?: number;
   /** Key of the highlighted item; the first item when omitted. */
   active?: string;
-  /** Whether the sidebar carries the CabinGuard mark at its top. */
+  /** Whether the sidebar carries the Mediane mark at its top. */
   brand?: boolean;
   className?: string;
 }) {
@@ -68,10 +68,7 @@ export function ConsoleSidebar({
     >
       {brand ? (
         <div className="mb-7 flex items-center gap-1.5 px-0.5">
-          <ShieldMark size={18} className="flex-none" />
-          <span className="whitespace-nowrap text-[12.5px] font-bold tracking-[-0.02em]">
-            CabinGuard
-          </span>
+          <MedianeWordmark height={19} surface="dark" />
         </div>
       ) : null}
       <nav className="flex flex-col">

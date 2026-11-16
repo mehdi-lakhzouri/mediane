@@ -23,7 +23,7 @@ import '../helpers/safety_fixtures.dart';
 import '../helpers/test_app.dart';
 
 void main() {
-  testWidgets('capture current app screens for the CabinGuard film', (
+  testWidgets('capture current app screens for the Mediane film', (
     tester,
   ) async {
     await tester.runAsync(() async {
@@ -94,6 +94,62 @@ void main() {
       )
       ..on('GET', 'families/mine', (_) => FakeResponse.ok(mine))
       ..on('GET', 'safety/family/incidents', (_) => FakeResponse.ok([]))
+      ..on('GET', 'notifications', (_) {
+        final now = DateTime.now().toUtc();
+        final items = [
+          {
+            'id': 'preview-safety',
+            'category': 'SAFETY',
+            'type': 'FAMILY_MEMBER_NEEDS_HELP',
+            'title': 'Karim may need help',
+            'body':
+                "Mediane alerted Karim's emergency contacts. "
+                'Try to reach them now.',
+            'link': '/family',
+            'critical': true,
+            'readAt': null,
+            'createdAt': now.toIso8601String(),
+          },
+          {
+            'id': 'preview-family',
+            'category': 'FAMILY',
+            'type': 'FAMILY_JOIN_REQUESTED',
+            'title': 'New join request',
+            'body': 'Nour Ben Salah asked to join your family.',
+            'link': '/family',
+            'critical': false,
+            'readAt': null,
+            'createdAt': now.toIso8601String(),
+          },
+          {
+            'id': 'preview-security',
+            'category': 'SECURITY',
+            'type': 'NEW_SIGN_IN',
+            'title': 'New sign-in',
+            'body': 'Your account was used to sign in on Pixel 8 · Android 15.',
+            'link': '/security/devices',
+            'critical': false,
+            'readAt': now.toIso8601String(),
+            'createdAt': now
+                .subtract(const Duration(days: 1))
+                .toIso8601String(),
+          },
+        ];
+        return FakeResponse(200, {
+          'data': items,
+          'meta': {
+            'requestId': 'brand-preview',
+            'timestamp': now.toIso8601String(),
+            'pagination': {
+              'page': 1,
+              'pageSize': 30,
+              'totalItems': items.length,
+              'totalPages': 1,
+            },
+          },
+          'error': null,
+        });
+      })
       ..on(
         'GET',
         'safety/incidents/$incidentId',
@@ -157,6 +213,8 @@ void main() {
 
     expect(homeGreeting, findsOneWidget);
     await capture('mobile-home');
+    container.read(appRouterProvider).go(AppRoutes.notifications);
+    await capture('mobile-notifications');
     container.read(appRouterProvider).go(AppRoutes.family);
     await capture('mobile-family');
     expect(find.text('My family'), findsOneWidget);

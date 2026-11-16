@@ -283,7 +283,7 @@ export class EnvironmentVariables {
 
   /** Name shown in authenticator apps next to the account. */
   @IsString()
-  MFA_ISSUER = 'CabinGuard';
+  MFA_ISSUER = 'Mediane';
 
   @Transform(toInt)
   @IsInt()

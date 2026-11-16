@@ -19,7 +19,7 @@ class ActiveSession {
   final String label;
   final SessionPlatform platform;
 
-  /// The CabinGuard app rather than a browser.
+  /// The Mediane app rather than a browser.
   final bool app;
   final String? ipAddress;
   final DateTime signedInAt;

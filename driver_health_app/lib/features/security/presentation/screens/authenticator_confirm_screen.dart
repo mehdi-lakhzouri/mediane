@@ -106,7 +106,7 @@ class _AuthenticatorConfirmScreenState
           ),
           const SizedBox(height: 10),
           const Text(
-            'Type the six-digit code CabinGuard now shows in your '
+            'Type the six-digit code Mediane now shows in your '
             'authenticator app.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.ice, fontSize: 15, height: 1.4),

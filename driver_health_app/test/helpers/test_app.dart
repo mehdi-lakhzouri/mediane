@@ -29,7 +29,7 @@ Map<String, Object?> bootstrapJson({
     'minimumSupportedVersion': minimumSupportedVersion,
     'latestVersion': '1.0.0',
     'maintenance': maintenance,
-    'maintenanceMessage': 'CabinGuard is receiving a safety update.',
+    'maintenanceMessage': 'Mediane is receiving a safety update.',
     'maintenanceEndsAt': null,
     'termsVersion': '2026-10-01',
     'privacyVersion': '2026-10-01',

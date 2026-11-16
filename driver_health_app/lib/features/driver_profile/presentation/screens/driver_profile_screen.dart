@@ -20,7 +20,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-/// Screen 14, step 1 of 2: details CabinGuard needs during an incident.
+/// Screen 14, step 1 of 2: details Mediane needs during an incident.
 /// With [editing], the same form updates an active driver's details.
 class DriverProfileScreen extends ConsumerWidget {
   const new({this.editing = false, super.key});
@@ -189,7 +189,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
           Text(
             editing
                 ? 'Keep these up to date so help reaches you quickly.'
-                : 'This helps CabinGuard protect you during an incident.',
+                : 'This helps Mediane protect you during an incident.',
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: AppColors.ice,
@@ -251,7 +251,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Your personal details are only used for CabinGuard safety '
+                  'Your personal details are only used for Mediane safety '
                   'services.',
                   style: TextStyle(color: AppColors.slate, height: 1.4),
                 ),

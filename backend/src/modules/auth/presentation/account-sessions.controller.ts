@@ -36,7 +36,7 @@ class SessionDeviceResponse {
   @ApiProperty({ example: 'Pixel 8 · Android 15' }) label!: string;
   @ApiProperty({ enum: Object.values(DevicePlatform) })
   platform!: DevicePlatform;
-  @ApiProperty({ description: 'The CabinGuard app rather than a browser' })
+  @ApiProperty({ description: 'The Mediane app rather than a browser' })
   app!: boolean;
 }
 

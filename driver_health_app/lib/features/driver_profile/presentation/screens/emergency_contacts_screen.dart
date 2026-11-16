@@ -17,7 +17,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-/// Screen 15, step 2 of 2: who CabinGuard calls, in priority order.
+/// Screen 15, step 2 of 2: who Mediane calls, in priority order.
 class EmergencyContactsScreen extends ConsumerWidget {
   const new({this.editing = false, super.key});
 
@@ -142,7 +142,7 @@ class _ContactsBody extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Choose who CabinGuard should call first after an incident.',
+          'Choose who Mediane should call first after an incident.',
           style: TextStyle(color: AppColors.ice, fontSize: 16, height: 1.4),
         ),
         const SizedBox(height: 16),
@@ -229,7 +229,7 @@ class _ContactsBody extends ConsumerWidget {
                       padding: EdgeInsets.only(top: 12),
                       child: Text(
                         'I confirm these contacts agreed to be reached by '
-                        'CabinGuard in an emergency.',
+                        'Mediane in an emergency.',
                         style: TextStyle(color: AppColors.ice, height: 1.4),
                       ),
                     ),

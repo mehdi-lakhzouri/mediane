@@ -9,36 +9,36 @@ import type { MobileLinkKind } from "./mobile-link-kinds";
 
 const messages = defineMessages({
   en: {
-    title: "Open CabinGuard on your phone",
+    title: "Open Mediane on your phone",
     body: {
       "accept-invitation":
-        "Your driver account is ready to be activated. Drivers use CabinGuard through the mobile app: finish there.",
+        "Your driver account is ready to be activated. Drivers use Mediane through the mobile app: finish there.",
       "join-family":
-        "You were invited to join a family on CabinGuard. The invitation opens in the mobile app.",
+        "You were invited to join a family on Mediane. The invitation opens in the mobile app.",
       "reset-password":
-        "Choose your new password in the CabinGuard mobile app.",
+        "Choose your new password in the Mediane mobile app.",
     } satisfies Record<MobileLinkKind, string>,
-    open: "Open in the CabinGuard app",
+    open: "Open in the Mediane app",
     noApp:
-      "Nothing happens? Install the CabinGuard Android app, then open this link again from your phone.",
+      "Nothing happens? Install the Mediane Android app, then open this link again from your phone.",
     computer:
       "On a computer? Open this email on the phone where the app is installed.",
     incomplete:
       "This link is incomplete. Open it again from the email you received.",
   },
   fr: {
-    title: "Ouvrez CabinGuard sur votre téléphone",
+    title: "Ouvrez Mediane sur votre téléphone",
     body: {
       "accept-invitation":
-        "Votre compte conducteur est prêt à être activé. Les conducteurs utilisent CabinGuard via l’application mobile : terminez-y l’activation.",
+        "Votre compte conducteur est prêt à être activé. Les conducteurs utilisent Mediane via l’application mobile : terminez-y l’activation.",
       "join-family":
-        "Vous êtes invité à rejoindre une famille sur CabinGuard. L’invitation s’ouvre dans l’application mobile.",
+        "Vous êtes invité à rejoindre une famille sur Mediane. L’invitation s’ouvre dans l’application mobile.",
       "reset-password":
-        "Choisissez votre nouveau mot de passe dans l’application mobile CabinGuard.",
+        "Choisissez votre nouveau mot de passe dans l’application mobile Mediane.",
     } satisfies Record<MobileLinkKind, string>,
-    open: "Ouvrir dans l’application CabinGuard",
+    open: "Ouvrir dans l’application Mediane",
     noApp:
-      "Rien ne se passe ? Installez l’application Android CabinGuard, puis rouvrez ce lien depuis votre téléphone.",
+      "Rien ne se passe ? Installez l’application Android Mediane, puis rouvrez ce lien depuis votre téléphone.",
     computer:
       "Sur un ordinateur ? Ouvrez cet e-mail sur le téléphone où l’application est installée.",
     incomplete:

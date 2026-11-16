@@ -33,8 +33,8 @@ export type NavGroup = {
 };
 
 const en = {
-  demoHref: salesMail("CabinGuard demo request"),
-  salesHref: salesMail("Talk to CabinGuard sales"),
+  demoHref: salesMail("Mediane demo request"),
+  salesHref: salesMail("Talk to Mediane sales"),
 
   /* Navigation --------------------------------------------------------- */
 
@@ -86,7 +86,7 @@ const en = {
     eyebrow: "Safer drivers. Stronger families.",
     title: ["Driver health monitoring", "for a "],
     accent: "safer tomorrow",
-    lead: "CabinGuard combines real-time driver health monitoring, family safety, emergency alerts, and incident management in one powerful platform — helping individuals, families, and organizations keep every journey safer.",
+    lead: "Mediane combines real-time driver health monitoring, family safety, emergency alerts, and incident management in one powerful platform — helping individuals, families, and organizations keep every journey safer.",
     highlights: [
       { icon: "heart", label: ["Monitor", "driver health"] },
       { icon: "users", label: ["Keep families", "informed"] },
@@ -154,7 +154,7 @@ const en = {
       number: 1,
       eyebrow: "Monitor",
       title: ["Track driver health", "and journey signals"],
-      body: "CabinGuard continuously monitors driver health, vehicle data, and journey context — from heart rate and alertness to driving behavior, location, and route conditions.",
+      body: "Mediane continuously monitors driver health, vehicle data, and journey context — from heart rate and alertness to driving behavior, location, and route conditions.",
     },
     {
       number: 2,
@@ -166,7 +166,7 @@ const en = {
       number: 3,
       eyebrow: "Respond",
       title: ["Notify families and", "manage response"],
-      body: "When an incident is detected, CabinGuard instantly notifies families and trusted contacts, and provides the tools to manage the response through a single platform.",
+      body: "When an incident is detected, Mediane instantly notifies families and trusted contacts, and provides the tools to manage the response through a single platform.",
     },
   ],
 
@@ -212,13 +212,13 @@ const en = {
     { icon: "family", value: 5000, suffix: "+", label: "Families connected", delta: "42%", trend: "up", note: "vs. last year", caption: "Keeping loved ones informed.", chart: "violet" },
     { icon: "siren", value: 2.3, decimals: 1, suffix: " min", label: "Average incident response time", delta: "65%", trend: "down", note: "faster", caption: "Faster help when it matters.", chart: "red" },
     { icon: "shield", value: 99.9, decimals: 1, suffix: "%", label: "Platform uptime", delta: "0.2%", trend: "up", note: "vs. last year", caption: "Built for always-on reliability.", chart: "blue" },
-    { icon: "globe", value: 50, suffix: "+", label: "Organizations using CabinGuard", delta: "67%", trend: "up", note: "vs. last year", caption: "Trusted across industries.", chart: "bars" },
+    { icon: "globe", value: 50, suffix: "+", label: "Organizations using Mediane", delta: "67%", trend: "up", note: "vs. last year", caption: "Trusted across industries.", chart: "bars" },
   ],
 
   /** PLACEHOLDER: testimonial and case study from the mockup. */
   TESTIMONIAL: {
     quote:
-      "CabinGuard has transformed how we care for our drivers. Incidents are detected faster, our teams respond quicker, and families feel more at ease. It’s an essential part of our fleet operations.",
+      "Mediane has transformed how we care for our drivers. Incidents are detected faster, our teams respond quicker, and families feel more at ease. It’s an essential part of our fleet operations.",
     name: "Mike Taylor",
     role: "Fleet Operations Director, Continental Logistics",
     company: "Continental",
@@ -281,13 +281,13 @@ const en = {
   FAQ: [
     {
       icon: "settings",
-      question: "How easy is it to set up CabinGuard?",
+      question: "How easy is it to set up Mediane?",
       answer:
-        "Setup takes just a few minutes. Install the CabinGuard device in your vehicle, pair it with the mobile app or web dashboard, and you’re ready to go. Our guided onboarding walks you through each step, and our team is always available to help.",
+        "Setup takes just a few minutes. Install the Mediane device in your vehicle, pair it with the mobile app or web dashboard, and you’re ready to go. Our guided onboarding walks you through each step, and our team is always available to help.",
     },
     {
       icon: "heart",
-      question: "What types of driver health alerts does CabinGuard detect?",
+      question: "What types of driver health alerts does Mediane detect?",
       answer:
         "The in-cabin unit reports possible cardiac arrest, stroke, seizure, irregular heart rhythm and drowsiness, and the driver can raise an SOS at any time. Critical events give the driver 30 seconds to answer, heart rhythm alerts 60 seconds, and drowsiness is a warning that never calls anyone.",
     },
@@ -305,15 +305,15 @@ const en = {
     },
     {
       icon: "link",
-      question: "What integrations does CabinGuard support?",
+      question: "What integrations does Mediane support?",
       answer:
-        "CabinGuard connects in-cabin units through a signed device API and reaches people through the app and email. Fleet and enterprise customers can discuss further integrations with our team.",
+        "Mediane connects in-cabin units through a signed device API and reaches people through the app and email. Fleet and enterprise customers can discuss further integrations with our team.",
     },
     {
       icon: "siren",
       question: "What happens during an emergency?",
       answer:
-        "The phone and the cabin unit ask the driver “Are you OK?”. Without an answer, CabinGuard alerts emergency contacts in priority order and notifies the family, sharing the location while help is being called. One tap on “I’m OK” ends the alert for everyone.",
+        "The phone and the cabin unit ask the driver “Are you OK?”. Without an answer, Mediane alerts emergency contacts in priority order and notifies the family, sharing the location while help is being called. One tap on “I’m OK” ends the alert for everyone.",
     },
   ],
 
@@ -352,8 +352,8 @@ const en = {
       links: [
         { label: "FAQ", href: "#faq" },
         { label: "Contact support", href: supportMail },
-        { label: "Talk to sales", href: salesMail("Talk to CabinGuard sales") },
-        { label: "Request a demo", href: salesMail("CabinGuard demo request") },
+        { label: "Talk to sales", href: salesMail("Talk to Mediane sales") },
+        { label: "Request a demo", href: salesMail("Mediane demo request") },
       ],
     },
   ],
@@ -374,8 +374,8 @@ export type MarketingContent = Omit<Copy<typeof en>, "NAV"> & {
 };
 
 const fr: MarketingContent = {
-  demoHref: salesMail("Demande de démo CabinGuard"),
-  salesHref: salesMail("Contact commercial CabinGuard"),
+  demoHref: salesMail("Demande de démo Mediane"),
+  salesHref: salesMail("Contact commercial Mediane"),
 
   NAV: [
     {
@@ -423,7 +423,7 @@ const fr: MarketingContent = {
     eyebrow: "Des conducteurs protégés. Des familles rassurées.",
     title: ["La santé au volant,", "pour un "],
     accent: "avenir plus sûr",
-    lead: "CabinGuard réunit la surveillance en temps réel de la santé des conducteurs, la sécurité des familles, les alertes d’urgence et la gestion des incidents dans une seule plateforme — pour aider particuliers, familles et organisations à sécuriser chaque trajet.",
+    lead: "Mediane réunit la surveillance en temps réel de la santé des conducteurs, la sécurité des familles, les alertes d’urgence et la gestion des incidents dans une seule plateforme — pour aider particuliers, familles et organisations à sécuriser chaque trajet.",
     highlights: [
       { icon: "heart", label: ["Surveiller", "la santé du conducteur"] },
       { icon: "users", label: ["Tenir les familles", "informées"] },
@@ -485,7 +485,7 @@ const fr: MarketingContent = {
       number: 1,
       eyebrow: "Surveiller",
       title: ["Suivre la santé du conducteur", "et les signaux du trajet"],
-      body: "CabinGuard surveille en continu la santé du conducteur, les données du véhicule et le contexte du trajet — du rythme cardiaque et de la vigilance au comportement de conduite, à la position et aux conditions de route.",
+      body: "Mediane surveille en continu la santé du conducteur, les données du véhicule et le contexte du trajet — du rythme cardiaque et de la vigilance au comportement de conduite, à la position et aux conditions de route.",
     },
     {
       number: 2,
@@ -497,7 +497,7 @@ const fr: MarketingContent = {
       number: 3,
       eyebrow: "Intervenir",
       title: ["Prévenir les familles", "et gérer l’intervention"],
-      body: "Dès qu’un incident est détecté, CabinGuard prévient instantanément la famille et les contacts de confiance, et fournit les outils pour gérer l’intervention depuis une seule plateforme.",
+      body: "Dès qu’un incident est détecté, Mediane prévient instantanément la famille et les contacts de confiance, et fournit les outils pour gérer l’intervention depuis une seule plateforme.",
     },
   ],
 
@@ -536,12 +536,12 @@ const fr: MarketingContent = {
     { icon: "family", value: 5000, suffix: "+", label: "Familles connectées", delta: "42 %", trend: "up", note: "par rapport à l’an dernier", caption: "Des proches toujours informés.", chart: "violet" },
     { icon: "siren", value: 2.3, decimals: 1, suffix: " min", label: "Délai moyen de réponse aux incidents", delta: "65 %", trend: "down", note: "plus rapide", caption: "Une aide plus rapide quand ça compte.", chart: "red" },
     { icon: "shield", value: 99.9, decimals: 1, suffix: " %", label: "Disponibilité de la plateforme", delta: "0,2 %", trend: "up", note: "par rapport à l’an dernier", caption: "Conçue pour une fiabilité sans interruption.", chart: "blue" },
-    { icon: "globe", value: 50, suffix: "+", label: "Organisations utilisant CabinGuard", delta: "67 %", trend: "up", note: "par rapport à l’an dernier", caption: "Adoptée dans de nombreux secteurs.", chart: "bars" },
+    { icon: "globe", value: 50, suffix: "+", label: "Organisations utilisant Mediane", delta: "67 %", trend: "up", note: "par rapport à l’an dernier", caption: "Adoptée dans de nombreux secteurs.", chart: "bars" },
   ],
 
   TESTIMONIAL: {
     quote:
-      "CabinGuard a transformé notre façon de prendre soin de nos conducteurs. Les incidents sont détectés plus tôt, nos équipes réagissent plus vite et les familles sont plus sereines. C’est devenu un élément essentiel de la gestion de notre flotte.",
+      "Mediane a transformé notre façon de prendre soin de nos conducteurs. Les incidents sont détectés plus tôt, nos équipes réagissent plus vite et les familles sont plus sereines. C’est devenu un élément essentiel de la gestion de notre flotte.",
     name: "Mike Taylor",
     role: "Directeur des opérations de flotte, Continental Logistics",
     company: "Continental",
@@ -597,13 +597,13 @@ const fr: MarketingContent = {
   FAQ: [
     {
       icon: "settings",
-      question: "CabinGuard est-il simple à installer ?",
+      question: "Mediane est-il simple à installer ?",
       answer:
-        "L’installation ne prend que quelques minutes. Installez le boîtier CabinGuard dans votre véhicule, associez-le à l’application mobile ou au tableau de bord web, et c’est parti. Notre accompagnement guidé vous aide à chaque étape, et notre équipe reste disponible.",
+        "L’installation ne prend que quelques minutes. Installez le boîtier Mediane dans votre véhicule, associez-le à l’application mobile ou au tableau de bord web, et c’est parti. Notre accompagnement guidé vous aide à chaque étape, et notre équipe reste disponible.",
     },
     {
       icon: "heart",
-      question: "Quelles alertes de santé CabinGuard détecte-t-il ?",
+      question: "Quelles alertes de santé Mediane détecte-t-il ?",
       answer:
         "Le boîtier embarqué signale les arrêts cardiaques, AVC, crises d’épilepsie, troubles du rythme cardiaque et la somnolence possibles, et le conducteur peut déclencher un SOS à tout moment. Les événements critiques laissent 30 secondes au conducteur pour répondre, les troubles du rythme 60 secondes, et la somnolence est un simple avertissement qui n’appelle personne.",
     },
@@ -621,15 +621,15 @@ const fr: MarketingContent = {
     },
     {
       icon: "link",
-      question: "Quelles intégrations CabinGuard propose-t-il ?",
+      question: "Quelles intégrations Mediane propose-t-il ?",
       answer:
-        "CabinGuard relie les boîtiers embarqués via une API d’appareil signée et joint les personnes par l’application et par e-mail. Les clients Flotte et Entreprise peuvent étudier d’autres intégrations avec notre équipe.",
+        "Mediane relie les boîtiers embarqués via une API d’appareil signée et joint les personnes par l’application et par e-mail. Les clients Flotte et Entreprise peuvent étudier d’autres intégrations avec notre équipe.",
     },
     {
       icon: "siren",
       question: "Que se passe-t-il en cas d’urgence ?",
       answer:
-        "Le téléphone et le boîtier demandent au conducteur « Tout va bien ? ». Sans réponse, CabinGuard alerte les contacts d’urgence par ordre de priorité et prévient la famille, en partageant la position pendant l’appel des secours. Un appui sur « Je vais bien » met fin à l’alerte pour tout le monde.",
+        "Le téléphone et le boîtier demandent au conducteur « Tout va bien ? ». Sans réponse, Mediane alerte les contacts d’urgence par ordre de priorité et prévient la famille, en partageant la position pendant l’appel des secours. Un appui sur « Je vais bien » met fin à l’alerte pour tout le monde.",
     },
   ],
 
@@ -666,8 +666,8 @@ const fr: MarketingContent = {
       links: [
         { label: "FAQ", href: "#faq" },
         { label: "Contacter le support", href: supportMail },
-        { label: "Contacter les ventes", href: salesMail("Contact commercial CabinGuard") },
-        { label: "Demander une démo", href: salesMail("Demande de démo CabinGuard") },
+        { label: "Contacter les ventes", href: salesMail("Contact commercial Mediane") },
+        { label: "Demander une démo", href: salesMail("Demande de démo Mediane") },
       ],
     },
   ],

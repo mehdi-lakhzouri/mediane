@@ -78,7 +78,7 @@ describe('otpauthUri', () => {
   it('builds a key URI authenticator apps can scan', () => {
     const uri = new URL(
       otpauthUri({
-        issuer: 'CabinGuard',
+        issuer: 'Mediane',
         accountName: 'admin@cabinguard.test',
         secret: RFC_SECRET,
       }),
@@ -86,11 +86,11 @@ describe('otpauthUri', () => {
     expect(uri.protocol).toBe('otpauth:');
     expect(uri.host).toBe('totp');
     expect(decodeURIComponent(uri.pathname)).toBe(
-      '/CabinGuard:admin@cabinguard.test',
+      '/Mediane:admin@cabinguard.test',
     );
     expect(Object.fromEntries(uri.searchParams)).toEqual({
       secret: base32Encode(RFC_SECRET),
-      issuer: 'CabinGuard',
+      issuer: 'Mediane',
       algorithm: 'SHA1',
       digits: '6',
       period: '30',

@@ -107,7 +107,7 @@ class _NotificationPreferencesScreenState
       const SizedBox(height: 10),
       _Toggle(
         icon: Icons.campaign_rounded,
-        title: 'CabinGuard news',
+        title: 'Mediane news',
         message: 'Service announcements, such as planned maintenance.',
         value: draft.account,
         enabled: !_saving,

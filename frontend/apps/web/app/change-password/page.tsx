@@ -4,13 +4,13 @@ import { ChangePasswordScreen } from "./change-password-screen";
 export const generateMetadata = localizedMetadata(
   {
     en: {
-      title: "Choose your password | CabinGuard",
-      description: "Replace your temporary CabinGuard password with your own.",
+      title: "Choose your password | Mediane",
+      description: "Replace your temporary Mediane password with your own.",
     },
     fr: {
-      title: "Choisissez votre mot de passe | CabinGuard",
+      title: "Choisissez votre mot de passe | Mediane",
       description:
-        "Remplacez votre mot de passe temporaire CabinGuard par le vôtre.",
+        "Remplacez votre mot de passe temporaire Mediane par le vôtre.",
     },
   },
   { robots: { index: false, follow: false } },

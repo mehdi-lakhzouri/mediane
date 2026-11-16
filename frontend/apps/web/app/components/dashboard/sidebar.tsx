@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, ShieldCheck, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import {
   Tooltip,
@@ -20,6 +20,7 @@ import type { CurrentUser } from "../../../lib/api/auth";
 import { useMessages } from "../../../lib/i18n/locale-provider";
 import { defineMessages } from "../../../lib/i18n/messages";
 import { UserMenu } from "./user-menu";
+import { MedianeAppIcon, MedianeWordmark } from "../mediane-brand";
 
 const messages = defineMessages({
   en: {
@@ -86,25 +87,24 @@ export function Sidebar({
           <Link
             href="/dashboard"
             onClick={onCloseMobile}
-            aria-label="CabinGuard"
+            aria-label="Mediane"
             className={cn(
               "flex min-w-0 items-center gap-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-white/70",
               collapsed && "lg:justify-center",
             )}
           >
-            <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-[#4058d4] shadow-[0_8px_20px_rgba(10,22,83,.2)] ring-1 ring-white/10">
-              <ShieldCheck className="size-7 text-white" strokeWidth={2} />
-            </span>
+            <MedianeAppIcon
+              size={40}
+              className={cn("hidden", collapsed && "lg:block")}
+            />
             <span
               className={cn(
                 "flex min-w-0 flex-col leading-[1.25]",
                 collapsed && "lg:hidden",
               )}
             >
-              <span className="truncate text-[17px] font-bold tracking-[-0.02em]">
-                CabinGuard
-              </span>
-              <span className="truncate text-[12px] font-medium text-sidebar-muted">
+              <MedianeWordmark height={35} surface="dark" />
+              <span className="mt-1 truncate pl-[49px] text-[10px] font-medium tracking-wide text-sidebar-muted">
                 {t.console}
               </span>
             </span>

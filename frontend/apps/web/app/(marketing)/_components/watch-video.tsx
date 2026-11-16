@@ -11,19 +11,19 @@ import { EASE } from "./motion";
 const messages = defineMessages({
   en: {
     watch: "Watch video",
-    dialog: "CabinGuard product video",
+    dialog: "Mediane product video",
     close: "Close video",
     eyebrow: "Product film",
     soon: "The walkthrough video is in production.",
-    walkthrough: "See how CabinGuard works",
+    walkthrough: "See how Mediane works",
   },
   fr: {
     watch: "Voir la vidéo",
-    dialog: "Vidéo de présentation CabinGuard",
+    dialog: "Vidéo de présentation Mediane",
     close: "Fermer la vidéo",
     eyebrow: "Film produit",
     soon: "La vidéo de présentation est en cours de production.",
-    walkthrough: "Découvrir le fonctionnement de CabinGuard",
+    walkthrough: "Découvrir le fonctionnement de Mediane",
   },
 });
 

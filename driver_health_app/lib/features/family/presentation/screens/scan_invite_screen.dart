@@ -46,7 +46,7 @@ class _ScanInviteScreenState extends State<ScanInviteScreen> {
       _lastWarning = now;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('This QR code isn’t a CabinGuard family invitation.'),
+          content: Text('This QR code isn’t a Mediane family invitation.'),
         ),
       );
     }

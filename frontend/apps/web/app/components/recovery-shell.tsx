@@ -11,12 +11,12 @@ import { ThemeToggle } from "./theme-toggle";
 
 const messages = defineMessages({
   en: {
-    back: "Back to CabinGuard sign in",
+    back: "Back to Mediane sign in",
     footnote:
       "Secure recovery. Your reset link is single-use and time-limited.",
   },
   fr: {
-    back: "Retour à la connexion CabinGuard",
+    back: "Retour à la connexion Mediane",
     footnote:
       "Récupération sécurisée. Votre lien de réinitialisation est à usage unique et limité dans le temps.",
   },

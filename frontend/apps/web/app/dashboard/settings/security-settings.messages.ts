@@ -17,7 +17,7 @@ export const settingsMessages = defineMessages({
     page: {
       title: "Settings",
       subtitle:
-        "Manage your account, security, team access and preferences for CabinGuard.",
+        "Manage your account, security, team access and preferences for Mediane.",
       sections: "Settings sections",
       tabs: {
         general: "General",
@@ -135,7 +135,7 @@ export const settingsMessages = defineMessages({
     },
     team: {
       title: "Team Access",
-      description: "Administrators and drivers with access to CabinGuard.",
+      description: "Administrators and drivers with access to Mediane.",
       manage: "Manage all users",
       columns: ["User", "Role", "Status"],
       empty: "No team members found.",
@@ -252,7 +252,7 @@ export const settingsMessages = defineMessages({
       copied: "Copied",
       copyAll: "Copy all",
       download: "Download .txt",
-      fileHeader: "CabinGuard recovery codes",
+      fileHeader: "Mediane recovery codes",
       fileNote: "Each code works once. Keep them private.",
       stored: "I have stored these codes somewhere safe.",
       done: "Done",
@@ -307,7 +307,7 @@ export const settingsMessages = defineMessages({
     page: {
       title: "Paramètres",
       subtitle:
-        "Gérez votre compte, la sécurité, l’accès de l’équipe et vos préférences CabinGuard.",
+        "Gérez votre compte, la sécurité, l’accès de l’équipe et vos préférences Mediane.",
       sections: "Sections des paramètres",
       tabs: {
         general: "Général",
@@ -434,7 +434,7 @@ export const settingsMessages = defineMessages({
     team: {
       title: "Accès de l’équipe",
       description:
-        "Les administrateurs et conducteurs ayant accès à CabinGuard.",
+        "Les administrateurs et conducteurs ayant accès à Mediane.",
       manage: "Gérer tous les utilisateurs",
       columns: ["Utilisateur", "Rôle", "Statut"],
       empty: "Aucun membre de l’équipe trouvé.",
@@ -552,7 +552,7 @@ export const settingsMessages = defineMessages({
       copied: "Copié",
       copyAll: "Tout copier",
       download: "Télécharger le .txt",
-      fileHeader: "Codes de récupération CabinGuard",
+      fileHeader: "Codes de récupération Mediane",
       fileNote:
         "Chaque code ne fonctionne qu’une fois. Gardez-les confidentiels.",
       stored: "J’ai conservé ces codes en lieu sûr.",

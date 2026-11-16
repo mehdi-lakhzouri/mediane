@@ -67,12 +67,12 @@ describe('NotificationsService.notify', () => {
 
     expect(push.send).toHaveBeenCalledWith(
       'plain',
-      { title: 'CabinGuard', body: 'You have a new safety alert.' },
+      { title: 'Mediane', body: 'You have a new safety alert.' },
       { link: '/family' },
     );
     expect(push.send).toHaveBeenCalledWith(
       'named',
-      { title: 'Karim may need help', body: 'Open CabinGuard for details.' },
+      { title: 'Karim may need help', body: 'Open Mediane for details.' },
       { link: '/family' },
     );
   });

@@ -143,7 +143,7 @@ class _FamilySharingScreenState extends ConsumerState<FamilySharingScreen> {
         _ConsentRow(
           icon: Icons.notifications_active_outlined,
           title: 'Incident alerts',
-          message: 'Notify your family when CabinGuard detects an incident.',
+          message: 'Notify your family when Mediane detects an incident.',
           value: draft.incidents,
           enabled: !_saving,
           onChanged: (value) =>

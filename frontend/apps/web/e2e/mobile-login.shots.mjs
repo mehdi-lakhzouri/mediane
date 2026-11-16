@@ -50,8 +50,8 @@ const marketingTexts = [
   check("the sign-in form is visible on mobile", await p.locator("#email").isVisible());
   check(
     "a compact brand mark is visible on mobile",
-    (await visibleCount(p, "Guard")) === 1,
-    `visible "Guard" nodes = ${await visibleCount(p, "Guard")}`,
+    (await p.getByRole("img", { name: "Mediane", exact: true }).locator("visible=true").count()) === 1,
+    "Mediane wordmark is visible",
   );
 
   for (const text of marketingTexts) {
@@ -95,7 +95,7 @@ const marketingTexts = [
   await p.waitForTimeout(2200); // let the hero typewriter finish
   check(
     "the full hero headline is visible again at xl",
-    (await visibleCount(p, "every journey")) === 1,
+    await p.getByRole("heading", { level: 1, name: /every journey/i }).isVisible(),
   );
   check(
     "the feature cards are visible again at xl",

@@ -1,6 +1,34 @@
 @import "@repo/ui/globals.css";
 @import "react-phone-number-input/style.css";
 
+/* Surface-aware artwork, independent of the landing page and console themes. */
+.mediane-wordmark {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.mediane-wordmark img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.mediane-wordmark--auto .mediane-wordmark__dark {
+  display: none;
+}
+
+:root[data-theme="dark"] .mediane-wordmark--auto .mediane-wordmark__light {
+  display: none;
+}
+
+:root[data-theme="dark"] .mediane-wordmark--auto .mediane-wordmark__dark {
+  display: block;
+}
+
 /* -----------------------------------------------------------------------
    Sign-in canvas tokens (light default, dark override below).
    Prefixed `--sx-*` and scoped to this file on purpose: @repo/ui already owns
@@ -301,6 +329,30 @@ label[for] {
   box-shadow:
     0 0 0 3px rgba(17, 150, 255, 0.12),
     inset 0 0 24px rgba(14, 108, 183, 0.06);
+}
+
+/* Keep browser autofill transparent so it blends into the glass input shell. */
+.input-shell input:-webkit-autofill,
+.input-shell input:-webkit-autofill:hover,
+.input-shell input:-webkit-autofill:focus,
+.input-shell input:-webkit-autofill:active,
+.recovery-input-shell input:-webkit-autofill,
+.recovery-input-shell input:-webkit-autofill:hover,
+.recovery-input-shell input:-webkit-autofill:focus,
+.recovery-input-shell input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--sx-ink);
+  caret-color: var(--sx-ink);
+  -webkit-box-shadow: 0 0 0 1000px transparent inset;
+  box-shadow: 0 0 0 1000px transparent inset;
+  transition:
+    background-color 999999s ease-in-out 0s,
+    color 999999s ease-in-out 0s;
+}
+
+.input-shell input:autofill,
+.recovery-input-shell input:autofill {
+  background-color: transparent;
+  color: var(--sx-ink);
 }
 
 .primary-button {

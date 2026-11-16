@@ -96,7 +96,7 @@ void main() {
         category: 'SAFETY',
         type: 'FAMILY_MEMBER_NEEDS_HELP',
         title: 'Karim may need help',
-        body: "CabinGuard alerted Karim's emergency contacts.",
+        body: "Mediane alerted Karim's emergency contacts.",
         critical: true,
       ),
       _notification(id: 'n-2'),

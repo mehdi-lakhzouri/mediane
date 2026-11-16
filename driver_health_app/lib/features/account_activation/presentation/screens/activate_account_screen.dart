@@ -92,7 +92,7 @@ class _ActivateAccountScreenState extends ConsumerState<ActivateAccountScreen> {
           const SizedBox(height: 10),
           Text(
             _fromLink
-                ? 'Your fleet administrator invited you to CabinGuard. '
+                ? 'Your fleet administrator invited you to Mediane. '
                       'Activate your account, then sign in with the temporary '
                       'password from your invitation email.'
                 : 'Open your invitation email on this phone and tap the '
@@ -152,7 +152,7 @@ class _ActivateAccountScreenState extends ConsumerState<ActivateAccountScreen> {
           ),
           const Divider(color: Color(0x4D9EB3CC), height: 28),
           const Text(
-            'CabinGuard accounts are created by your fleet administrator. '
+            'Mediane accounts are created by your fleet administrator. '
             'Invitation links work once and expire.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.slate, height: 1.4),

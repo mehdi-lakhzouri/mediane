@@ -162,7 +162,7 @@ class _MfaVerificationScreenState extends ConsumerState<MfaVerificationScreen> {
                 ? 'Enter one of the recovery codes you saved when you turned '
                       'on two-step verification. Each code works once.'
                 : 'Open your authenticator app and enter the six-digit code '
-                      'for CabinGuard.',
+                      'for Mediane.',
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: AppColors.ice,
@@ -284,7 +284,7 @@ class _MfaVerificationScreenState extends ConsumerState<MfaVerificationScreen> {
       ApiFailureKind.rateLimited =>
         'Too many verification attempts. Wait a few minutes and try again.',
       ApiFailureKind.server || ApiFailureKind.protocol =>
-        'CabinGuard couldn’t verify your code right now. Try again shortly.',
+        'Mediane couldn’t verify your code right now. Try again shortly.',
       _ => failure.message,
     };
   }

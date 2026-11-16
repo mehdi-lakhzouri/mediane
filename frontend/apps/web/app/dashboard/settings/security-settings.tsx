@@ -217,7 +217,7 @@ export function SecuritySettings() {
     <div className="flex flex-col gap-5 pb-5">
       <div>
         <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-primary">
-          <span className="h-px w-6 bg-primary/50" /> CabinGuard
+          <span className="h-px w-6 bg-primary/50" /> Mediane
         </div>
         <h1 className="text-[30px] font-extrabold leading-[1.15] tracking-[-0.035em] text-foreground">
           {t.title}
@@ -632,7 +632,7 @@ function AccountFields({
       </FieldShell>
       <FieldShell label={t.organization}>
         <Building2 className="size-4 text-[#60708f]" />
-        <span>CabinGuard</span>
+        <span>Mediane</span>
       </FieldShell>
       <FieldShell label={t.timezone}>
         <Globe2 className="size-4 text-[#60708f]" />
@@ -1788,7 +1788,7 @@ function RecoveryCodesPanel({
             );
             const link = document.createElement("a");
             link.href = url;
-            link.download = "cabinguard-recovery-codes.txt";
+            link.download = "mediane-recovery-codes.txt";
             link.click();
             URL.revokeObjectURL(url);
           }}

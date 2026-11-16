@@ -17,8 +17,8 @@ const messages = defineMessages({
 });
 
 export const generateMetadata = localizedMetadata({
-  en: { title: "Incidents | CabinGuard" },
-  fr: { title: "Incidents | CabinGuard" },
+  en: { title: "Incidents | Mediane" },
+  fr: { title: "Incidents | Mediane" },
 });
 
 export default async function IncidentsPage() {

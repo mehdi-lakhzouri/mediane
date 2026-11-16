@@ -12,31 +12,35 @@ import { PopIn, useSeen } from "./motion";
 
 const messages = defineMessages({
   en: {
-    home: "CabinGuard home",
+    home: "Mediane home",
+    salesContact: "Talk to sales",
+    supportContact: "Contact support",
     tagline:
       "Driver health monitoring, family alerts and emergency response — so every journey ends the way it should.",
     emergencyStrong:
-      "CabinGuard supports emergency services — it never replaces them.",
+      "Mediane supports emergency services — it never replaces them.",
     emergency: "If someone is in danger, call your local emergency number.",
-    demoTitle: "See CabinGuard on your own fleet",
+    demoTitle: "See Mediane on your own fleet",
     demoBody:
       "A 30-minute walkthrough of the console, the app and the cabin unit.",
     demo: "Request a demo",
-    rights: (year: number) => `© ${year} CabinGuard. All rights reserved.`,
+    rights: (year: number) => `© ${year} Mediane. All rights reserved.`,
   },
   fr: {
-    home: "Accueil CabinGuard",
+    home: "Accueil Mediane",
+    salesContact: "Contacter l’équipe commerciale",
+    supportContact: "Contacter l’assistance",
     tagline:
       "Surveillance de la santé du conducteur, alertes familiales et intervention d’urgence — pour que chaque trajet se termine comme il se doit.",
     emergencyStrong:
-      "CabinGuard soutient les services d’urgence — il ne les remplace jamais.",
+      "Mediane soutient les services d’urgence — il ne les remplace jamais.",
     emergency:
       "Si quelqu’un est en danger, appelez le numéro d’urgence local.",
-    demoTitle: "Découvrez CabinGuard sur votre propre flotte",
+    demoTitle: "Découvrez Mediane sur votre propre flotte",
     demoBody:
       "Une présentation de 30 minutes de la console, de l’application et du boîtier embarqué.",
     demo: "Demander une démo",
-    rights: (year: number) => `© ${year} CabinGuard. Tous droits réservés.`,
+    rights: (year: number) => `© ${year} Mediane. Tous droits réservés.`,
   },
 });
 
@@ -47,7 +51,7 @@ export function SiteFooter() {
   return (
     <footer className="relative overflow-hidden bg-[var(--lp-footer)] text-white" aria-labelledby="footer-title">
       <h2 id="footer-title" className="sr-only">
-        CabinGuard
+        Mediane
       </h2>
       <div
         aria-hidden="true"
@@ -72,7 +76,7 @@ export function SiteFooter() {
                 <span className="grid size-9 place-items-center rounded-[10px] bg-white/[0.07] text-[#8fb4ff]">
                   <Mail size={16} />
                 </span>
-                {CONTACT.salesEmail}
+                {t.salesContact}
               </a>
               <a
                 href={`mailto:${CONTACT.supportEmail}`}
@@ -81,7 +85,7 @@ export function SiteFooter() {
                 <span className="grid size-9 place-items-center rounded-[10px] bg-white/[0.07] text-[#8fb4ff]">
                   <Mail size={16} />
                 </span>
-                {CONTACT.supportEmail}
+                {t.supportContact}
               </a>
             </div>
             <div className="mt-8 flex max-w-[440px] gap-3 rounded-[16px] border border-[#ff5a64]/25 bg-[#ff5a64]/[0.07] p-4">
@@ -138,7 +142,7 @@ export function SiteFooter() {
         aria-hidden="true"
         className="pointer-events-none relative -mb-[0.24em] select-none whitespace-nowrap bg-linear-to-b from-[#8fb4ff]/20 to-transparent bg-clip-text text-center text-[clamp(64px,15.5vw,270px)] font-extrabold leading-[0.9] tracking-[-0.06em] text-transparent"
       >
-        CabinGuard
+        Mediane
       </p>
     </footer>
   );
