@@ -14,6 +14,13 @@ import { PasswordHasher } from '../src/modules/security/application/password-has
 import type { CookieJar } from './utils/cookie-jar';
 import { deviceRequest, type TestUnit } from './utils/device-signing';
 import { enrollTotp, webLoginWithMfa } from './utils/mfa';
+import { randomUUID } from 'node:crypto';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { rm } from 'node:fs/promises';
+import { AI_MODEL_HASHES } from '../src/modules/safety/domain/ai-model-manifest';
 
 /**
  * In-cabin units and emergency response end to end against PostgreSQL:
@@ -128,7 +135,7 @@ describe('Safety (e2e)', () => {
     escalation = app.get(EscalationService);
 
     const hash = await app.get(PasswordHasher).hash(PASSWORD);
-    for (const name of ['amira', 'bilel', 'chaima']) {
+    for (const name of ['amira', 'bilel', 'chaima', 'ai']) {
       const user = await prisma.user.create({
         data: {
           email: `safety-${name}-${stamp}@cabinguard.test`,
@@ -854,5 +861,263 @@ describe('Safety (e2e)', () => {
         activeIncident: null,
       });
     });
+  });
+
+  describe('AI gateway integration', () => {
+    let gateway: TestUnit & { id: string };
+    let associationId: string;
+
+    const payload = (extra: Record<string, unknown> = {}) => {
+      const at = new Date().toISOString();
+      const eventId = randomUUID();
+      return {
+        clientEventId: eventId,
+        type: 'CARDIAC_EMERGENCY',
+        confidence: 0.92,
+        detectedAt: at,
+        ai: {
+          schemaVersion: 1,
+          associationId,
+          episodeId: eventId,
+          inputKind: 'SENSOR',
+          model: 'Cardiac',
+          modelSha256: AI_MODEL_HASHES.Cardiac,
+          featureVersion: '1',
+          decisionVersion: '1',
+          windowStartAt: at,
+          windowEndAt: at,
+        },
+        ...extra,
+      };
+    };
+    const send = (body: object) =>
+      deviceRequest(server, gateway, `${API}/device/ai/events`, body);
+
+    it('defaults to shadow mode and negotiates an authenticated association', async () => {
+      gateway = await registerUnit('AI');
+      await asAdmin('post', `/admin/devices/${gateway.id}/pair`)
+        .send({ userId: drivers.ai.id })
+        .expect(200);
+      const session = dataOf<{
+        associationId: string;
+        mode: string;
+        paired: boolean;
+      }>(
+        await deviceRequest(
+          server,
+          gateway,
+          `${API}/device/ai/session`,
+          undefined,
+          { method: 'GET' },
+        ).expect(200),
+      );
+      associationId = session.associationId;
+      expect(session).toMatchObject({ mode: 'SHADOW', paired: true });
+      const receipt = dataOf<Receipt & { processingMode: string }>(
+        await send(payload()).expect(200),
+      );
+      expect(receipt).toMatchObject({
+        processingMode: 'SHADOW',
+        incidentId: null,
+      });
+      expect(await activeOf('ai')).toBeNull();
+    });
+
+    it('validates provenance and exposes it only to the owning driver', async () => {
+      const body = payload();
+      const first = dataOf<Receipt>(await send(body).expect(200));
+      expect(dataOf<Receipt>(await send(body).expect(200))).toMatchObject({
+        eventId: first.eventId,
+        duplicate: true,
+      });
+      expect(codeOf(await send({ ...body, confidence: 0.8 }).expect(409))).toBe(
+        'EVENT_ID_CONFLICT',
+      );
+      await send({ ...payload(), ai: undefined }).expect(400);
+      await send({
+        ...payload(),
+        ai: { ...body.ai, modelSha256: '0'.repeat(64) },
+      }).expect(409);
+      const detail = dataOf<{
+        processingMode: string;
+        detection: { model: string };
+      }>(await as('ai', 'get', `/safety/events/${first.eventId}`).expect(200));
+      expect(detail.processingMode).toBe('SHADOW');
+      expect(detail.detection.model).toBe('Cardiac');
+      await as('bilel', 'get', `/safety/events/${first.eventId}`).expect(404);
+      await asAdmin('get', `/safety/events/${first.eventId}`).expect(403);
+    });
+
+    it('never activates replay or delayed data, even on an active device', async () => {
+      await prisma.vehicleDevice.update({
+        where: { id: gateway.id },
+        data: { aiMode: 'ACTIVE' },
+      });
+      const replay = payload();
+      expect(
+        dataOf<{ processingMode: string }>(
+          await send({
+            ...replay,
+            ai: { ...replay.ai, inputKind: 'REPLAY' },
+          }).expect(200),
+        ).processingMode,
+      ).toBe('REPLAY');
+      await prisma.vehicleDevice.update({
+        where: { id: gateway.id },
+        data: { pairedAt: new Date(Date.now() - 180000) },
+      });
+      const at = new Date(Date.now() - 120000).toISOString();
+      const delayed = payload({ detectedAt: at });
+      expect(
+        dataOf<{ processingMode: string }>(
+          await send({
+            ...delayed,
+            ai: { ...delayed.ai, windowStartAt: at, windowEndAt: at },
+          }).expect(200),
+        ).processingMode,
+      ).toBe('DELAYED');
+      expect(await activeOf('ai')).toBeNull();
+    });
+
+    it('opens one active incident and preserves independent concurrent detector alarms', async () => {
+      const cardiac = payload();
+      const seizure = payload({ type: 'SEIZURE' });
+      const results = await Promise.all([
+        send(cardiac).expect(200),
+        send({
+          ...seizure,
+          ai: {
+            ...seizure.ai,
+            model: 'Seizure',
+            modelSha256: AI_MODEL_HASHES.Seizure,
+          },
+        }).expect(200),
+      ]);
+      const receipts = results.map((r) => dataOf<Receipt>(r));
+      expect(receipts[0].incidentId).toBeTruthy();
+      expect(receipts[1].incidentId).toBe(receipts[0].incidentId);
+      const incident = (await activeOf('ai'))!;
+      expect(incident.events.map((e) => e.type).sort()).toEqual([
+        'CARDIAC_EMERGENCY',
+        'SEIZURE',
+      ]);
+      await as(
+        'ai',
+        'post',
+        `/safety/incidents/${incident.incident.id}/acknowledge`,
+      ).expect(200);
+      await send(cardiac).expect(200);
+      expect(await activeOf('ai')).toBeNull();
+    });
+
+    it('reports operational health and rejects buffered events after reassignment', async () => {
+      const health = {
+        associationId,
+        runtimeVersion: '0.1.0',
+        bootId: randomUUID(),
+        queueDepth: 2,
+        cardiac: 'READY',
+        seizure: 'READY',
+        stroke: 'WARMING_UP',
+      };
+      await deviceRequest(
+        server,
+        gateway,
+        `${API}/device/ai/heartbeat`,
+        health,
+      ).expect(200);
+      expect(
+        dataOf<{ status: string }>(
+          await asAdmin(
+            'get',
+            `/admin/devices/${gateway.id}/monitoring`,
+          ).expect(200),
+        ).status,
+      ).toBe('WARMING_UP');
+      const old = payload();
+      await asAdmin('post', `/admin/devices/${gateway.id}/unpair`).expect(200);
+      await asAdmin('post', `/admin/devices/${gateway.id}/pair`)
+        .send({ userId: drivers.ai.id })
+        .expect(200);
+      expect(codeOf(await send(old).expect(409))).toBe(
+        'AI_ASSOCIATION_EXPIRED',
+      );
+      await deviceRequest(
+        server,
+        gateway,
+        `${API}/device/ai/heartbeat`,
+        health,
+      ).expect(409);
+      expect(
+        dataOf<{ status: string }>(
+          await asAdmin(
+            'get',
+            `/admin/devices/${gateway.id}/monitoring`,
+          ).expect(200),
+        ).status,
+      ).toBe('UNAVAILABLE');
+    });
+
+    (process.env.AI_GATEWAY_PYTHON ? it : it.skip)(
+      'runs the actual Python models through signed HTTP into driver history',
+      async () => {
+        await app.listen(0, '127.0.0.1');
+        const address = app.getHttpServer().address();
+        if (!address || typeof address === 'string')
+          throw new Error('Expected a local TCP listener');
+        const queuePath = join(
+          tmpdir(),
+          `cabinguard-ai-test-${randomUUID()}.sqlite`,
+        );
+        const before = await prisma.medicalEvent.count({
+          where: { userId: drivers.ai.id },
+        });
+        try {
+          const { stdout } = await promisify(execFile)(
+            process.env.AI_GATEWAY_PYTHON!,
+            [
+              '-m',
+              'gateway.replay',
+              '--api',
+              `http://127.0.0.1:${address.port}${API}`,
+              '--serial',
+              gateway.serialNumber,
+              '--scenario',
+              'Stroke',
+              '--fast',
+              '--outbox',
+              queuePath,
+            ],
+            {
+              cwd: resolve(__dirname, '../../AI module/dashboard_ai_models'),
+              env: { ...process.env, CABINGUARD_DEVICE_SECRET: gateway.secret },
+              timeout: 60000,
+            },
+          );
+          expect(stdout).toContain('pending events: 0');
+          expect(
+            await prisma.medicalEvent.count({
+              where: { userId: drivers.ai.id },
+            }),
+          ).toBeGreaterThan(before);
+          expect(await activeOf('ai')).toBeNull();
+          const latest = await prisma.medicalEvent.findFirst({
+            where: { userId: drivers.ai.id },
+            orderBy: { receivedAt: 'desc' },
+          });
+          expect(latest?.detection).toMatchObject({
+            inputKind: 'REPLAY',
+            processingMode: 'REPLAY',
+          });
+        } finally {
+          await Promise.all(
+            ['', '-wal', '-shm'].map((suffix) =>
+              rm(queuePath + suffix, { force: true }),
+            ),
+          );
+        }
+      },
+      70000,
+    );
   });
 });

@@ -31,6 +31,12 @@ export class VitalsResponse {
 
 /** List row: what happened and when, without readings or location. */
 export class MedicalEventSummaryResponse {
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    enum: ['ACTIVE', 'SHADOW', 'REPLAY', 'DELAYED'],
+  })
+  processingMode!: string | null;
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ enum: Object.values(MedicalEventType) })
   type!: MedicalEventType;
@@ -51,6 +57,14 @@ export class MedicalEventSummaryResponse {
 }
 
 export class MedicalEventResponse extends MedicalEventSummaryResponse {
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: true,
+    nullable: true,
+    description:
+      'Model provenance and processing mode. Scores are uncalibrated.',
+  })
+  detection!: import('../../domain/ai-detection').AiDetection | null;
   @ApiProperty({ type: VitalsResponse, nullable: true })
   vitals!: VitalsResponse | null;
   @ApiProperty({ type: LocationResponse, nullable: true })

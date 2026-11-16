@@ -84,6 +84,7 @@ class DashboardActiveIncidentResponse {
 }
 
 class DashboardLatestEventResponse {
+  @ApiProperty({ type: String, nullable: true }) processingMode!: string | null;
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ enum: Object.values(MedicalEventType) })
   type!: MedicalEventType;
@@ -101,6 +102,13 @@ class DashboardLatestEventResponse {
 }
 
 class DashboardMonitoringResponse {
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: true,
+    description:
+      'Current coverage and shadow/active mode; independent of connectivity.',
+  })
+  runtime!: Record<string, unknown>;
   @ApiProperty({ type: DashboardDeviceResponse })
   device!: DashboardDeviceResponse;
   @ApiProperty({ type: DashboardActiveIncidentResponse, nullable: true })

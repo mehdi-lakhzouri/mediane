@@ -33,6 +33,7 @@ import {
   type DeviceWithSecret,
 } from '../application/devices.service';
 import type { DeviceRecord } from '../domain/device';
+import { monitoringState } from '../domain/runtime-health';
 import {
   DeviceResponse,
   DeviceWithSecretResponse,
@@ -95,6 +96,14 @@ export class AdminDevicesController {
     @Param('deviceId', new ParseUUIDPipe()) deviceId: string,
   ): Promise<DeviceRecord> {
     return this.devices.get(deviceId);
+  }
+
+  @Get(':deviceId/monitoring')
+  @ApiOperation({
+    summary: 'Operational coverage only, without readings or predictions',
+  })
+  async monitoring(@Param('deviceId', new ParseUUIDPipe()) deviceId: string) {
+    return monitoringState(await this.devices.get(deviceId));
   }
 
   @Post(':deviceId/pair')

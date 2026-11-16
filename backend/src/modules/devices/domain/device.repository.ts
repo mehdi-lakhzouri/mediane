@@ -25,6 +25,9 @@ export type DeviceChanges = Partial<
     | 'pairedUserId'
     | 'pairedAt'
     | 'firmwareVersion'
+    | 'associationId'
+    | 'aiMode'
+    | 'runtimeHealth'
     | 'lastSeenAt'
     | 'secretRotatedAt'
     | 'revokedAt'
@@ -33,6 +36,8 @@ export type DeviceChanges = Partial<
 
 /** Port. */
 export abstract class DeviceRepository {
+  /** Serializes AI requests against pairing, revocation, and policy updates. Requires a UnitOfWork. */
+  abstract lock(id: string): Promise<void>;
   /** @throws DeviceSerialTakenError */
   abstract create(device: NewDevice): Promise<DeviceRecord>;
 

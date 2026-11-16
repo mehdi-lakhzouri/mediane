@@ -22,6 +22,7 @@ import {
   DeviceRepository,
 } from '../domain/device.repository';
 import { DeviceSecretCipher } from '../infrastructure/device-secret.cipher';
+import type { RuntimeHealth } from '../domain/runtime-health';
 
 /** An administrator in the console, or an operator on the CLI (`adminId: null`). */
 export interface DeviceAdminActor {
@@ -114,6 +115,9 @@ export class DevicesService {
 
     return this.unitOfWork.run(async () => {
       const paired = await this.devices.update(id, {
+        associationId: uuidv7(),
+        aiMode: 'SHADOW',
+        runtimeHealth: null,
         pairedUserId: userId,
         pairedAt: new Date(),
       });
@@ -127,6 +131,9 @@ export class DevicesService {
     if (!device.pairedUserId) return device;
     return this.unitOfWork.run(async () => {
       const unpaired = await this.devices.update(id, {
+        associationId: uuidv7(),
+        aiMode: 'SHADOW',
+        runtimeHealth: null,
         pairedUserId: null,
         pairedAt: null,
       });
@@ -143,6 +150,9 @@ export class DevicesService {
     if (device.status === DeviceStatus.REVOKED) return device;
     return this.unitOfWork.run(async () => {
       const revoked = await this.devices.update(id, {
+        associationId: uuidv7(),
+        aiMode: 'SHADOW',
+        runtimeHealth: null,
         status: DeviceStatus.REVOKED,
         revokedAt: new Date(),
         pairedUserId: null,
@@ -176,12 +186,14 @@ export class DevicesService {
   async heartbeat(
     deviceId: string,
     firmwareVersion: string | undefined,
+    runtimeHealth?: RuntimeHealth,
   ): Promise<void> {
     await this.devices.update(deviceId, {
       lastSeenAt: new Date(),
       // Back online: the next silence is reported again.
       offlineNotifiedAt: null,
       ...(firmwareVersion ? { firmwareVersion } : {}),
+      runtimeHealth: runtimeHealth ?? null,
     });
   }
 

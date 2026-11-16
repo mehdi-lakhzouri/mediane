@@ -16,6 +16,18 @@ const parts: SignedRequestParts = {
 };
 
 describe('device request signature', () => {
+  it('matches the fixed Python gateway signature vector', () => {
+    const vector = {
+      method: 'POST',
+      path: '/api/v1/device/ai/events',
+      timestamp: '1794736800',
+      nonce: 'nonce_0123456789abc',
+      body: Buffer.from('{"confidence":0.9,"type":"STROKE"}'),
+    };
+    expect(
+      signRequest(Buffer.from(Array.from({ length: 32 }, (_, i) => i)), vector),
+    ).toBe('b838840b2f8ee28ff2d258f0b8e975035f84ce842ecb9df4512aab2f17fe5460');
+  });
   it('canonicalizes method, path, timestamp, nonce and body hash', () => {
     const lines = canonicalRequest(parts).split('\n');
     expect(lines.slice(0, 4)).toEqual([

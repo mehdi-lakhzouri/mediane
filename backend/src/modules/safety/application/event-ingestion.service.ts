@@ -1,4 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { createHash } from 'node:crypto';
+import type { AiDetection } from '../domain/ai-detection';
 import type { ClientContext } from '../../../common/application/client-context';
 import { UnitOfWork } from '../../../common/application/unit-of-work';
 import { safetyConfig, type SafetyConfig } from '../../../config';
@@ -40,6 +42,7 @@ export interface ReportedEvent {
   /** When the unit detected it (its own clock). */
   detectedAt: Date;
   confidence: number | null;
+  detection?: AiDetection;
   vitals: Vitals | null;
   location: GeoPoint | null;
 }
@@ -103,7 +106,10 @@ export class EventIngestionService {
     let incident = active;
     let escalatedNow = false;
 
-    if (active) {
+    const actionable =
+      !reported.detection || reported.detection.processingMode === 'ACTIVE';
+    if (!actionable) incident = null;
+    if (active && actionable) {
       const updated = await this.applyToActive(
         active,
         reported,
@@ -119,7 +125,7 @@ export class EventIngestionService {
         now,
         { source: reported.source },
       );
-    } else if (SeverityPolicy.opensIncident(severity)) {
+    } else if (actionable && SeverityPolicy.opensIncident(severity)) {
       incident = await this.open(reported, severity, client, now);
       escalatedNow = incident.status === IncidentStatus.ESCALATED;
     }
@@ -133,6 +139,8 @@ export class EventIngestionService {
       severity,
       clientEventId: reported.clientEventId,
       confidence: reported.confidence,
+      detection: reported.detection ?? null,
+      payloadHash: reported.detection ? aiPayloadHash(reported) : null,
       detectedAt: reported.detectedAt,
       receivedAt: now,
       vitals: reported.vitals,
@@ -258,12 +266,36 @@ export class EventIngestionService {
       reported.clientEventId,
     );
     if (!existing) return null;
-    if (existing.type !== reported.type) throw new EventIdConflictError();
+    if (
+      existing.type !== reported.type ||
+      (reported.detection && existing.payloadHash !== aiPayloadHash(reported))
+    )
+      throw new EventIdConflictError();
     const incident = existing.incidentId
       ? await this.incidents.findById(existing.incidentId)
       : null;
     return { event: existing, incident, duplicate: true };
   }
+}
+
+function aiPayloadHash(reported: ReportedEvent): string {
+  // Processing policy is server-owned and may change between delivery attempts.
+  const { processingMode: _mode, ...detection } = reported.detection!;
+  const normalize = (value: unknown): unknown => {
+    if (value instanceof Date) return value.toISOString();
+    if (Array.isArray(value)) return value.map(normalize);
+    if (value && typeof value === 'object')
+      return Object.fromEntries(
+        Object.entries(value)
+          .filter(([, v]) => v !== undefined)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([key, val]) => [key, normalize(val)]),
+      );
+    return value;
+  };
+  return createHash('sha256')
+    .update(JSON.stringify(normalize({ ...reported, detection })))
+    .digest('hex');
 }
 
 function assertPlausibleTime(detectedAt: Date, now: Date): void {

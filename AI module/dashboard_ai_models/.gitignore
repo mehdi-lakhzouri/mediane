@@ -1,0 +1,7 @@
+# datasets stay on this computer (NeuroFace is under a licence: never publish it)
+data/
+# MediaPipe face model, downloaded by make_clips.py
+models/face_landmarker.task
+__pycache__/
+.gateway/
+.venv/

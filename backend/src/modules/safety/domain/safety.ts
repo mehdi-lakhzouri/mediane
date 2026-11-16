@@ -1,4 +1,5 @@
 export const MedicalEventType = {
+  CARDIAC_EMERGENCY: 'CARDIAC_EMERGENCY',
   HEART_RHYTHM: 'HEART_RHYTHM',
   DROWSINESS: 'DROWSINESS',
   SEIZURE: 'SEIZURE',
@@ -64,6 +65,7 @@ export interface GeoPoint {
 }
 
 const SEVERITY_BY_TYPE: Record<MedicalEventType, MedicalEventSeverity> = {
+  CARDIAC_EMERGENCY: MedicalEventSeverity.CRITICAL,
   HEART_RHYTHM: MedicalEventSeverity.URGENT,
   DROWSINESS: MedicalEventSeverity.WARNING,
   SEIZURE: MedicalEventSeverity.CRITICAL,

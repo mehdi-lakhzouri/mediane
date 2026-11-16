@@ -26,6 +26,8 @@ import { PrismaIncidentRepository } from './infrastructure/prisma-incident.repos
 import { PrismaMedicalEventRepository } from './infrastructure/prisma-medical-event.repository';
 import { PrismaSafetyDirectory } from './infrastructure/prisma-safety.directory';
 import { DeviceSafetyController } from './presentation/device-safety.controller';
+import { AiGatewayController } from './presentation/ai-gateway.controller';
+import { AiGatewayService } from './application/ai-gateway.service';
 import { SafetyController } from './presentation/safety.controller';
 
 /**
@@ -35,8 +37,9 @@ import { SafetyController } from './presentation/safety.controller';
  */
 @Module({
   imports: [DevicesModule, AuditModule, MailModule, NotificationsModule],
-  controllers: [SafetyController, DeviceSafetyController],
+  controllers: [SafetyController, DeviceSafetyController, AiGatewayController],
   providers: [
+    AiGatewayService,
     EventIngestionService,
     IncidentResponseService,
     SafetyQueryService,

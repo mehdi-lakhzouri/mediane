@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CabinGuard: in-cabin medical event detection</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- 1. top bar: the only control is the scenario -->
+<header class="topbar">
+  <div class="brand"><b>CabinGuard</b><span>in-cabin medical event detection</span></div>
+  <div class="controls">
+    <label for="scenario" class="sr">Scenario</label>
+    <select id="scenario" disabled></select>
+    <button id="play" disabled>&#9654; Play</button>
+    <button id="playall" disabled>Play all scenarios</button>
+    <button id="stop" disabled>&#9632; Stop</button>
+  </div>
+  <div class="clock">
+    <div class="small">Driving time</div>
+    <div><span id="clock">0:00</span><span id="clockTotal" class="muted"> / 0:00</span></div>
+    <div id="playlist" class="small"></div>
+  </div>
+  <div id="conn" class="conn">connecting...</div>
+</header>
+
+<section class="info">
+  <div id="sources" class="sources"></div>
+  <div id="notes" class="notes"></div>
+  <div id="models" class="models"></div>
+</section>
+
+<!-- 5. final decision + event log -->
+<section class="row-banner">
+  <div id="banner" class="banner state-Normal">
+    <div class="banner-main">
+      <div class="small">FINAL DECISION</div>
+      <div id="state" class="state">WAITING</div>
+      <div id="stateWhy" class="why">Choose a scenario and press Play.</div>
+    </div>
+    <div class="banner-side">
+      <div class="small">confidence</div>
+      <div id="confidence" class="big">-</div>
+    </div>
+    <div class="banner-side">
+      <div class="small">in the recording now</div>
+      <div id="truth" class="truth">-</div>
+    </div>
+  </div>
+  <div class="log panel">
+    <div class="panel-title">Event log</div>
+    <div id="log" class="log-list"><div class="muted">No state change yet.</div></div>
+  </div>
+</section>
+
+<!-- 6. pipeline strip -->
+<section class="pipeline panel" id="pipeline"></section>
+
+<main class="grid">
+  <!-- 2. live signals -->
+  <section class="panel col">
+    <div class="panel-title">Live sensors <span class="muted" id="rate">ECG + PPG 250 Hz, accelerometer 25 Hz, sent every 200 ms</span></div>
+    <div class="sig"><div class="sig-head"><span class="swatch" style="background:#3987e5"></span>ECG, steering wheel <span class="muted">last 10 s</span><span id="ecgSrc" class="src"></span></div><canvas id="ecg"></canvas></div>
+    <div class="sig"><div class="sig-head"><span class="swatch" style="background:#199e70"></span>PPG pulse, steering wheel <span class="muted">last 10 s</span></div><canvas id="ppg"></canvas></div>
+    <div class="sig"><div class="sig-head"><span class="swatch" style="background:#d55181"></span>Accelerometer, seat <span class="muted">last 30 s, milli-g</span></div><canvas id="acc"></canvas></div>
+    <div class="sig face"><div class="sig-head">Face points, camera <span id="faceLabel" class="src"></span></div><canvas id="face"></canvas></div>
+  </section>
+
+  <!-- 3. features -->
+  <section class="panel col">
+    <div class="panel-title">Features <span class="muted">computed live from the signals, as in training</span>
+      <button id="allFeatures" class="link">Show all features</button></div>
+    <div id="features"></div>
+  </section>
+
+  <!-- 4. detection layer -->
+  <section class="panel col">
+    <div class="panel-title">Detection <span class="muted">each model vs its threshold</span></div>
+    <div id="cards"></div>
+    <div class="chart-head">
+      <span>Probability over the drive</span>
+      <span class="legend"><span class="key" style="background:#c93636"></span>Cardiac
+        <span class="key" style="background:#c98500"></span>Seizure <span class="key" style="background:#9085e9"></span>Stroke
+        <span class="key dashed"></span>threshold</span>
+    </div>
+    <div class="chart-wrap"><canvas id="prob"></canvas><div id="tip" class="tip" hidden></div></div>
+  </section>
+</main>
+
+<!-- "show all features" drawer -->
+<aside id="drawer" class="drawer" hidden>
+  <div class="drawer-head">
+    <div class="tabs" id="tabs"></div>
+    <button id="closeDrawer" class="link">Close</button>
+  </div>
+  <div id="drawerBody" class="drawer-body"></div>
+</aside>
+<div id="toast" class="toast" hidden></div>
+
+<script src="/static/charts.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

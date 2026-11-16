@@ -19,8 +19,7 @@ export class MobileBootstrapResponse {
   @ApiProperty({ example: '1.0.0' }) latestVersion!: string;
   @ApiProperty({ example: false }) maintenance!: boolean;
   @ApiProperty({
-    example:
-      'CabinGuard is receiving a safety update. Please try again shortly.',
+    example: 'Mediane is receiving a safety update. Please try again shortly.',
   })
   maintenanceMessage!: string;
   @ApiPropertyOptional({

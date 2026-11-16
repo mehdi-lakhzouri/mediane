@@ -24,6 +24,8 @@ export interface MedicalEventRecord {
   severity: MedicalEventSeverity;
   clientEventId: string;
   confidence: number | null;
+  detection?: import('./ai-detection').AiDetection | null;
+  payloadHash?: string | null;
   detectedAt: Date;
   receivedAt: Date;
   vitals: Vitals | null;

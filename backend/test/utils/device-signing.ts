@@ -13,6 +13,7 @@ export interface TestUnit {
 }
 
 export interface SignOptions {
+  method?: 'GET' | 'POST';
   nonce?: string;
   /** Unix seconds. */
   timestamp?: number;
@@ -35,10 +36,16 @@ export function deviceRequest(
   const nonce = options.nonce ?? randomBytes(16).toString('base64url');
   const signature = signRequest(
     Buffer.from(options.secret ?? unit.secret, 'base64url'),
-    { method: 'POST', path, timestamp, nonce, body: Buffer.from(body) },
+    {
+      method: options.method ?? 'POST',
+      path,
+      timestamp,
+      nonce,
+      body: Buffer.from(body),
+    },
   );
   const req = request(server)
-    .post(path)
+    [options.method === 'GET' ? 'get' : 'post'](path)
     .set(DeviceHeaders.SERIAL, unit.serialNumber)
     .set(DeviceHeaders.TIMESTAMP, timestamp)
     .set(DeviceHeaders.NONCE, nonce)

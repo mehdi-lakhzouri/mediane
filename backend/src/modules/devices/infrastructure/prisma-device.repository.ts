@@ -23,6 +23,9 @@ const RECORD_SELECT = {
   pairedUserId: true,
   pairedAt: true,
   firmwareVersion: true,
+  associationId: true,
+  aiMode: true,
+  runtimeHealth: true,
   lastSeenAt: true,
   secretRotatedAt: true,
   revokedAt: true,
@@ -36,7 +39,13 @@ type DeviceRow = Prisma.VehicleDeviceGetPayload<{
 
 function toRecord(row: DeviceRow): DeviceRecord {
   const { pairedUser, ...device } = row;
-  return { ...device, pairedDriver: pairedUser };
+  return {
+    ...device,
+    aiMode: device.aiMode as DeviceRecord['aiMode'],
+    runtimeHealth:
+      device.runtimeHealth as unknown as DeviceRecord['runtimeHealth'],
+    pairedDriver: pairedUser,
+  };
 }
 
 function toRecordOrNull(row: DeviceRow | null): DeviceRecord | null {
@@ -47,6 +56,11 @@ function toRecordOrNull(row: DeviceRow | null): DeviceRecord | null {
 export class PrismaDeviceRepository extends DeviceRepository {
   constructor(private readonly db: PrismaTransactionHost) {
     super();
+  }
+
+  async lock(id: string): Promise<void> {
+    await this.db.client
+      .$queryRaw`SELECT "id" FROM "vehicle_devices" WHERE "id" = ${id}::uuid FOR UPDATE`;
   }
 
   async create(device: NewDevice): Promise<DeviceRecord> {
@@ -128,7 +142,15 @@ export class PrismaDeviceRepository extends DeviceRepository {
       return toRecord(
         await this.db.client.vehicleDevice.update({
           where: { id },
-          data: changes,
+          data: {
+            ...changes,
+            runtimeHealth:
+              changes.runtimeHealth === null
+                ? Prisma.DbNull
+                : changes.runtimeHealth
+                  ? { ...changes.runtimeHealth }
+                  : undefined,
+          },
           select: RECORD_SELECT,
         }),
       );

@@ -15,6 +15,9 @@ export interface DeviceRecord {
   pairedDriver: { firstName: string; lastName: string; email: string } | null;
   pairedAt: Date | null;
   firmwareVersion: string | null;
+  associationId: string;
+  aiMode: 'SHADOW' | 'ACTIVE';
+  runtimeHealth: import('./runtime-health').RuntimeHealth | null;
   lastSeenAt: Date | null;
   secretRotatedAt: Date | null;
   revokedAt: Date | null;

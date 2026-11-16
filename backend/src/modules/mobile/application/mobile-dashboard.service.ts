@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { SessionInvalidError } from '../../auth/domain/auth.errors';
 import { DevicesService } from '../../devices/application/devices.service';
 import type { DeviceRecord } from '../../devices/domain/device';
+import {
+  MONITORING_FRESHNESS_MS,
+  monitoringState,
+} from '../../devices/domain/runtime-health';
 import { FamiliesService } from '../../families/application/families.service';
 import { FamilyRole } from '../../families/domain/family';
 import { MfaService } from '../../mfa/application/mfa.service';
@@ -26,7 +30,7 @@ const FEATURES: DashboardFeatures = {
 };
 
 /** A unit that reported within this window is shown as online. */
-const DEVICE_ONLINE_WINDOW_MS = 120_000;
+const DEVICE_ONLINE_WINDOW_MS = MONITORING_FRESHNESS_MS;
 
 function deviceState(
   device: DeviceRecord | null,
@@ -128,6 +132,7 @@ export class MobileDashboardService {
         recoveryCodesLow: mfa.recoveryCodesLow,
       },
       monitoring: {
+        runtime: monitoringState(device, now),
         device: deviceState(device, now),
         activeIncident: incident
           ? {
@@ -143,6 +148,7 @@ export class MobileDashboardService {
           ? {
               id: latest.event.id,
               type: latest.event.type,
+              processingMode: latest.event.detection?.processingMode ?? null,
               severity: latest.event.severity,
               detectedAt: latest.event.detectedAt,
               incidentStatus: latest.incident?.status ?? null,

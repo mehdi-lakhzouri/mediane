@@ -69,6 +69,9 @@ export interface MobileDashboard {
 
 /** Live safety state: the in-cabin unit, an open incident, the last event. */
 export interface DashboardMonitoring {
+  runtime: ReturnType<
+    typeof import('../../devices/domain/runtime-health').monitoringState
+  >;
   device: {
     paired: boolean;
     /** Heard from within the online window. */
@@ -84,6 +87,7 @@ export interface DashboardMonitoring {
     escalatedAt: Date | null;
   } | null;
   latestEvent: {
+    processingMode: string | null;
     id: string;
     type: MedicalEventType;
     severity: MedicalEventSeverity;

@@ -16,6 +16,7 @@ export function presentEventSummary(
 ): MedicalEventSummaryResponse {
   return {
     id: event.id,
+    processingMode: event.detection?.processingMode ?? null,
     type: event.type,
     severity: event.severity,
     source: event.source,
@@ -29,6 +30,7 @@ export function presentEventSummary(
 export function presentEvent(event: MedicalEventRecord): MedicalEventResponse {
   return {
     ...presentEventSummary(event),
+    detection: event.detection ?? null,
     vitals: event.vitals,
     location: event.location,
   };

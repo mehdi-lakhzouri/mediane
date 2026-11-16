@@ -19,6 +19,8 @@ const EVENT_SELECT = {
   severity: true,
   clientEventId: true,
   confidence: true,
+  detection: true,
+  payloadHash: true,
   detectedAt: true,
   receivedAt: true,
   vitals: true,
@@ -53,9 +55,17 @@ function toVitals(value: Prisma.JsonValue): Vitals | null {
 }
 
 function toRecord(row: EventRow): MedicalEventRecord {
-  const { latitude, longitude, locationAccuracyM, vitals, ...event } = row;
+  const {
+    latitude,
+    longitude,
+    locationAccuracyM,
+    vitals,
+    detection,
+    ...event
+  } = row;
   return {
     ...event,
+    detection: detection as unknown as MedicalEventRecord['detection'],
     vitals: toVitals(vitals),
     location:
       latitude !== null && longitude !== null
@@ -82,10 +92,11 @@ export class PrismaMedicalEventRepository extends MedicalEventRepository {
   }
 
   async create(event: NewMedicalEvent): Promise<MedicalEventRecord> {
-    const { location, vitals, ...columns } = event;
+    const { location, vitals, detection, ...columns } = event;
     const row = await this.db.client.medicalEvent.create({
       data: {
         ...columns,
+        detection: detection ? { ...detection } : Prisma.DbNull,
         vitals: vitals ? { ...vitals } : Prisma.DbNull,
         latitude: location?.latitude ?? null,
         longitude: location?.longitude ?? null,

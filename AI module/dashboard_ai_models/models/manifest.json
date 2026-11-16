@@ -1,0 +1,21 @@
+{
+  "version": "1",
+  "models": {
+    "Cardiac": {
+      "file": "cardiac_arrest_HAJER.pkl",
+      "sha256": "ab729c969a1e2ffaefb8a08e18962ada6731d7b8bf89badb9d77c135d3ca1439"
+    },
+    "Seizure": {
+      "file": "seizure_detection_GHAYA.pkl",
+      "sha256": "f13347f277f777057f43db3c328147ba89ecd0a5b35bc3b0a0f9c9a75b632ed7"
+    },
+    "Stroke": {
+      "file": "stroke_detection_DAOUSSAR.pkl",
+      "sha256": "5d39bf971fe8414454b74b90e3aff9568c50bf851701d705db6a4b2c37abaf33"
+    },
+    "SeizureType": {
+      "file": "seizure_type_KENZA.pkl",
+      "sha256": "417eaeaad2f90e51577ede9d195a58c946bdf78aa28080e9963b0f91255b6ff5"
+    }
+  }
+}

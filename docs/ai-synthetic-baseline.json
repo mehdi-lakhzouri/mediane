@@ -1,0 +1,461 @@
+{
+  "results": [
+    {
+      "scenario": "Normal driving",
+      "expected": "Normal",
+      "event_start": null,
+      "final": "Stroke",
+      "detected_at": null,
+      "delay": null,
+      "other_alarms": [
+        [
+          20.2,
+          "Stroke"
+        ]
+      ],
+      "log": [
+        {
+          "t": 20.2,
+          "from": "Normal",
+          "to": "Stroke",
+          "by": "Stroke",
+          "confidence": 0.740750236726025
+        }
+      ],
+      "models": {
+        "Cardiac": {
+          "runs": 19,
+          "alarms": 0,
+          "max_before": 0.002885905490918402,
+          "max_after": null
+        },
+        "Seizure": {
+          "runs": 48,
+          "alarms": 0,
+          "max_before": 0.8522486704363268,
+          "max_after": null
+        },
+        "Stroke": {
+          "runs": 11,
+          "alarms": 11,
+          "max_before": 0.740750236726025,
+          "max_after": null
+        }
+      },
+      "simulated": true,
+      "duration": 240.0
+    },
+    {
+      "scenario": "Cardiac: ventricular tachycardia",
+      "expected": "Cardiac",
+      "event_start": 120,
+      "final": "Stroke",
+      "detected_at": 130.0,
+      "delay": 10.0,
+      "other_alarms": [
+        [
+          20.2,
+          "Stroke"
+        ],
+        [
+          140.0,
+          "Stroke"
+        ]
+      ],
+      "log": [
+        {
+          "t": 20.2,
+          "from": "Normal",
+          "to": "Stroke",
+          "by": "Stroke",
+          "confidence": 0.740750236726025
+        },
+        {
+          "t": 130.0,
+          "from": "Stroke",
+          "to": "Cardiac",
+          "by": "Cardiac",
+          "confidence": 0.7798957016784247
+        },
+        {
+          "t": 140.0,
+          "from": "Cardiac",
+          "to": "Stroke",
+          "by": "Stroke",
+          "confidence": 0.7343937698765385
+        }
+      ],
+      "models": {
+        "Cardiac": {
+          "runs": 10,
+          "alarms": 3,
+          "max_before": 0.001193054643230543,
+          "max_after": 0.7798957016784247
+        },
+        "Seizure": {
+          "runs": 30,
+          "alarms": 0,
+          "max_before": 0.8522486704363268,
+          "max_after": 0.5849418608678891
+        },
+        "Stroke": {
+          "runs": 7,
+          "alarms": 7,
+          "max_before": 0.740750236726025,
+          "max_after": 0.7343937698765385
+        }
+      },
+      "simulated": true,
+      "duration": 150.0
+    },
+    {
+      "scenario": "Cardiac: ventricular fibrillation",
+      "expected": "Cardiac",
+      "event_start": 120,
+      "final": "Stroke",
+      "detected_at": 130.0,
+      "delay": 10.0,
+      "other_alarms": [
+        [
+          20.2,
+          "Stroke"
+        ],
+        [
+          140.0,
+          "Stroke"
+        ]
+      ],
+      "log": [
+        {
+          "t": 20.2,
+          "from": "Normal",
+          "to": "Stroke",
+          "by": "Stroke",
+          "confidence": 0.740750236726025
+        },
+        {
+          "t": 130.0,
+          "from": "Stroke",
+          "to": "Cardiac",
+          "by": "Cardiac",
+          "confidence": 0.8450751543322456
+        },
+        {
+          "t": 140.0,
+          "from": "Cardiac",
+          "to": "Stroke",
+          "by": "Stroke",
+          "confidence": 0.7360353430712814
+        }
+      ],
+      "models": {
+        "Cardiac": {
+          "runs": 10,
+          "alarms": 3,
+          "max_before": 0.001193054643230543,
+          "max_after": 0.8450751543322456
+        },
+        "Seizure": {
+          "runs": 30,
+          "alarms": 0,
+          "max_before": 0.8522486704363268,
+          "max_after": 0.8120552398919173
+        },
+        "Stroke": {
+          "runs": 7,
+          "alarms": 7,
+          "max_before": 0.740750236726025,
+          "max_after": 0.7360353430712814
+        }
+      },
+      "simulated": true,
+      "duration": 150.0
+    },
+    {
+      "scenario": "Cardiac: asystole",
+      "expected": "Cardiac",
+      "event_start": 120,
+      "final": "Stroke",
+      "detected_at": null,
+      "delay": null,
+      "other_alarms": [
+        [
+          20.2,
+          "Stroke"
+        ]
+      ],
+      "log": [
+        {
+          "t": 20.2,
+          "from": "Normal",
+          "to": "Stroke",
+          "by": "Stroke",
+          "confidence": 0.740750236726025
+        }
+      ],
+      "models": {
+        "Cardiac": {
+          "runs": 10,
+          "alarms": 3,
+          "max_before": 0.001193054643230543,
+          "max_after": 0.5714917206974357
+        },
+        "Seizure": {
+          "runs": 30,
+          "alarms": 0,
+          "max_before": 0.8522486704363268,
+          "max_after": 0.8120552398919173
+        },
+        "Stroke": {
+          "runs": 7,
+          "alarms": 7,
+          "max_before": 0.740750236726025,
+          "max_after": 0.7360353430712814
+        }
+      },
+      "simulated": true,
+      "duration": 150.0
+    },
+    {
+      "scenario": "Cardiac: extreme bradycardia",
+      "expected": "Cardiac",
+      "event_start": 120,
+      "final": "Cardiac",
+      "detected_at": 130.0,
+      "delay": 10.0,
+      "other_alarms": [
+        [
+          20.2,
+          "Stroke"
+        ],
+        [
+          135.0,
+          "Seizure (convulsive)"
+        ],
+        [
+          140.0,
+          "Cardiac"
+        ]
+      ],
+      "log": [
+        {
+          "t": 20.2,
+          "from": "Normal",
+          "to": "Stroke",
+          "by": "Stroke",
+          "confidence": 0.740750236726025
+        },
+        {
+          "t": 130.0,
+          "from": "Stroke",
+          "to": "Cardiac",
+          "by": "Cardiac",
+          "confidence": 0.7369649463877433
+        },
+        {
+          "t": 135.0,
+          "from": "Cardiac",
+          "to": "Seizure (convulsive)",
+          "by": "Seizure",
+          "confidence": 0.8285832380953316
+        },
+        {
+          "t": 140.0,
+          "from": "Seizure (convulsive)",
+          "to": "Cardiac",
+          "by": "Cardiac",
+          "confidence": 0.7369649463877433
+        }
+      ],
+      "models": {
+        "Cardiac": {
+          "runs": 10,
+          "alarms": 3,
+          "max_before": 0.001193054643230543,
+          "max_after": 0.7960485660084714
+        },
+        "Seizure": {
+          "runs": 30,
+          "alarms": 1,
+          "max_before": 0.8522486704363268,
+          "max_after": 0.8285832380953316
+        },
+        "Stroke": {
+          "runs": 7,
+          "alarms": 7,
+          "max_before": 0.740750236726025,
+          "max_after": 0.7361125675349521
+        }
+      },
+      "simulated": true,
+      "duration": 150.0
+    },
+    {
+      "scenario": "Seizure: tonic-clonic",
+      "expected": "Seizure",
+      "event_start": 60,
+      "final": "Seizure (convulsive)",
+      "detected_at": 75.0,
+      "delay": 15.0,
+      "other_alarms": [
+        [
+          20.2,
+          "Stroke"
+        ]
+      ],
+      "log": [
+        {
+          "t": 20.2,
+          "from": "Normal",
+          "to": "Stroke",
+          "by": "Stroke",
+          "confidence": 0.740750236726025
+        },
+        {
+          "t": 75.0,
+          "from": "Stroke",
+          "to": "Seizure (convulsive)",
+          "by": "Seizure",
+          "confidence": 0.9871685645213514
+        }
+      ],
+      "models": {
+        "Cardiac": {
+          "runs": 13,
+          "alarms": 0,
+          "max_before": null,
+          "max_after": 0.02557916869329547
+        },
+        "Seizure": {
+          "runs": 36,
+          "alarms": 22,
+          "max_before": 0.8522486704363268,
+          "max_after": 0.9871685645213514
+        },
+        "Stroke": {
+          "runs": 8,
+          "alarms": 8,
+          "max_before": 0.740750236726025,
+          "max_after": 0.7362029864691508
+        }
+      },
+      "simulated": true,
+      "duration": 180.0
+    },
+    {
+      "scenario": "Seizure: aura",
+      "expected": "Seizure",
+      "event_start": 60,
+      "final": "Stroke",
+      "detected_at": 70.0,
+      "delay": 10.0,
+      "other_alarms": [
+        [
+          20.2,
+          "Stroke"
+        ],
+        [
+          160.0,
+          "Stroke"
+        ]
+      ],
+      "log": [
+        {
+          "t": 20.2,
+          "from": "Normal",
+          "to": "Stroke",
+          "by": "Stroke",
+          "confidence": 0.740750236726025
+        },
+        {
+          "t": 70.0,
+          "from": "Stroke",
+          "to": "Seizure (convulsive)",
+          "by": "Seizure",
+          "confidence": 0.933745477381628
+        },
+        {
+          "t": 160.0,
+          "from": "Seizure (convulsive)",
+          "to": "Stroke",
+          "by": "Stroke",
+          "confidence": 0.739219250523737
+        }
+      ],
+      "models": {
+        "Cardiac": {
+          "runs": 13,
+          "alarms": 0,
+          "max_before": null,
+          "max_after": 0.007222236996930849
+        },
+        "Seizure": {
+          "runs": 36,
+          "alarms": 18,
+          "max_before": 0.8522486704363268,
+          "max_after": 0.9446386626296119
+        },
+        "Stroke": {
+          "runs": 8,
+          "alarms": 8,
+          "max_before": 0.740750236726025,
+          "max_after": 0.739219250523737
+        }
+      },
+      "simulated": true,
+      "duration": 180.0
+    },
+    {
+      "scenario": "Stroke",
+      "expected": "Stroke",
+      "event_start": 60,
+      "final": "Stroke",
+      "detected_at": 20.2,
+      "delay": -39.8,
+      "other_alarms": [],
+      "log": [
+        {
+          "t": 20.2,
+          "from": "Normal",
+          "to": "Stroke",
+          "by": "Stroke",
+          "confidence": 0.740750236726025
+        }
+      ],
+      "models": {
+        "Cardiac": {
+          "runs": 10,
+          "alarms": 0,
+          "max_before": null,
+          "max_after": 0.003566377372090628
+        },
+        "Seizure": {
+          "runs": 30,
+          "alarms": 0,
+          "max_before": 0.8522486704363268,
+          "max_after": 0.7075720402243926
+        },
+        "Stroke": {
+          "runs": 7,
+          "alarms": 7,
+          "max_before": 0.740750236726025,
+          "max_after": 0.8265093020462814
+        }
+      },
+      "simulated": true,
+      "duration": 150.0
+    }
+  ],
+  "errors": [],
+  "quality_findings": [
+    "Normal driving: unexpected final alarms",
+    "Cardiac: ventricular tachycardia: unexpected final alarms",
+    "Cardiac: ventricular fibrillation: unexpected final alarms",
+    "Cardiac: asystole: expected event missed",
+    "Cardiac: asystole: unexpected final alarms",
+    "Cardiac: extreme bradycardia: unexpected final alarms",
+    "Seizure: tonic-clonic: unexpected final alarms",
+    "Seizure: aura: unexpected final alarms",
+    "Stroke: final alarm preceded the labelled event"
+  ]
+}

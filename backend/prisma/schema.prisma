@@ -440,6 +440,9 @@ model VehicleDevice {
   pairedUserId      String?      @unique @db.Uuid
   pairedAt          DateTime?
   firmwareVersion   String?      @db.VarChar(50)
+  associationId     String       @default(uuid(7)) @db.Uuid
+  aiMode            String       @default("SHADOW") @db.VarChar(10)
+  runtimeHealth     Json?
   lastSeenAt        DateTime?
   secretRotatedAt   DateTime?
   /// Set when the driver was told the unit went quiet; cleared by a heartbeat.
@@ -474,6 +477,7 @@ model DeviceRequestNonce {
 // ---------------------------------------------------------------- safety
 
 enum MedicalEventType {
+  CARDIAC_EMERGENCY
   HEART_RHYTHM
   DROWSINESS
   SEIZURE
@@ -553,6 +557,8 @@ model MedicalEvent {
   clientEventId     String               @db.VarChar(64)
   /// 0..1 as reported by the detector.
   confidence        Float?
+  detection         Json?
+  payloadHash       String?              @db.VarChar(64)
   detectedAt        DateTime
   receivedAt        DateTime             @default(now())
   vitals            Json?
@@ -565,6 +571,7 @@ model MedicalEvent {
   incident Incident?      @relation(fields: [incidentId], references: [id], onDelete: SetNull)
 
   @@unique([userId, clientEventId])
+  @@unique([deviceId, clientEventId])
   @@index([userId, detectedAt])
   @@index([receivedAt])
   @@map("medical_events")
