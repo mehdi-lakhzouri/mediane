@@ -49,6 +49,10 @@ const toBool = ({ value }: TransformInput): unknown => {
   return value;
 };
 
+/** `KEY=` in a .env file means "not set" for optional values. */
+const blankToUndefined = ({ value }: TransformInput): unknown =>
+  typeof value === 'string' && value.trim() === '' ? undefined : value;
+
 const toList = ({ value }: TransformInput): unknown =>
   typeof value === 'string'
     ? value
@@ -330,6 +334,24 @@ export class EnvironmentVariables {
   MAIL_FROM!: string;
 
   /**
+   * textbee.dev API key: emergency contacts get an SMS sent through an Android
+   * phone running the textbee app. Empty = no SMS, deliveries are only logged.
+   */
+  @Transform(blankToUndefined)
+  @IsOptional()
+  @IsString()
+  TEXTBEE_API_KEY?: string;
+
+  /** textbee.dev device that sends the SMS. Empty = the account's default device. */
+  @Transform(blankToUndefined)
+  @IsOptional()
+  @IsString()
+  TEXTBEE_DEVICE_ID?: string;
+
+  @IsUrl({ ...HTTP_URL, protocols: ['https'] })
+  TEXTBEE_API_URL = 'https://api.textbee.dev';
+
+  /**
    * Where uploaded files (driver avatars) live: `local` = a folder on this
    * server (development only), `s3` = any S3-compatible bucket (production).
    */
@@ -430,6 +452,9 @@ function crossFieldErrors(env: EnvironmentVariables): string[] {
     errors.push(
       'WEB_SESSION_IDLE_TTL_SECONDS must be <= REFRESH_SESSION_ABSOLUTE_TTL_SECONDS',
     );
+  }
+  if (env.TEXTBEE_DEVICE_ID && !env.TEXTBEE_API_KEY) {
+    errors.push('TEXTBEE_DEVICE_ID needs TEXTBEE_API_KEY');
   }
   if (env.STORAGE_DRIVER === 's3' && (!env.S3_BUCKET || !env.S3_REGION)) {
     errors.push('S3_BUCKET and S3_REGION are required when STORAGE_DRIVER=s3');

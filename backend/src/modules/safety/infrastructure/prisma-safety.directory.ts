@@ -26,6 +26,7 @@ export class PrismaSafetyDirectory extends SafetyDirectory {
         lastName: true,
         profile: {
           select: {
+            phoneNumber: true,
             emergencyContacts: {
               select: { fullName: true, phoneNumber: true, priority: true },
               orderBy: { priority: 'asc' },
@@ -65,7 +66,11 @@ export class PrismaSafetyDirectory extends SafetyDirectory {
       : [];
 
     return {
-      driver: { firstName: user.firstName, lastName: user.lastName },
+      driver: {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.profile?.phoneNumber ?? null,
+      },
       contacts: user.profile?.emergencyContacts ?? [],
       family: family.map(({ user: member }) => ({
         userId: member.id,

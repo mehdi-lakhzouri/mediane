@@ -67,4 +67,21 @@ describe('validateEnv in production', () => {
       /WEB_SESSION_IDLE_TTL_SECONDS must be <= REFRESH_SESSION_ABSOLUTE_TTL_SECONDS/,
     );
   });
+
+  it('treats empty textbee variables as SMS turned off', () => {
+    const env = validateEnv({
+      ...production(),
+      TEXTBEE_API_KEY: '',
+      TEXTBEE_DEVICE_ID: ' ',
+    });
+    expect(env.TEXTBEE_API_KEY).toBeUndefined();
+    expect(env.TEXTBEE_DEVICE_ID).toBeUndefined();
+    expect(env.TEXTBEE_API_URL).toBe('https://api.textbee.dev');
+  });
+
+  it('refuses a textbee device without an API key', () => {
+    expect(() =>
+      validateEnv({ ...production(), TEXTBEE_DEVICE_ID: 'device-1' }),
+    ).toThrow(/TEXTBEE_DEVICE_ID needs TEXTBEE_API_KEY/);
+  });
 });

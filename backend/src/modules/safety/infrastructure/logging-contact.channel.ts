@@ -8,8 +8,8 @@ import {
 } from '../domain/notification';
 
 /**
- * Stand-in until an SMS or voice provider is contracted: records that the
- * contact would have been reached. The line carries the incident id and the
+ * Used when no SMS provider is configured (TEXTBEE_API_KEY empty): records
+ * that the contact would have been reached. The line carries the incident id and the
  * call order only, never a name, number, location or medical detail.
  */
 @Injectable()
@@ -22,7 +22,7 @@ export class LoggingContactChannel extends EmergencyContactChannel {
     contact: { priority: number },
   ): Promise<DeliveryResult> {
     this.logger.warn(
-      `${message.kind} for incident ${message.incidentId}: contact #${contact.priority} (no SMS/voice provider configured)`,
+      `${message.kind} for incident ${message.incidentId}: contact #${contact.priority} (no SMS provider configured)`,
     );
     return Promise.resolve({ status: NotificationStatus.SENT });
   }

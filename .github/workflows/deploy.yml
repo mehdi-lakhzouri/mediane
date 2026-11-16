@@ -161,6 +161,9 @@ jobs:
           MAIL_USER: ${{ secrets.MAIL_USER }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
           MAIL_FROM: ${{ vars.MAIL_FROM }}
+          # Optional: SMS to emergency contacts (empty = deliveries only logged)
+          TEXTBEE_API_KEY: ${{ secrets.TEXTBEE_API_KEY }}
+          TEXTBEE_DEVICE_ID: ${{ vars.TEXTBEE_DEVICE_ID }}
         run: |
           set -euo pipefail
           for name in RG VM APP_DOMAIN API_DOMAIN POSTGRES_PASSWORD JWT_ACCESS_SECRET TOKEN_HASH_SECRET MFA_ENCRYPTION_KEY MAIL_USER MAIL_PASSWORD MAIL_FROM; do
@@ -195,6 +198,8 @@ jobs:
           MAIL_USER=$MAIL_USER
           MAIL_PASSWORD=$MAIL_PASSWORD
           MAIL_FROM="$MAIL_FROM"
+          ${TEXTBEE_API_KEY:+TEXTBEE_API_KEY=$TEXTBEE_API_KEY}
+          ${TEXTBEE_DEVICE_ID:+TEXTBEE_DEVICE_ID=$TEXTBEE_DEVICE_ID}
           STORAGE_DRIVER=local
           STORAGE_LOCAL_IN_PRODUCTION=true
           SAFETY_WORKER_ENABLED=true

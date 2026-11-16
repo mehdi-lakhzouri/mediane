@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { smsConfig, type SmsConfig } from '../../config';
 import { AuditModule } from '../audit/audit.module';
 import { DevicesModule } from '../devices/devices.module';
 import { MailModule } from '../mail/mail.module';
@@ -25,9 +26,14 @@ import { LoggingContactChannel } from './infrastructure/logging-contact.channel'
 import { PrismaIncidentRepository } from './infrastructure/prisma-incident.repository';
 import { PrismaMedicalEventRepository } from './infrastructure/prisma-medical-event.repository';
 import { PrismaSafetyDirectory } from './infrastructure/prisma-safety.directory';
+import { TextbeeSmsChannel } from './infrastructure/textbee-sms.channel';
 import { DeviceSafetyController } from './presentation/device-safety.controller';
 import { AiGatewayController } from './presentation/ai-gateway.controller';
 import { AiGatewayService } from './application/ai-gateway.service';
+import { AdminIncidentQueryService } from './application/admin-incident-query.service';
+import { AdminIncidentRepository } from './domain/admin-incident.repository';
+import { PrismaAdminIncidentRepository } from './infrastructure/prisma-admin-incident.repository';
+import { AdminIncidentsController } from './presentation/admin-incidents.controller';
 import { SafetyController } from './presentation/safety.controller';
 
 /**
@@ -37,8 +43,18 @@ import { SafetyController } from './presentation/safety.controller';
  */
 @Module({
   imports: [DevicesModule, AuditModule, MailModule, NotificationsModule],
-  controllers: [SafetyController, DeviceSafetyController, AiGatewayController],
+  controllers: [
+    SafetyController,
+    DeviceSafetyController,
+    AiGatewayController,
+    AdminIncidentsController,
+  ],
   providers: [
+    AdminIncidentQueryService,
+    {
+      provide: AdminIncidentRepository,
+      useClass: PrismaAdminIncidentRepository,
+    },
     AiGatewayService,
     EventIngestionService,
     IncidentResponseService,
@@ -51,8 +67,15 @@ import { SafetyController } from './presentation/safety.controller';
     { provide: MedicalEventRepository, useClass: PrismaMedicalEventRepository },
     { provide: IncidentRepository, useClass: PrismaIncidentRepository },
     { provide: SafetyDirectory, useClass: PrismaSafetyDirectory },
-    // Swap for an SMS or voice provider without touching escalation.
-    { provide: EmergencyContactChannel, useClass: LoggingContactChannel },
+    // SMS through textbee.dev when an API key is configured, else logged only.
+    {
+      provide: EmergencyContactChannel,
+      inject: [smsConfig.KEY],
+      useFactory: (sms: SmsConfig): EmergencyContactChannel =>
+        sms.textbee
+          ? new TextbeeSmsChannel(sms.textbee)
+          : new LoggingContactChannel(),
+    },
     { provide: FamilyAlertChannel, useClass: EmailFamilyChannel },
   ],
   exports: [

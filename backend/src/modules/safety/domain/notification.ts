@@ -50,7 +50,7 @@ export type NotificationRecord = NotificationAttempt & { id: string };
 
 /** Everyone to reach for a driver's incident. */
 export interface IncidentRecipients {
-  driver: { firstName: string; lastName: string };
+  driver: { firstName: string; lastName: string; phoneNumber?: string | null };
   /** Ordered by priority, 1 first. */
   contacts: readonly {
     fullName: string;
@@ -70,7 +70,11 @@ export interface IncidentRecipients {
 export interface EmergencyMessage {
   kind: NotificationKind;
   incidentId: string;
-  driver: { firstName: string; lastName: string };
+  driver: { firstName: string; lastName: string; phoneNumber?: string | null };
+  /** Operational reason only; never a model prediction or diagnosis. */
+  alertReason?: 'SOS' | 'NO_RESPONSE';
+  /** A recorded driver answer differs from automatic or unknown closure. */
+  resolvedVia?: 'APP' | 'DEVICE' | 'SYSTEM' | null;
   /** Only for alerts, and only when the unit reported one. */
   location: GeoPoint | null;
   occurredAt: Date;
@@ -82,8 +86,8 @@ export interface DeliveryResult {
 }
 
 /**
- * Port for reaching emergency contacts (phone numbers, no account). Logs for
- * now; an SMS or voice provider plugs in here without touching escalation.
+ * Port for reaching emergency contacts (phone numbers, no account): SMS via
+ * textbee.dev when configured, otherwise only logged.
  * Implementations must never log names, numbers, locations or medical data.
  */
 export abstract class EmergencyContactChannel {

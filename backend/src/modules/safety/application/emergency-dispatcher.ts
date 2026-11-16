@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { NotificationsService } from '../../notifications/application/notifications.service';
 import { type IncidentRecord, IncidentTimelineKind } from '../domain/incident';
+import { MedicalEventType } from '../domain/safety';
 import {
   type DeliveryResult,
   EmergencyContactChannel,
@@ -48,6 +49,12 @@ export class EmergencyDispatcher {
       kind,
       incidentId: incident.id,
       driver: everyone.driver,
+      alertReason:
+        kind === NotificationKind.ALERT
+          ? await this.alertReason(incident)
+          : undefined,
+      resolvedVia:
+        kind === NotificationKind.ALL_CLEAR ? incident.resolvedVia : undefined,
       location: kind === NotificationKind.ALERT ? incident.location : null,
       occurredAt:
         (kind === NotificationKind.ALERT
@@ -110,6 +117,24 @@ export class EmergencyDispatcher {
       this.logger.warn(
         `Incident ${incident.id}: ${failed} of ${attempts.length} ${kind} deliveries failed`,
       );
+    }
+  }
+
+  private async alertReason(
+    incident: IncidentRecord,
+  ): Promise<EmergencyMessage['alertReason']> {
+    if (incident.triggerType === MedicalEventType.SOS) return 'SOS';
+    try {
+      const timeline = await this.incidents.listTimeline(incident.id);
+      const escalation = [...timeline]
+        .reverse()
+        .find((entry) => entry.kind === IncidentTimelineKind.ESCALATED);
+      const reason = escalation?.detail?.reason;
+      // An SOS can escalate an existing medical incident without changing triggerType.
+      return reason === 'SOS' || reason === 'NO_RESPONSE' ? reason : undefined;
+    } catch {
+      // Optional wording must not prevent delivery of an urgent alert.
+      return undefined;
     }
   }
 
