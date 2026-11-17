@@ -83,7 +83,7 @@ the Python configuration does not create or change that association.
 One-time PowerShell setup (from this directory):
 
 ```powershell
-.\.venv\Scripts\python.exe -m gateway.configure --api https://api.vunlera.tn/api/v1 --serial CG-AI-DEMO --driver driver@example.com
+.\.venv\Scripts\python.exe -m gateway.configure --api https://api.example.com/api/v1 --serial CG-AI-DEMO --driver driver@example.com
 ```
 
 Enter the unit's signing secret at the hidden prompt. The command checks that the
@@ -104,7 +104,7 @@ replay process is needed. Only actual alarm episodes are sent, independently for
 detector; repeating Play starts fresh episodes. Raw signal samples and normal model
 windows stay in the research dashboard.
 
-Open `https://app.vunlera.tn/dashboard/health` as an administrator to see the paired
+Open `https://mediane.example.com/dashboard/health` as an administrator to see the paired
 unit's runtime status. Open the mobile app as the paired driver to see the latest
 event and history (the home screen refreshes every 15 seconds). The administrator
 view remains operational status only; it does not expose medical predictions.

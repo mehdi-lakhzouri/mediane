@@ -1,5 +1,5 @@
 /// Links meant for the app are published under `/mobile` on the web domain
-/// (Android App Links), e.g. `https://app.vunlera.tn/mobile/accept-invitation`.
+/// (Android App Links), e.g. `https://mediane.example.com/mobile/accept-invitation`.
 /// The web console owns every other path there.
 const appLinkPrefix = '/mobile';
 

@@ -39,7 +39,7 @@ class DashboardGatewayTests(unittest.IsolatedAsyncioTestCase):
             self.messages.append(message)
 
         self.gateway = DashboardGateway(
-            {'api': 'https://api.vunlera.tn/api/v1', 'serial': 'CG-DEMO',
+            {'api': 'https://api.example.com/api/v1', 'serial': 'CG-DEMO',
              'associationId': 'pair-a', 'secret': 'never-in-browser'}, notify,
             client=self.client, outbox=self.box,
             manifest={model: {'sha256': 'a' * 64} for model in ('Cardiac', 'Seizure', 'Stroke')},

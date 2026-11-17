@@ -289,7 +289,7 @@ void main() {
       final container = await pumpCabinGuard(tester, backend: backend);
       await openFamilyTab(tester);
 
-      // https://app.vunlera.tn/mobile/join-family#K7M4-QX9P, as Android
+      // https://mediane.example.com/mobile/join-family#K7M4-QX9P, as Android
       // hands it to the app.
       container.read(appRouterProvider).go('/mobile/join-family#K7M4-QX9P');
       await tester.pumpAndSettle();

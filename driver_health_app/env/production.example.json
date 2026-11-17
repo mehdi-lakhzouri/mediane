@@ -1,4 +1,4 @@
 {
   "APP_ENV": "production",
-  "API_BASE_URL": "https://api.vunlera.tn/api/v1"
+  "API_BASE_URL": "https://api.example.com/api/v1"
 }

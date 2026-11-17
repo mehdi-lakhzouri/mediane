@@ -7,11 +7,11 @@ name: Containers
 # repository is private and switch on by themselves once it is public.
 #
 # Verify a published image:
-#   cosign verify ghcr.io/hajer-s-org/cabinguard-backend@sha256:<digest> \
-#     --certificate-identity-regexp '^https://github.com/hajer-s-org/EMBs-x-VTS-CabinGuard-ADI/' \
+#   cosign verify ghcr.io/mehdi-lakhzouri/cabinguard-backend@sha256:<digest> \
+#     --certificate-identity-regexp '^https://github.com/mehdi-lakhzouri/mediane/' \
 #     --certificate-oidc-issuer https://token.actions.githubusercontent.com
-#   gh attestation verify oci://ghcr.io/hajer-s-org/cabinguard-backend@sha256:<digest> \
-#     -R hajer-s-org/EMBs-x-VTS-CabinGuard-ADI
+#   gh attestation verify oci://ghcr.io/mehdi-lakhzouri/cabinguard-backend@sha256:<digest> \
+#     -R mehdi-lakhzouri/mediane
 
 on:
   pull_request:
@@ -227,18 +227,6 @@ jobs:
             echo "- SLSA build provenance attestation: verified"
             echo "- SPDX SBOM attestation: verified"
           } >> "$GITHUB_STEP_SUMMARY"
-
-  deploy:
-    name: Deploy to production
-    # Off by default: a person starts deploy.yml. AUTO_DEPLOY=true deploys
-    # every green build of main.
-    needs: image
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AUTO_DEPLOY == 'true'
-    permissions:
-      contents: read
-      packages: read
-      id-token: write
-    uses: ./.github/workflows/deploy.yml
 
   rescan:
     # A CVE disclosed after the build is invisible to the build-time scan:

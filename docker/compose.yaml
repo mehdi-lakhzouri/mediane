@@ -50,5 +50,5 @@ volumes:
 
 networks:
   embs-network:
-    name: EMBs-x-VTS-CabinGuard-ADI
+    name: mediane
     driver: bridge

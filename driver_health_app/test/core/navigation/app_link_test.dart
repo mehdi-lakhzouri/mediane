@@ -25,7 +25,7 @@ void main() {
       expect(
         appLinkLocation(
           Uri.parse(
-            'https://app.vunlera.tn/mobile/accept-invitation#token=abc',
+            'https://mediane.example.com/mobile/accept-invitation#token=abc',
           ),
         ),
         '/accept-invitation#token=abc',

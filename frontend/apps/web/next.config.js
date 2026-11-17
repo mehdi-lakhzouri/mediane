@@ -2,10 +2,37 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { PHASE_DEVELOPMENT_SERVER } from "next/constants.js";
 
-// The only other origin the browser talks to (inlined at build time, like the client).
-const apiOrigin = new URL(
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api/v1",
-).origin;
+// On Vercel the browser stays on this origin; an external rewrite reaches the VPS.
+// Direct API origins remain supported for local development.
+const apiBaseUrl =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api/v1";
+const sameOriginApi = apiBaseUrl === "/api/v1";
+const apiOrigin = sameOriginApi ? "" : new URL(apiBaseUrl).origin;
+const proxyTarget = process.env.API_PROXY_TARGET?.replace(/\/$/, "");
+
+if (sameOriginApi && !proxyTarget) {
+  throw new Error(
+    "API_PROXY_TARGET is required when NEXT_PUBLIC_API_BASE_URL=/api/v1",
+  );
+}
+if (proxyTarget) {
+  const target = new URL(proxyTarget);
+  if (
+    !["http:", "https:"].includes(target.protocol) ||
+    target.username ||
+    target.password ||
+    target.search ||
+    target.hash ||
+    target.pathname !== "/"
+  ) {
+    throw new Error(
+      "API_PROXY_TARGET must be an HTTP(S) origin without a path or credentials",
+    );
+  }
+  if (process.env.VERCEL && target.protocol !== "https:") {
+    throw new Error("API_PROXY_TARGET must use HTTPS on Vercel");
+  }
+}
 
 /**
  * 'unsafe-inline' scripts: Next.js streams per-page inline scripts (RSC
@@ -22,7 +49,7 @@ function securityHeaders(isDev) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self'",
-    `connect-src 'self' ${apiOrigin}${isDev ? " ws: wss:" : ""}`,
+    `connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ""}${isDev ? " ws: wss:" : ""}`,
     "media-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
@@ -67,8 +94,21 @@ export default function nextConfig(phase) {
       // Nudge coding agents about security upgrades for this app.
       agentUpgrade: "security",
     },
+    async rewrites() {
+      return sameOriginApi
+        ? [
+            {
+              source: "/api/v1/:path*",
+              destination: `${proxyTarget}/api/v1/:path*`,
+            },
+          ]
+        : [];
+    },
     async headers() {
-      return [{ source: "/:path*", headers: securityHeaders(isDev) }];
+      // Let NestJS own API headers, including its file content/security headers.
+      return [
+        { source: "/((?!api/v1(?:/|$)).*)", headers: securityHeaders(isDev) },
+      ];
     },
   };
 }

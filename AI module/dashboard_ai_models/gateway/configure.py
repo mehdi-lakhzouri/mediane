@@ -10,7 +10,7 @@ from .dashboard import CONFIG_PATH
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--api', default='https://api.vunlera.tn/api/v1')
+    parser.add_argument('--api', required=True, help='HTTPS API base URL, including /api/v1')
     parser.add_argument('--serial', required=True)
     parser.add_argument('--driver', help='Operator label for the already-paired driver; does not change pairing')
     args = parser.parse_args()

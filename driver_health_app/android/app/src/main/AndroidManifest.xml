@@ -33,7 +33,7 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Android App Links: https://app.vunlera.tn/mobile/... opens the
+            <!-- Android App Links: https://mediane.example.com/mobile/... opens the
                  app directly; the site proves ownership in
                  /.well-known/assetlinks.json (package + signing certificate).
                  Without the app, the same URL shows a page that hands over. -->
@@ -47,15 +47,15 @@
                     android:name="android.intent.category.BROWSABLE"/>
                 <data
                     android:scheme="https"
-                    android:host="app.vunlera.tn"
+                    android:host="${appLinkHost}"
                     android:pathPrefix="/mobile/accept-invitation"/>
                 <data
                     android:scheme="https"
-                    android:host="app.vunlera.tn"
+                    android:host="${appLinkHost}"
                     android:pathPrefix="/mobile/join-family"/>
                 <data
                     android:scheme="https"
-                    android:host="app.vunlera.tn"
+                    android:host="${appLinkHost}"
                     android:pathPrefix="/mobile/reset-password"/>
             </intent-filter>
             <intent-filter>

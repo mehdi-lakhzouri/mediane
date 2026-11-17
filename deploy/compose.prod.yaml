@@ -1,8 +1,6 @@
-# CabinGuard production stack, on one VM. Deployed by .github/workflows/deploy.yml
-# through deploy/deploy.sh into /opt/cabinguard; never edited by hand there.
-#
-#   .env          application configuration and secrets (written by the deploy, mode 600)
-#   release.env   image references pinned by digest (what was scanned and signed)
+# Mediane backend stack on the VPS. The frontend is deployed separately on Vercel.
+# Run deploy/deploy.sh from a checkout with deploy/.env configured (mode 600).
+# Image references are configured in .env; prefer immutable sha-* tags or digests.
 #
 # Only Caddy publishes ports. PostgreSQL sits on an internal network with no
 # route out; the API reaches it there and reaches the Internet (SMTP) through
@@ -27,7 +25,6 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      APP_DOMAIN: ${APP_DOMAIN:?}
       API_DOMAIN: ${API_DOMAIN:?}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
@@ -36,7 +33,6 @@ services:
     networks: [edge]
     depends_on:
       api: { condition: service_healthy }
-      web: { condition: service_healthy }
 
   postgres:
     image: postgres:18.6@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
@@ -82,11 +78,6 @@ services:
     networks: [edge, data]
     depends_on:
       postgres: { condition: service_healthy }
-
-  web:
-    <<: *hardened
-    image: ${WEB_IMAGE:?}
-    networks: [edge]
 
 volumes:
   postgres-data:

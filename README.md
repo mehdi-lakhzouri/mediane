@@ -292,7 +292,7 @@ flowchart TB
     subgraph PUB["On push to main or a v* tag"]
         push["Trivy scan, then push to GHCR<br/>SBOM + SLSA provenance<br/>Cosign signature + attestations ¹, verified"]
     end
-    main --> push --> ghcr[("ghcr.io/hajer-s-org/cabinguard-*")]
+    main --> push --> ghcr[("ghcr.io/mehdi-lakhzouri/cabinguard-*")]
 
     subgraph CRON["Scheduled (UTC)"]
         dast["<b>02:00 daily</b> · dast.yml<br/>OWASP ZAP daemon vs the production images"]
@@ -357,11 +357,11 @@ docker buildx imagetools inspect node:24-trixie-slim --format '{{json .Manifest.
 ### Verifying a published image
 
 ```bash
-cosign verify ghcr.io/hajer-s-org/cabinguard-backend@sha256:<digest> \
-  --certificate-identity-regexp '^https://github.com/hajer-s-org/EMBs-x-VTS-CabinGuard-ADI/' \
+cosign verify ghcr.io/mehdi-lakhzouri/cabinguard-backend@sha256:<digest> \
+  --certificate-identity-regexp '^https://github.com/mehdi-lakhzouri/mediane/' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
-gh attestation verify oci://ghcr.io/hajer-s-org/cabinguard-backend@sha256:<digest> \
-  -R hajer-s-org/EMBs-x-VTS-CabinGuard-ADI
+gh attestation verify oci://ghcr.io/mehdi-lakhzouri/cabinguard-backend@sha256:<digest> \
+  -R mehdi-lakhzouri/mediane
 ```
 
 ### Running it locally
@@ -394,103 +394,22 @@ pipx install pre-commit   # or: pip install pre-commit
 pre-commit install --install-hooks
 ```
 
-## Environments
-
-| | Local (your PC) | Production (the Azure VM) |
-| --- | --- | --- |
-| Purpose | develop and test | the demo at `https://app.vunlera.tn` |
-| Configuration templates | `backend/.env.example` → `backend/.env`<br>`docker/.env.example` → `docker/.env`<br>`frontend/apps/web/.env.example` → `.env.local`<br>`driver_health_app/env/dev-lan.example.json` | `deploy/production.env.example` (reference only)<br>`driver_health_app/env/production.example.json` |
-| Who writes the real file | you, by copying the template | the deploy workflow, from the GitHub environment `production`, into `/opt/cabinguard/.env` (mode 600) |
-| Where the secrets live | your `.env` files (gitignored) | GitHub environment secrets; never in the repository or on your PC |
-| How it runs | `docker compose` for PostgreSQL and Redis, then `npm run start:dev` and `pnpm dev` | containers from GHCR, pinned by digest, behind Caddy (`deploy/compose.prod.yaml`) |
-| URLs | `http://localhost:3000`, `http://localhost:4000/api/v1` | `https://app.vunlera.tn`, `https://api.vunlera.tn/api/v1` |
-| `NODE_ENV` | `development` (Swagger on, plain HTTP allowed) | `production` (HTTPS only, Secure cookies, Swagger refused) |
-| Photos | `backend/uploads` | Docker volume `uploads` on the VM |
-| Mail | your SMTP settings, or a local catcher | Gmail SMTP with an app password |
-
-Run the production stack itself on your PC before deploying: build the three images, then follow *Running it locally* in the pipeline section above.
-
 ## Production deployment
 
-The demo runs on one Azure VM (Ubuntu 24.04, Standard B2ls_v2) behind `app.vunlera.tn` (console) and `api.vunlera.tn` (API). `.github/workflows/deploy.yml` delivers the images that `containers.yml` built, scanned and published, pinned by digest.
+The frontend runs on Vercel and the NestJS API, PostgreSQL and uploads run on the VPS
+at `197.5.133.38`, behind Caddy. The browser uses `/api/v1` on the Vercel origin;
+Next.js forwards those requests to the VPS, keeping session cookies first-party.
+The mobile app and in-cabin gateway use the VPS HTTPS API directly.
 
-```mermaid
-flowchart LR
-    gh["deploy.yml<br/>(GitHub Actions)"] -->|"OIDC, no stored Azure secret"| az["Azure"]
-    az -->|"Run Command, no SSH"| vm
-    subgraph vm["VM: only ports 80 and 443 open"]
-        caddy["Caddy<br/>Let's Encrypt TLS, HTTP to HTTPS"] --> web["web"]
-        caddy --> api["api"]
-        api --> pg[("PostgreSQL<br/>internal network")]
-        api --> up[("uploads volume")]
-    end
-    users(["Browsers and the mobile app"]) -->|HTTPS| caddy
-```
+Follow [the Vercel + VPS deployment plan](docs/DEPLOYMENT_VERCEL_VPS.md) for the exact
+Vercel settings, server commands, data transfer, device connection and checks.
+`deploy/production.env.example` is the backend configuration template;
+`bash deploy/deploy.sh` pulls the selected images, migrates the database and starts
+the backend. There is no cloud-provider deployment workflow on this branch.
 
-`deploy/deploy.sh` runs on the VM: it writes the configuration (mode 600), pulls the images by digest with the job's short-lived token, applies the database migrations, starts the release, checks `https://api…/api/v1/health` and `https://app…/sign-in` through Caddy, and **restarts the previous release automatically** if the new one is not healthy. The `verify` job then checks TLS, the HTTP redirect and the security headers from outside.
-
-Migrations only move forward: a rollback restarts the previous images, not the previous schema, so keep migrations compatible with the version before them.
-
-### Configuration
-
-Environment `production` (Settings › Environments; deployments from `main` only):
-
-| Kind | Name | Value |
-| --- | --- | --- |
-| Variable | `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` | the deployment identity: a user-assigned managed identity with the role *Virtual Machine Contributor* on the VM only, and a federated credential whose subject is the organisation's immutable form, `repo:hajer-s-org@344101369/EMBs-x-VTS-CabinGuard-ADI@1365926680:environment:production` (issuer `https://token.actions.githubusercontent.com`, audience `api://AzureADTokenExchange`) |
-| Variable | `AZURE_RESOURCE_GROUP`, `AZURE_VM_NAME` | `rg-cabinguard-prod`, `vm-cabinguard-prod` |
-| Variable | `APP_DOMAIN`, `API_DOMAIN` | `app.vunlera.tn`, `api.vunlera.tn` |
-| Variable | `MAIL_FROM` | `CabinGuard <address@gmail.com>` |
-| Secret | `POSTGRES_PASSWORD` | `openssl rand -hex 32` (alphanumeric: it goes into a URL) |
-| Secret | `JWT_ACCESS_SECRET`, `TOKEN_HASH_SECRET` | `openssl rand -base64 48`, two different values |
-| Secret | `MFA_ENCRYPTION_KEY`, `DEVICE_ENCRYPTION_KEY` | `openssl rand -base64 32`; **never change them**: enrolled authenticators and device secrets depend on them |
-| Secret | `MAIL_USER`, `MAIL_PASSWORD` | the Gmail address and an app password |
-
-Repository variable `NEXT_PUBLIC_API_BASE_URL=https://api.vunlera.tn/api/v1`: the web image is built with it, so set it before the build that you deploy.
-
-For this single-server demo the photos are stored on the VM (`STORAGE_LOCAL_IN_PRODUCTION=true`, a Docker volume); there is no database backup. Moving to Cloudflare R2 or Amazon S3 later means setting `STORAGE_DRIVER=s3` and the `S3_*` variables, with no code change.
-
-### Deploying
-
-```bash
-gh workflow run deploy.yml                       # the latest images built from main
-gh workflow run deploy.yml -f version=sha-1a2b3c4  # a given build, e.g. to roll back by hand
-```
-
-Starting the workflow is the approval: required reviewers on an environment need a paid plan for a private organisation repository. With the repository variable `AUTO_DEPLOY=true`, `containers.yml` deploys every green build of `main`.
-
-The first administrator, once (the password is read from stdin, never from the command line):
-
-```bash
-az vm run-command invoke -g rg-cabinguard-prod -n vm-cabinguard-prod --command-id RunShellScript --scripts \
-  "cd /opt/cabinguard && printf '%s' 'CHANGE-ME-long-password' | docker compose --env-file release.env -f compose.prod.yaml run --rm -T api dist/cli.js admin:create --email admin@vunlera.tn --first-name Admin --last-name CabinGuard --password-stdin"
-```
-
-### Links that open the driver app
-
-Administrators work in the web console, drivers only in the mobile app, so their emailed links differ:
-
-| Link | Administrator | Driver |
-| --- | --- | --- |
-| Invitation | `https://app.vunlera.tn/accept-invitation#token=…` (web) | `https://app.vunlera.tn/mobile/accept-invitation#token=…` |
-| Family invite | — | `https://app.vunlera.tn/mobile/join-family#CODE` |
-
-On an Android phone with the app, `/mobile/...` links open the app directly (Android App Links, declared in `AndroidManifest.xml`). Android trusts them because the site publishes `/.well-known/assetlinks.json` with the app's package and the SHA-256 of the certificate that signs the APK. Anywhere else (no app, a computer), the same URL shows a page that hands the link over to the app (`cabinguard://app/...`) and never redeems the token itself.
-
-**When the signing key changes** (another computer's debug key, or a real release key), add its fingerprint to `frontend/apps/web/public/.well-known/assetlinks.json`, otherwise Android shows the hand-over page instead of opening the app:
-
-```bash
-keytool -list -v -keystore <keystore> -alias <alias> | grep SHA256   # or: apksigner verify --print-certs app.apk
-```
-
-### Operating the VM
-
-| Task | Command |
-| --- | --- |
-| Stop (compute billing stops, IP and data kept) | `az vm deallocate -g rg-cabinguard-prod -n vm-cabinguard-prod` |
-| Start (the stack restarts by itself) | `az vm start -g rg-cabinguard-prod -n vm-cabinguard-prod` |
-| Status of the containers | `az vm run-command invoke -g rg-cabinguard-prod -n vm-cabinguard-prod --command-id RunShellScript --scripts "cd /opt/cabinguard && docker compose --env-file release.env -f compose.prod.yaml ps"` |
-| Recent API logs | same, with `logs --tail 100 api` |
+The previous all-in-one deployment is preserved in the Git branch
+`backup/azure-vunlera-2026-11-17`. That branch saves tracked configuration and code;
+production secrets, databases and uploaded files require separate secure backups.
 
 ## Storage and email
 

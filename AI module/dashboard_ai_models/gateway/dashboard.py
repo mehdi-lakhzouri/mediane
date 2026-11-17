@@ -20,8 +20,6 @@ def load_config():
                       ('secret', 'CABINGUARD_DEVICE_SECRET')]:
         if os.environ.get(name):
             config[key] = os.environ[name]
-    if config:
-        config.setdefault('api', 'https://api.vunlera.tn/api/v1')
     return config
 
 

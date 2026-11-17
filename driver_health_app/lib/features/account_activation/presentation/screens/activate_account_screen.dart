@@ -115,7 +115,7 @@ class _ActivateAccountScreenState extends ConsumerState<ActivateAccountScreen> {
               label: 'Invitation link',
               controller: _link,
               hintText:
-                  'https://app.vunlera.tn/mobile/accept-invitation#token=…',
+                  'https://mediane.example.com/mobile/accept-invitation#token=…',
               prefixIcon: Icons.link_rounded,
               keyboardType: TextInputType.url,
               textInputAction: TextInputAction.done,

@@ -49,7 +49,7 @@ class DashboardPlayTests(unittest.IsolatedAsyncioTestCase):
         self.api = DemoApi()
         self.box = Outbox(Path(self.folder.name) / 'queue.sqlite')
         self.module = importlib.import_module('server.app')
-        config = {'api': 'https://api.vunlera.tn/api/v1', 'serial': 'CG-DEMO',
+        config = {'api': 'https://api.example.com/api/v1', 'serial': 'CG-DEMO',
                   'secret': 'private-test-secret', 'associationId': 'pair-a'}
         manifest = {model: {'sha256': 'a' * 64} for model in ('Cardiac', 'Seizure', 'Stroke')}
         self.patches = [

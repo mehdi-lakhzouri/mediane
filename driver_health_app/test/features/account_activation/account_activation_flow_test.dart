@@ -57,7 +57,7 @@ void main() {
   ) async {
     final container = await pumpCabinGuard(tester, backend: backend);
 
-    // https://app.vunlera.tn/mobile/accept-invitation#token=..., as Android
+    // https://mediane.example.com/mobile/accept-invitation#token=..., as Android
     // hands it to the app.
     container
         .read(appRouterProvider)
@@ -104,7 +104,7 @@ void main() {
 
     await tester.enterText(
       field,
-      'https://app.vunlera.tn/mobile/accept-invitation#token=$token',
+      'https://mediane.example.com/mobile/accept-invitation#token=$token',
     );
     await tapVisible(tester, 'Activate account');
     expect(find.text('You’re all set'), findsOneWidget);
