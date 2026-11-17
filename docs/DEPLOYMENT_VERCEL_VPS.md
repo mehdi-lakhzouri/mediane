@@ -150,8 +150,8 @@ Import `mehdi-lakhzouri/mediane` into Vercel and select:
 | Root Directory | `frontend/apps/web` |
 | Include source files outside the Root Directory | Enabled (shared workspace packages) |
 | Node.js | 24.x |
-| Install Command | `cd ../.. && npm exec --yes pnpm@12.4.2 -- install --frozen-lockfile` |
-| Build Command | `cd ../.. && npm exec --yes pnpm@12.4.2 -- exec turbo run build --filter=web` |
+| Install Command | `cd ../.. && pnpm install --frozen-lockfile` |
+| Build Command | `cd ../.. && pnpm exec turbo run build --filter=web` |
 | Output Directory | Next.js default |
 
 Production environment variables:
@@ -201,10 +201,10 @@ clock skew of 300 seconds by default. No MQTT service is required by this integr
 
 For Flutter, copy `driver_health_app/env/production.example.json` to
 `driver_health_app/env/production.json` and replace its API URL. For Android App
-Links, set the stable frontend hostname when building:
+Links, the build uses the Vercel host set in `android/app/build.gradle.kts`
+(override with `-P appLinkHost=...`):
 
 ```powershell
-$env:ORG_GRADLE_PROJECT_appLinkHost = 'YOUR-PROJECT.vercel.app'
 flutter build apk --release --dart-define-from-file=env/production.json
 ```
 
@@ -240,6 +240,19 @@ cd /opt/mediane/deploy
 docker compose --env-file .env -f compose.prod.yaml ps
 docker compose --env-file .env -f compose.prod.yaml logs --tail 100 api caddy
 ```
+
+### Backups
+
+`deploy/backup.sh` dumps PostgreSQL and archives uploads into `/var/backups/mediane`
+(root only, 14 days kept). It runs daily from cron:
+
+```bash
+echo '30 2 * * * root /opt/mediane/deploy/backup.sh' | sudo tee /etc/cron.d/mediane-backup
+```
+
+Run it by hand before each backend deployment. Copy that folder off the VPS regularly,
+together with `deploy/.env`: without its keys, the device and MFA secrets in a dump
+cannot be read. Restore a dump as in step 4.
 
 ## References
 

@@ -16,9 +16,9 @@ android {
 
     defaultConfig {
         applicationId = "com.cabinguard.mobile"
-        // Set ORG_GRADLE_PROJECT_appLinkHost to the stable Vercel production host.
+        // Host of the web console (Vercel). Override with -P appLinkHost=other.host
         manifestPlaceholders["appLinkHost"] =
-            project.findProperty("appLinkHost")?.toString() ?: "mediane.example.com"
+            project.findProperty("appLinkHost")?.toString() ?: "mediane-yb3b-eight.vercel.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 24
