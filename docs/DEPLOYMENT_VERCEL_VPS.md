@@ -241,19 +241,6 @@ docker compose --env-file .env -f compose.prod.yaml ps
 docker compose --env-file .env -f compose.prod.yaml logs --tail 100 api caddy
 ```
 
-### Backups
-
-`deploy/backup.sh` dumps PostgreSQL and archives uploads into `/var/backups/mediane`
-(root only, 14 days kept). It runs daily from cron:
-
-```bash
-echo '30 2 * * * root /opt/mediane/deploy/backup.sh' | sudo tee /etc/cron.d/mediane-backup
-```
-
-Run it by hand before each backend deployment. Copy that folder off the VPS regularly,
-together with `deploy/.env`: without its keys, the device and MFA secrets in a dump
-cannot be read. Restore a dump as in step 4.
-
 ## References
 
 - [Vercel monorepos](https://vercel.com/docs/monorepos)
